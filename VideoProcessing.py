@@ -1,5 +1,5 @@
 '''
-This component constantly polls a camera device,
+This component constantly polls a pygame camera device,
 when a message is received on its input it outputs an image.
 Created on 29/11/2009
 
@@ -8,13 +8,19 @@ Created on 29/11/2009
 import logging
 import numpy
 from Actor import Source, Actor
-import pygame.camera as camera
 
 import logging
 verbose = True
 LOG_FILENAME=None
 logging.basicConfig(filename=LOG_FILENAME,level=logging.DEBUG)
 WIDTH, HEIGHT = 320, 240
+
+
+# This requires a recent pygame with a camera module (1.9.1 or greater)
+import pygame
+import pygame.camera as camera
+logging.info("Pygame Version: %s" % pygame.__version__)
+
 class VideoSnapshot(Source):
     '''
     This actor is an image source,
@@ -22,7 +28,7 @@ class VideoSnapshot(Source):
     single image when requested.
     '''
 
-    def __init__(self, input_queue, output_queue, device=0, max_freq=10, size=(WIDTH, HEIGHT)):
+    def __init__(self, input_queue, output_queue, device=0, max_freq=10, size=(WIDTH, HEIGHT),grey=True):
         """
         Constructor for a VideoSnapshot source.
 
@@ -35,6 +41,10 @@ class VideoSnapshot(Source):
 
         @param max_freq: We won't bother polling faster than this max frequency.
 
+        @param size: A tuple containing the width and height to use for the camera
+        device.
+
+        @param grey: A boolean indicating if the image should be averaged to one channel
         Example useage:
 
             >>> msg = {'tag':1,'value':'go'}
@@ -51,6 +61,7 @@ class VideoSnapshot(Source):
         self.MAX_FREQUENCY = max_freq
         self.device = device
         self.size = size
+        self.grey = grey
         logging.debug("Initializing Video Capture")
         camera.init()
 
@@ -82,12 +93,15 @@ class VideoSnapshot(Source):
 
             surface = self.camera.get_image(self.snapshot)
 
-            #Convert the image to a grayscale numpy array for image processing
-            gray_image = numpy.mean(surfarray.array3d(surface), 2)
+            #Convert the image to a numpy array
+            image = surfarray.array3d(surface)
+            if self.grey:
+                # convert to grayscale numpy array for image processing
+                image = numpy.mean(image, 2)
 
             data = {
                     "tag": tag,
-                    "value": gray_image
+                    "value": image
                     }
 
             self.output_queue.put(data)
