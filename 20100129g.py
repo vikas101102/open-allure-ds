@@ -58,7 +58,7 @@ yellow= (255,255,0)
 See http://gnosis.cx/TPiP/ for tips
 """
 
-filename = "20100129f.txt"
+filename = "20100129g.txt"
 inputs = open(filename).readlines()
 #print inputs
 
@@ -83,9 +83,9 @@ def regroup(strings,string_types):
     on_string = 0
     sequence = []
     question = []
-    answer = []
+    answer   = []
     response = []
-    action = []
+    action   = []
     while on_string < len(strings):
         if string_types[on_string] == "Q": question.append(strings[on_string].rstrip())
         elif string_types[on_string] == "N":
@@ -94,9 +94,9 @@ def regroup(strings,string_types):
                 # add to sequence and reset
                 sequence.append([question, answer, response, action])
                 question = []
-                answer = []
+                answer   = []
                 response = []
-                action = []
+                action   = []
         else:
             # use number to break string into answer and response
             answer.append(strings[on_string][:int(string_types[on_string])].rstrip())
@@ -107,23 +107,26 @@ def regroup(strings,string_types):
             # with additional ;'s or digits (including + and -)
             # IF none found, leave action as 0
             action_value = 0
-            if len(response_string):
-                while response_string[0] == ';':
-                    action_value += 1
-                    response_string = response_string[1:].lstrip()
-                digits = ''
-                while response_string[0].isdigit() or response_string[0] in ['+','-']:
-                    digits += response_string[0]
-                    response_string = response_string[1:].lstrip()
-                if len(digits): action_value = int(digits)
+            while len(response_string) and response_string[0] == ';':
+                action_value += 1
+                response_string = response_string[1:].lstrip()
+            digits = ''
+            while len(response_string) and (response_string[0].isdigit() or response_string[0] in ['+','-']):
+                digits += response_string[0]
+                response_string = response_string[1:].lstrip()
+            if len(digits): action_value = int(digits)
 
             response.append(response_string)
             action.append(action_value)
 
         on_string += 1
+    # append last question if not already signaled by N at end of inputs
+    if len(question): sequence.append([question, answer, response, action])
     return sequence
 
+print classify(inputs)
 sequence = regroup(inputs, classify(inputs))
+print sequence
 
 def speak(phrase):
    #print phrase
@@ -370,9 +373,14 @@ class VideoCapturePlayer(object):
               # Add last problem to stack if moving on
               if next > 0: problems.append(on_problem)
               on_problem = on_problem + next
-              problem = sequence[on_problem]
-              build_problem_text(problem)
-              choice = 0
+              # Quit if advance goes beyond end of sequence
+              if on_problem >= len(sequence):
+                  speak("You have reached the end. Goodbye.")
+                  _quit = 1
+              else:
+                  problem = sequence[on_problem]
+                  build_problem_text(problem)
+                  choice = 0
        else:
            # invalid or final choice
            _quit = 1
