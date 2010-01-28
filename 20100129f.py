@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """
-# D:\Python25\20100127f.py
+# D:\Python25\20100129e.py
+
+20100129d.py dropped into 20100128c.py
+ - implements separate content file with ; ;; syntax
 
 # JG 20100113 Tie selections to keystrokes
 
@@ -28,7 +31,6 @@
 
 - Tracks order of questions visited in stack (list variable name: problems)
 
-TODO: Separate content file using / // syntax
 """
 
 import pkg_resources
@@ -52,90 +54,76 @@ red   = (255,0,0)
 white = (255,255,255)
 yellow= (255,255,0)
 
-sequence = [
-            [["Part one","and two"],
-             ["1","2","Three","Fourth","This also works"],
-             ["Well done. Next one.",
-              "Well done. Next two.",
-              "Well done. Next three.",
-              "Well done. Next four.",
-              "Well done. Next five."],
-             [1,2,3,4,5]],
+"""20100129c.py Parsing of simplified script format
+See http://gnosis.cx/TPiP/ for tips
+"""
 
-            [["This tutor works","both with the keyboard","and with voice recognition.",
-              "Press 1 2 3 etc.","Say one two three","or first second third","or just say your choice.",
-              "For example, pick from these choices:"],
-             ["1","2","Three","Fourth","This also works"],
-             ["Skip 2",
-              "Skip 3",
-              "Skip 4",
-              "Skip 5",
-              "Skip 6"],
-             [2,3,4,5,6]],
+filename = "20100129f.txt"
+inputs = open(filename).readlines()
+#print inputs
 
-            [["What color is the sky","overhead at midday","on a clear and cloudless day?"],
-             ["The sky is Orange",
-              "The sky is Blue",
-              "The sky is White",
-              "The sky is Black"],
-             ["Perhaps at sunset. What about midday? Try again.",
-              "Correct.  Now what causes a blue sky?",
-              "Perhaps near the horizon or on a cloudy day. Try again.",
-              "Black is the correct answer for someone standing where there is no atmosphere. What about on the Earth?"],
-             [0,1,0,0]],
+def classify(strings):
+    """Identify strings which contain new line only
+                              contain ; or ;; markers"""
+    string_types = []
+    for i in strings:
+        if i == "\n": string_types.append("N")
+        else:
+           slash_at = i.find(";")
+           if slash_at > 0: string_types.append(str(slash_at))
+           else: string_types.append("Q")
 
-            [["Is the sky blue","due to"],
-             ["the color of sunlight",
-              "the color of the atmosphere",
-              "how our eyes see colors",
-              "other (dictation)"],
-             ["Yes. Sunlight contains blue light and other colors of light. But what makes the sky appear blue overhead at midday?",
-              "Correct. The air around the Earth is not entirely transparent.",
-              "Yes. Seeing in color is required for the sky to appear blue. But what causes a blue sky?",
-              "OK. What do you think causes the blue color?" ],
-             [0,1,0,99]],
+    return string_types
 
-            [["What happens","when light passes through air?"],
-             ["Nothing. It just passes through.",
-              "It bends.",
-              "It is partially absorbed.",
-              "Something else. (dictation)"
-             ],
-             ["Yes, this lets us see long distances through clear air. But something must happen to cause blue light to come from the sky.",
-              "Close. The light coming from the sun definitely goes in a different direction when it hits the atmosphere, but why is that?",
-              "Correct. The air absorbs and then radiates the blue light.",
-              "OK.  What do you think happens to the light?"
-             ],
-             [0,0,1,99]],
+#print classify(inputs)
 
-              [["What word describes","what happens to the blue light in the sky?"],
-             ["scattering",
-              "reflecting",
-              "refracting",
-              "other (dictation)"],
-             ["Correct. Rayleigh scattering makes the sky blue because the light is first absorbed and then radiated in different directions.",
-              "Reflected light is not absorbed and so it arrives and departs at fixed angles. Try again.",
-              "Refracted light is not absorbed but is bent so it travels at a different, fixed angle.  Try again.",
-              "OK. What word do you think describes what happens to the light?"],
-             [1,0,0,99]],
+def regroup(strings,string_types):
+    """Use string_types to sort strings into Questions,
+                                Answers, Responses and Subsequent Actions"""
+    on_string = 0
+    sequence = []
+    question = []
+    answer = []
+    response = []
+    action = []
+    while on_string < len(strings):
+        if string_types[on_string] == "Q": question.append(strings[on_string].rstrip())
+        elif string_types[on_string] == "N":
+            # signal for end of question IF there are responses
+            if len(response):
+                # add to sequence and reset
+                sequence.append([question, answer, response, action])
+                question = []
+                answer = []
+                response = []
+                action = []
+        else:
+            # use number to break string into answer and response
+            answer.append(strings[on_string][:int(string_types[on_string])].rstrip())
+            # NOTE: +1 means to leave off first ;
+            response_string = strings[on_string][int(string_types[on_string])+1:].strip()
 
-              [["How to do you like this tutor?"],
-             ["A. Great!",
-              "B. OK",
-              "C. Useless ...",
-              "D. Other (dictation)"],
-             ["Cool!",
-              "Your input in appreciated.",
-              "Hmmm. It probably needs improving then.",
-              "OK. Please say briefly how you like this tutor."],
-             [1,1,1,99]],
+            # examine start of response_string to determine if it signals action
+            # with additional ;'s or digits (including + and -)
+            # IF none found, leave action as 0
+            action_value = 0
+            if len(response_string):
+                while response_string[0] == ';':
+                    action_value += 1
+                    response_string = response_string[1:].lstrip()
+                digits = ''
+                while response_string[0].isdigit() or response_string[0] in ['+','-']:
+                    digits += response_string[0]
+                    response_string = response_string[1:].lstrip()
+                if len(digits): action_value = int(digits)
 
-            [["Thank you","for trying this lesson.","\n\nYou can learn more at http://","www.sciencemadesimple.com\n","/sky_blue.html"],
-             ["Press Escape to Exit"],
-             [],
-             []]
+            response.append(response_string)
+            action.append(action_value)
 
-           ]
+        on_string += 1
+    return sequence
+
+sequence = regroup(inputs, classify(inputs))
 
 def speak(phrase):
    #print phrase
@@ -160,7 +148,7 @@ def build_problem_text(problem):
       problem_text.append(problem_text[on_answer] + "\n" + i)
       on_answer += 1
    choices = on_answer
-   speak(str(choices) + " found")
+#   speak(str(choices) + " found")
 
    # build just question in pieces (if any)
    just_question_text = [""]
@@ -467,50 +455,32 @@ class VideoCapturePlayer(object):
            if VideoCapturePlayer.box1_set:
               VideoCapturePlayer.box1_set=0
               action_pending = 1
-              action = Key("1")
-              print "Key 1 pressed"
-              action.execute()
-              release.execute()
+              choice = 1
 
            if VideoCapturePlayer.box2_set:
               VideoCapturePlayer.box2_set=0
               action_pending = 1
-              action = Key("2")
-              print "Key 2 pressed"
-              action.execute()
-              release.execute()
+              choice = 2
 
            if VideoCapturePlayer.box3_set:
               VideoCapturePlayer.box3_set=0
               action_pending = 1
-              action = Key("3")
-              print "Key 3 pressed"
-              action.execute()
-              release.execute()
+              choice = 3
 
            if VideoCapturePlayer.box4_set:
               VideoCapturePlayer.box4_set=0
               action_pending = 1
-              action = Key("4")
-              print "Key 4 pressed"
-              action.execute()
-              release.execute()
+              choice = 4
 
            if VideoCapturePlayer.box5_set:
               VideoCapturePlayer.box5_set=0
               action_pending = 1
-              action = Key("5")
-              print "Key 5 pressed"
-              action.execute()
-              release.execute()
+              choice = 5
 
            if VideoCapturePlayer.box6_set:
               VideoCapturePlayer.box6_set=0
               action_pending = 1
-              action = Key("6")
-              print "Key 6 pressed"
-              action.execute()
-              release.execute()
+              choice = 6
 
    def main(self):
        global _stated, choice, _quit
@@ -576,6 +546,14 @@ class SpeakRule(CompoundRule):
                 #check against ordinal words
                 on_answer = 0
                 for i in ["first","second","third","fourth","fifth","sixth"]:
+                    on_answer += 1
+                    if answer1 == i:
+                       choice = on_answer
+                       match = 1
+            if not match:
+                #check against letter words
+                on_answer = 0
+                for i in ["A.","B.","C.","D.","E.","F."]:
                     on_answer += 1
                     if answer1 == i:
                        choice = on_answer

@@ -3,7 +3,7 @@ overhead at midday
 on a clear and cloudless day?
 
 The sky is Orange ; Perhaps at sunset. What about midday? Try again.
-The sky is Blue ;; Correct.  Now what causes a blue sky?
+The sky is Blue ;1 Correct.  Now what causes a blue sky?
 The sky is White ; Perhaps near the horizon or on a cloudy day. Try again.
 The sky is Black ; Black is the correct answer for someone standing where there is no atmosphere. What about on the Earth?
 
@@ -12,7 +12,7 @@ Is the sky blue
 due to
 
 the color of sunlight ; Yes. Sunlight contains blue light and other colors of light. But what makes the sky appear blue overhead at midday?
-the color of the atmosphere ;; Correct. The air around the Earth is not entirely transparent.
+the color of the atmosphere ;-1 Correct. The air around the Earth is not entirely transparent.
 how our eyes see colors ; Yes. Seeing in color is required for the sky to appear blue. But what causes a blue sky?
 
 
