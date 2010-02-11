@@ -1,6 +1,7 @@
 # Sphinx inventory version 1
 # Project: pyPong
 # Version: 0.1d0
+utils mod modules/utils.html
 game mod modules/game.html
 video mod modules/video.html
 pyPong mod modules/pyPong.html
@@ -25,6 +26,7 @@ video.VideoCapturePlayer class modules/video.html
 gesture.Gesture.countWhitePixels method modules/gesture.html
 game.Game class modules/game.html
 video.GreenScreen class modules/video.html
+utils.initFromArgs function modules/utils.html
 game.Game.Spritesheet.imgsat method modules/game.html
 game.Game.Ball.move method modules/game.html
 video.GreenScreen.threshold method modules/video.html
