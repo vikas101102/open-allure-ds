@@ -8,7 +8,11 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-class VideoCapturePlayer(object):
+import logging
+import pygame
+
+
+class VideoCapturePlayer( object ):
     """
     A VideoCapturePlayer object is an encapsulation of
     the processing and display of a video stream.
@@ -27,25 +31,26 @@ class VideoCapturePlayer(object):
     This class uses the pygame.camera module.
     """
 
-    def __init__(self, processFunction=None,
-                       display        =None,
-                       show           =True, **argd):
-        import logging
-        import pygame
-        import utils
+    def __init__( self, processFunction=None,
+                       display=None,
+                       show=True, **argd ):
 
-        logging.debug("Initializing Video Capture Class")
+        logging.debug( "Initializing Video Capture Class" )
+
+        #set display size in pixels = width,height
+        size = ( 640, 480 )
+
+        # Not sure why we resort to tricks here
+        #utils.initFromArgs( self )
+        self.__dict__.update( argd )
+        del kw
+        self.__dict__.update( locals() )
+        del self.self
 
         processRuns = 0
 
-        #set display size in pixels = width,height
-        size                        =   640,480
 
-        utils.initFromArgs(self)
 
-        #print self.__dict__.items()
-
-        #super(VideoCapturePlayer, self).__init__(**argd)
 
         if self.display is None:
             if self.show is True:
@@ -53,7 +58,7 @@ class VideoCapturePlayer(object):
                 self.display = pygame.display.set_mode( self.size, 0 )
             else:
                 pygame.display.init()
-                self.display = pygame.surface.Surface(self.size)
+                self.display = pygame.surface.Surface( self.size )
 
         import pygame.camera as camera
         camera.init()
@@ -61,19 +66,19 @@ class VideoCapturePlayer(object):
         # get a list of available cameras.
         self.cameraList = camera.list_cameras()
         if not self.cameraList:
-            raise ValueError("Sorry, no cameras detected.")
+            raise ValueError( "Sorry, no cameras detected." )
 
-        logging.info(" Opening device %s, with video size (%s,%s)" % (self.cameraList[0],self.size[0],self.size[1]))
+        logging.info( " Opening device %s, with video size (%s,%s)" % ( self.cameraList[0], self.size[0], self.size[1] ) )
 
         # create and start the camera of the specified size in RGB colorspace
-        self.camera = camera.Camera(self.cameraList[0], self.size, "RGB")
+        self.camera = camera.Camera( self.cameraList[0], self.size, "RGB" )
         self.camera.start()
 
         self.processClock = self.clock = pygame.time.Clock()
 
         # create a surface to capture to.  for performance purposes, you want the
         # bit depth to be the same as that of the display surface.
-        self.snapshot = pygame.surface.Surface(self.size, 0, self.display)
+        self.snapshot = pygame.surface.Surface( self.size, 0, self.display )
 
         # Explore namespace now:
 
@@ -115,18 +120,17 @@ class VideoCapturePlayer(object):
            ('size', (640, 480)),
         """
 
-    def get_and_flip(self, show=True):
+    def get_and_flip( self, show=True ):
         """
         Use webcam to take a snapshot, flip it right-to-left, subtract the background (green screen) and then display it.
         """
-        import pygame
 
         # Capture an image
-        self.snapshot = self.camera.get_image(self.snapshot)
+        self.snapshot = self.camera.get_image( self.snapshot )
 
         # Flip array version of image around the y axis.
-        ar = pygame.PixelArray(self.snapshot)
-        ar[:] = ar[::-1,:]
+        ar = pygame.PixelArray( self.snapshot )
+        ar[:] = ar[::-1, :]
         del ar
 
         if self.processFunction:
@@ -134,48 +138,47 @@ class VideoCapturePlayer(object):
             if self.processRuns > 5 and self.processClock.get_fps() < 2:
                 # If function is really slow, take a few frames.
                 # Flush the camera buffer to get a new image...
-                for i in range(5):
+                for i in range( 5 ):
                     # Capture an image
-                    self.snapshot = self.camera.get_image(self.snapshot)
+                    self.snapshot = self.camera.get_image( self.snapshot )
 
                 # Flip array version of image around the y axis.
-                ar = pygame.PixelArray(self.snapshot)
-                ar[:] = ar[::-1,:]
+                ar = pygame.PixelArray( self.snapshot )
+                ar[:] = ar[::-1, :]
                 del ar
 
             #apply green screen process
-            processedShot = self.processFunction(self.snapshot)
+            processedShot = self.processFunction( self.snapshot )
 
-            if isinstance(processedShot,pygame.Surface):
+            if isinstance( processedShot, pygame.Surface ):
                 self.snapshot = processedShot
 
             self.processRuns += 1
 
         if show is True:
             # blit it to the display surface.  simple!
-            self.display.blit(self.snapshot, (0,0))
+            self.display.blit( self.snapshot, ( 0, 0 ) )
             pygame.display.flip()
 
         return self.snapshot
 
 class GreenScreen():
     """Process to capture average background image and subtract from snapshot image"""
-    def __init__(self):
-        self.calibrated  = False
+    def __init__( self ):
+        self.calibrated = False
         self.backgrounds = []
 
-    def calibration(self, snapshot):
+    def calibration( self, snapshot ):
         """Capture 30 background images and average them out."""
-        import pygame
-        if len(self.backgrounds) < 30:
-            self.backgrounds.append(snapshot)
+        if len( self.backgrounds ) < 30:
+            self.backgrounds.append( snapshot )
         else:
             # Average them out to remove noise, and save as background
-            self.background = pygame.transform.average_surfaces(self.backgrounds)
+            self.background = pygame.transform.average_surfaces( self.backgrounds )
             self.calibrated = True
             return self.background
 
-    def threshold(self, snapshot):
+    def threshold( self, snapshot ):
         """
         Finds which pixels are beyond a threshold of the average background and makes them white.
 
@@ -227,24 +230,23 @@ class GreenScreen():
 
         From http://www.pygame.org/docs/ref/transform.html#pygame.transform.threshold
         """
-        import pygame
         snapshotMinusBackground = snapshot.copy()
         threshold_value = 40        # How close to the existing colour must each point be?
-        pygame.transform.threshold(snapshotMinusBackground,
+        pygame.transform.threshold( snapshotMinusBackground,
                                    snapshot,
-                                   (0,0,0),
-                                   [threshold_value]*3 ,
-                                   (255,255,255),
+                                   ( 0, 0, 0 ),
+                                   [threshold_value] * 3 ,
+                                   ( 255, 255, 255 ),
                                    1,
-                                   self.background)
+                                   self.background )
         # Median filter would be good here to remove salt + pepper noise...
         return snapshotMinusBackground
 
-    def process(self, snapshot):
+    def process( self, snapshot ):
         """
         Toggles between returning calibration image and processed (green screen) image.
         """
         if not self.calibrated:
-            return self.calibration(snapshot)
+            return self.calibration( snapshot )
         else:
-            return self.threshold(snapshot)
+            return self.threshold( snapshot )
