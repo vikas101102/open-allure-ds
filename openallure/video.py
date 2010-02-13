@@ -43,7 +43,7 @@ class VideoCapturePlayer( object ):
         # Not sure why we resort to tricks here
         #utils.initFromArgs( self )
         self.__dict__.update( argd )
-        del kw
+        del argd
         self.__dict__.update( locals() )
         del self.self
 
