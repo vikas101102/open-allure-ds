@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>utils &mdash; OpenAllure v0.1d0 documentation</title>
+    <title>utils &mdash; OpenAllure v0.1d1dev (alpha) documentation</title>
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.1d0',
+        VERSION:     '0.1d1dev (alpha)',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,9 +19,7 @@
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <link rel="top" title="OpenAllure v0.1d0 documentation" href="../index.html" />
-    <link rel="next" title="voice" href="voice.html" />
-    <link rel="prev" title="text" href="text.html" /> 
+    <link rel="top" title="OpenAllure v0.1d1dev (alpha) documentation" href="../index.html" /> 
   </head>
   <body>
     <div class="related">
@@ -33,13 +31,7 @@
         <li class="right" >
           <a href="../modindex.html" title="Global Module Index"
              accesskey="M">modules</a> |</li>
-        <li class="right" >
-          <a href="voice.html" title="voice"
-             accesskey="N">next</a> |</li>
-        <li class="right" >
-          <a href="text.html" title="text"
-             accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">OpenAllure v0.1d0 documentation</a> &raquo;</li> 
+        <li><a href="../index.html">OpenAllure v0.1d1dev (alpha) documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -48,42 +40,8 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="module-utils">
-<h1><cite>utils</cite><a class="headerlink" href="#module-utils" title="Permalink to this headline">¶</a></h1>
-<p>utils.py
-a component of pyPong.py</p>
-<p>Utilities</p>
-<p>Copyright (c) 2010 John Graves
-MIT License: see LICENSE.txt</p>
-<dl class="function">
-<dt id="utils.initFromArgs">
-<tt class="descclassname">utils.</tt><tt class="descname">initFromArgs</tt><big>(</big><em>beingInitted</em>, <em>bJustArgs=False</em><big>)</big><a class="headerlink" href="#utils.initFromArgs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initialize local variables from arguments.</p>
-<p>This code was taken and modified from Alex Martelli&#8217;s
-&#8220;determine the name of the calling function&#8221; recipe (Thanks, Alex!)</p>
-<p>This code also benefits from a useful enhancement from Gary Robinson, allowing
-only the arguments to __init__ to be copied, if that is desired.</p>
-<p>Use sys._getframe() &#8211; it returns a frame object, whose attribute
-f_locals is the list of local variables.  Before any processing goes on,
-will be the list of parameters passed in.</p>
-<p>See discussion at <a class="reference external" href="http://code.activestate.com/recipes/286185/">http://code.activestate.com/recipes/286185/</a></p>
-<p><em>Usage</em></p>
-<div class="highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Animal</span><span class="p">:</span>
-<span class="gp">... </span>  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">name</span><span class="o">=</span><span class="s">&#39;Dog&#39;</span><span class="p">,</span><span class="n">numberOfLegs</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span><span class="n">habitat</span><span class="o">=</span><span class="s">&#39;Temperate&#39;</span><span class="p">):</span>
-<span class="gp">... </span>     <span class="c"># any local variables added here will be assigned to the object</span>
-<span class="gp">... </span>     <span class="c"># as if they were parameters</span>
-<span class="gp">... </span>     <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&#39;Dog&#39;</span><span class="p">,</span><span class="s">&#39;Cat&#39;</span><span class="p">):</span>
-<span class="gp">... </span>        <span class="n">pet</span><span class="o">=</span><span class="bp">True</span>
-<span class="gp">... </span>     <span class="n">initFromArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-<span class="gp">... </span>     <span class="c"># modify things here</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">dog</span><span class="o">=</span><span class="n">Animal</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">octopus</span> <span class="o">=</span> <span class="n">Animal</span><span class="p">(</span><span class="s">&#39;Octopus&#39;</span><span class="p">,</span><span class="mi">8</span><span class="p">,</span><span class="s">&#39;Aquatic&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">print</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="p">(</span><span class="n">dog</span><span class="p">,</span><span class="n">octopus</span><span class="p">)]</span>
-<span class="go">[[(&#39;pet&#39;, True), (&#39;name&#39;, &#39;Dog&#39;), (&#39;habitat&#39;, &#39;Temperate&#39;), (&#39;numberOfLegs&#39;, 4)], [(&#39;name&#39;, &#39;Octopus&#39;), (&#39;habitat&#39;, &#39;Aquatic&#39;), (&#39;numberOfLegs&#39;, 8)]]</span>
-</pre></div>
-</div>
-</dd></dl>
-
+  <div class="section" id="utils">
+<h1><cite>utils</cite><a class="headerlink" href="#utils" title="Permalink to this headline">¶</a></h1>
 </div>
 
 
@@ -92,12 +50,6 @@ will be the list of parameters passed in.</p>
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
-            <h4>Previous topic</h4>
-            <p class="topless"><a href="text.html"
-                                  title="previous chapter"><cite>text</cite></a></p>
-            <h4>Next topic</h4>
-            <p class="topless"><a href="voice.html"
-                                  title="next chapter"><cite>voice</cite></a></p>
           <div id="searchbox" style="display: none">
             <h3>Quick search</h3>
               <form class="search" action="../search.html" method="get">
@@ -124,17 +76,11 @@ will be the list of parameters passed in.</p>
         <li class="right" >
           <a href="../modindex.html" title="Global Module Index"
              >modules</a> |</li>
-        <li class="right" >
-          <a href="voice.html" title="voice"
-             >next</a> |</li>
-        <li class="right" >
-          <a href="text.html" title="text"
-             >previous</a> |</li>
-        <li><a href="../index.html">OpenAllure v0.1d0 documentation</a> &raquo;</li> 
+        <li><a href="../index.html">OpenAllure v0.1d1dev (alpha) documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
-      &copy; Copyright 2010, JohnGraves.
+      &copy; Copyright 2010, John Graves.
       Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.4.
     </div>
   </body>
