@@ -111,7 +111,9 @@ Prepare text of question and answers for display and reading aloud::
             y += sh
             #print rendered_word, x, y
             x = 0
-            choices.append( ( starting_x, starting_y, screenWidth-1, y ) )
+            # don't make a choice out of a blank line
+            if not sentence == "":
+                choices.append( ( starting_x, starting_y, screenWidth-1, y ) )
             starting_y = y + 1
 
         return choices

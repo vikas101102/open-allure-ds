@@ -26,6 +26,12 @@ class Gesture(object):
     Any count over 5 (about finger width) is considered a valid selection.
 
     """
+    def __init__(self):
+        """
+        Gesture recognition depends on particular pixels which can be shown (or not)
+        """
+        self.showPixels = 0
+
     def isBoxSelected( self, imageArray, xoffset, yoffset, threshold=10, n=11, spacing=2 ):
        """
        Determine whether a box located at (lower right) coordinate
@@ -45,16 +51,17 @@ class Gesture(object):
              if imageArray[ i * spacing + xUpperLeft, j * spacing + yUpperLeft ] > 0:
                 #print i*spacing+xUpperLeft,j*spacing+yUpperLeft
                 count += 1
+             if self.showPixels: imageArray[i*spacing+xUpperLeft,j*spacing+yUpperLeft] = 16777215
        if count > threshold:
           return 1
        else:
           return 0
 
-    def choiceSelected( self, image, choices, boxWidth=35, boxPlacementList=DEFAULT_BOX_PLACEMENT ):
+    def choiceSelected( self, image, textRegions, margins, boxWidth=35, boxPlacementList=DEFAULT_BOX_PLACEMENT ):
         """
         Find which choice is selected in an
         **image** where
-        **choices** contains a list of coordinates (upper left x y, lower right x y) of non-overlapping regions within the image.
+        **textRegions** contains a list of coordinates (upper left x y, lower right x y) of non-overlapping regions within the image.
 
         A row of boxes is checked along the lower edge of each region.
 
@@ -66,13 +73,16 @@ class Gesture(object):
 
         TODO: Use a better system which allows hand gestures to be recognized even with a moving face as the background.
         """
-        import pygame
         imageArray = pygame.PixelArray( image )
         yLowerRight = 3
-        for choice, coordinates in enumerate( choices ):
+        for choice, coordinates in enumerate(textRegions):
            boxCount = 0
            for aBox in boxPlacementList:
-              boxCount += self.isBoxSelected( imageArray, aBox * boxWidth, coordinates[ yLowerRight] )
+               if aBox < 0:
+                   # come in from right margin
+                   boxCount += self.isBoxSelected(imageArray,margins[2]+aBox*boxWidth,margins[1]+coordinates[yLowerRight])
+               else:
+                   boxCount += self.isBoxSelected(imageArray,margins[0]+aBox*boxWidth,margins[1]+coordinates[yLowerRight])
 ##              if boxCount > 5 and calibrate == 1:
 ##                 #speak("Need to recalibrate")
 ##                 #print "boxCount" , boxCount

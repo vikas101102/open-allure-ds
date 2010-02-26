@@ -1,1 +1,1 @@
-sphinx-build -a -b html source html 
+sphinx-build -E -a -b html source html 

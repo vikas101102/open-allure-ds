@@ -6,7 +6,9 @@
 Welcome to Open Allure's documentation!
 =======================================
 
-Open Allure is a voice-and-vision enabled dialog system written in Python_.
+Open Allure is a voice-and-vision enabled dialog system written in Python_.  
+
+Edit the openallure.cfg file to configure the location of the question/answer/response sequence.
 
 .. _Python: http://www.python.org/
 
@@ -20,7 +22,17 @@ Open Allure is part of the output of the `Open Allure project`_.
 
 .. _a Google group you can join: http://bit.ly/openalluregg
 
-Contents:
+Dependencies
+============
+
+Open Allure uses pyGame_ and BeautifulSoup_.
+
+.. _pyGame: http://www.pygame.org/
+
+.. _BeautifulSoup: http://www.crummy.com/software/BeautifulSoup/
+
+Modules
+=======
 
 .. toctree::
    :maxdepth: 2
@@ -30,7 +42,6 @@ Contents:
    modules/video
    modules/gesture
    modules/text
-   modules/utils
    modules/voice
 
 Indices and tables

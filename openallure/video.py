@@ -37,17 +37,13 @@ class VideoCapturePlayer( object ):
 
         logging.debug( "Initializing Video Capture Class" )
 
-        processRuns = 0
-
         #set display size in pixels = width,height
         size                        =   640,480
 
-        self.__dict__.update( argd )
-        del kw
-        self.__dict__.update( locals() )
-        del self.self
-
         processRuns = 0
+
+        self.__dict__.update( argd )
+        self.__dict__.update( locals() )
 
         #super(VideoCapturePlayer, self).__init__(**argd)
 
@@ -67,7 +63,7 @@ class VideoCapturePlayer( object ):
         if not self.cameraList:
             raise ValueError( "Sorry, no cameras detected." )
 
-        logging.info( " Opening device %s, with video size (%s,%s)" % ( self.cameraList[0], self.size[0], self.size[1] ) )
+        logging.info( "Opening device %s, with video size (%s,%s)" % ( self.cameraList[0], self.size[0], self.size[1] ) )
 
         # create and start the camera of the specified size in RGB colorspace
         self.camera = camera.Camera( self.cameraList[0], self.size, "RGB" )
@@ -79,45 +75,6 @@ class VideoCapturePlayer( object ):
         # bit depth to be the same as that of the display surface.
         self.snapshot = pygame.surface.Surface( self.size, 0, self.display )
 
-        # Explore namespace now:
-
-        #print dir()
-        """
-          ['argd', 'camera', 'display', 'logging', 'processFunction', 'processRuns', 'pygame', 'self', 'show', 'size', 'utils']
-        """
-
-        #print dir(self)
-        """
-          ['__class__', '__delattr__', '__dict__', '__doc__', '__getattribute__', '__hash__', '__init__', '__module__', '__new__',
-          '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__str__', '__weakref__',
-          'argd', 'camera', 'cameraList', 'clock', 'display', 'get_and_flip', 'logging', 'main', 'processClock', 'processFunction',
-          'processRuns', 'pygame', 'show', 'size', 'snapshot', 'utils']
-        """
-
-        #print self.__dict__.items()
-        """
-          [('argd', {}),
-
-           ('logging', <module 'logging' from 'C:\python25\Lib\logging\__init__.pyc'>),
-           ('pygame',  <module 'pygame'  from 'C:\python25\lib\site-packages\pygame\__init__.pyc'>),
-           ('utils',   <module 'utils'   from 'C:\Python25\pyPong\Scripts\pyPong\pyPong\utils.pyc'>),
-
-           ('processFunction', <bound method GreenScreen.process of <video.GreenScreen instance at 0x00B54580>>),
-
-           ('camera', <pygame._camera_vidcapture.Camera instance at 0x01690468>),
-
-           ('cameraList', [0]),
-
-           ('display',  <Surface(640x480x32 SW)>),
-           ('snapshot', <Surface(640x480x32 SW)>),
-
-           ('clock',        <Clock(fps=0.00)>),
-           ('processClock', <Clock(fps=0.00)>),
-
-           ('processRuns', 0),
-           ('show', True),
-           ('size', (640, 480)),
-        """
 
     def get_and_flip( self, show=True ):
         """
@@ -158,7 +115,6 @@ class VideoCapturePlayer( object ):
         if show is True:
             # blit it to the display surface.  simple!
             self.display.blit( self.snapshot, ( 0,0 ) )
-            pygame.display.flip()
 
         return self.snapshot
 
