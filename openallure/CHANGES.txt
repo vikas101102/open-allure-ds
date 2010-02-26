@@ -1,0 +1,4 @@
+v0.1d1, 26 February 2010 -- Added ability to read text from URL
+                            Added openallure.cfg configuration file
+                            Removed utils.py
+v0.1d0, 12 February 2010 -- Initial release.
