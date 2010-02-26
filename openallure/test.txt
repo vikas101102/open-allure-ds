@@ -1,0 +1,9 @@
+What is the plan for today?
+
+Create openallure ; Yes, but there is more to do.
+Document openallure  ; Yes, but there is more to do.
+Publish openallure ; Yes, but there is more to do.
+All the above ;; Correct
+
+
+
