@@ -83,7 +83,13 @@ class VideoCapturePlayer( object ):
         import pygame
 
         # Capture an image
-        self.snapshot = self.camera.get_image( self.snapshot )
+        if isinstance( self.snapshot, pygame.Surface ):
+           self.snapshot = self.camera.get_image( self.snapshot )
+        else:
+            # Don't quit until pygame coughs up a surface
+            while isinstance( self.snapshot, None ):
+               self.snapshot = pygame.surface.Surface( self.size, 0, self.display )
+               self.snapshot = self.camera.get_image( self.snapshot )
 
         # Flip array version of image around the y axis.
         ar = pygame.PixelArray( self.snapshot )
