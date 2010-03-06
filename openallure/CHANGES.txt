@@ -1,4 +1,17 @@
-v0.1d1, 26 February 2010 -- Added ability to read text from URL
-                            Added openallure.cfg configuration file
-                            Removed utils.py
-v0.1d0, 12 February 2010 -- Initial release.
+v0.1d4, 6 March 2010
+   Brought back voice recognition code.
+
+v0.1d3, 4 March 2010
+   In sequence.py, Sequence has path attribute to allow navigation
+   to follow to new local source
+
+v0.1d2, 2 March 2010
+   Added connection to AIML
+
+v0.1d1, 26 February 2010
+   Added ability to read text from URL
+   Added openallure.cfg configuration file
+   Removed utils.py
+
+v0.1d0, 12 February 2010
+   Initial release.

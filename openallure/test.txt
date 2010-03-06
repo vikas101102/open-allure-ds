@@ -1,9 +1,15 @@
-What is the plan for today?
+Review the following links then select Begin discussion
 
-Create openallure ; Yes, but there is more to do.
-Document openallure  ; Yes, but there is more to do.
-Publish openallure ; Yes, but there is more to do.
-All the above ;; Correct
+[http://openallureds.ning.com Open Allure Ning] ; Remember to return here for discussion.
+Begin discussion ;; Great.  Let's get started.
+
+What did you find most useful?
+
+The ability to add content ;; Yes, anyone can add whatever content they like.
+The way the system is interactive ;; Yes, voice and gesture are a powerful combination.
+The ability to ask questions ;; Yes, mixed initiative give the system a much greater feeling of responsiveness.
+
+
 
 
 

@@ -22,6 +22,11 @@ An input file is plain text with the format::
    [ blank line ]
    Next question ...
 
+where Answer can be::
+
+   [link label]     to open link in separate browser when label is selected
+   [input]          to enable user input
+
 where <separator> can be::
 
    ;                no action
@@ -43,7 +48,9 @@ List of lists::
    #                                seq[ ][ 1 ] is the answer set
    #                                seq[ ][ 2 ] is the response set
    #                                seq[ ][ 3 ] is the action set
-   #                                seq[ ][ 4 ] is the action set destinations (filenames or URLs)
+   #                                seq[ ][ 4 ] is the action set destinations (Response-side filenames or URLs for new questions)
+   #                                seq[ ][ 5 ] is the links set (Answer-side filenames or URLs to open in browser)
+   #                                seq[ ][ 6 ] is the input set
    #     [ The parts of the question are the next level list,
    #                             so seq[ ][ 0 ][ 0 ] is the first part of the question, for example "What color"
    #                            and seq[ ][ 0 ][ 1 ] is the next  part of the question, for example "is the sky?" ],
@@ -59,6 +66,12 @@ List of lists::
    #     [ The destinations are the next list,
    #                             so seq[ ][ 4 ][ 0 ] is the first  destination, for example 'secondSetOfQuestions.txt'
    #                            and seq[ ][ 4 ][ 1 ] is the second destination, for example 'http://bit.ly/openalluretest' ]]]
+   #     [ The links are the next list,
+   #                             so seq[ ][ 5 ][ 0 ] is the first  link, for example 'http://movieToWatch'
+   #                            and seq[ ][ 5 ][ 1 ] is the second link, for example 'slidecastToWatch' ]]]
+   #     [ The inputs are the next list,
+   #                             so seq[ ][ 6 ][ 0 ] is the first  input, for example 0 (indicating no input on this answer)
+   #                            and seq[ ][ 6 ][ 1 ] is the second link, for example 1 (indicating input allowed on this answer)
 
 See `Open Allure wiki`_ for details and examples.
 
@@ -71,18 +84,51 @@ MIT License: see LICENSE.txt
 
 import urllib
 import ConfigParser
-from BeautifulSoup import BeautifulSoup          # For processing HTML
+from BeautifulSoup import BeautifulSoup, SoupStrainer          # For processing HTML
 
 class Sequence( object ):
 
-    def __init__( self, filename="openallure.txt" ):
+    def __init__( self, filename="openallure.txt", path='' ):
         """
         Read either a local plain text file or text tagged <pre> </pre> from a webpage
         """
-        if filename[ :4 ] == "http":
+        # attribute storing path to sequence (excludes name)
+        self.path = path
+
+        if filename.startswith("http://"):
            # read text tagged with <pre> </pre> from website
-           fromWeb = BeautifulSoup( ''.join( urllib.urlopen( filename ) ) ).pre.getText( separator=u"\n" )
-           inputs = fromWeb.splitlines()
+           try:
+              urlOpen = urllib.urlopen( filename )
+           except urlOpenError:
+              print "Could not open %s" % filename
+
+           # parse out text marked with <pre> </pre>
+           links = SoupStrainer('pre')
+           taggedPreText = [tag for tag in BeautifulSoup(urlOpen, parseOnlyThese=links)]
+#           print 'taggedPreText', taggedPreText
+
+           # filter out <pre> and any other embedded tags
+           def isunicode(x): return isinstance(x,unicode)
+           def lstrip(x): return x.lstrip()
+#           def notEmpty(x):
+#              if len(x) > 0 : return True
+           cleanUnicodeText = [ map( lstrip, filter( isunicode, taggedPreText[ x ].contents ) )  for x in range( 0, len( taggedPreText ) ) ]
+
+           # get it all down to one text string
+           cleanUnicodeTextStr = "\n".join(["\n".join(list) for list in cleanUnicodeText])
+
+           if len(cleanUnicodeTextStr) == 0:
+              print "\n\n   No text marked with <pre> </pre> found at %s" % filename
+              print "   Check view source for &lt;pre&gt; which is currently not supported.\n\n"
+              os.sys.exit()
+
+           # split back into lines (inputs)
+           inputs = cleanUnicodeTextStr.splitlines()
+
+           # set path attribute to be everything up to through last slash in url
+           slashAt = filename.rfind( '/' ) + 1
+           self.path = filename[0:slashAt]
+
         else:
            # read file
            inputs = open( filename ).readlines()
@@ -101,12 +147,12 @@ Create list of string types::
         """
         string_types = []
         for i in strings:
-            if i.rstrip() == "": string_types.append( "N" )
+            if i.strip() in ["","\n","\\n"]: string_types.append( "N" )
             else:
                slash_at = i.find( ";" )
                if slash_at > 0:  string_types.append( str( slash_at ) )
                else:             string_types.append( "Q" )
-
+#            print i, string_types[-1]
         return string_types
 
     def regroup( self,strings,string_types ):
@@ -119,21 +165,51 @@ Create list of string types::
         response    = []
         action      = []
         destination = []
+        link        = []
+        inputFlags  = []
         while onString < len( strings ):
             if string_types[ onString ] == "Q": question.append( strings[ onString ].rstrip() )
             elif string_types[ onString ] == "N":
                 # signal for end of question IF there are responses
                 if len( response ):
                     # add to sequence and reset
-                    sequence.append( [question, answer, response, action, destination] )
+                    sequence.append( [question, answer, response, action, destination, link, inputFlags] )
                     question    = []
                     answer      = []
                     response    = []
                     action      = []
                     destination = []
+                    link        = []
+                    inputFlags  = []
             else:
                 # use number to break string into answer and response
-                answer.append( strings[ onString ][ :int( string_types[ onString ] ) ].rstrip() )
+                answerString = strings[ onString ][ :int( string_types[ onString ] ) ].rstrip()
+
+                # examine answerString to determine if it contains
+                # 1/ an [input] instruction
+                # 2/ a link in the wiki format [link label]
+                linkString = ""
+                inputFlag = 0
+                if answerString.startswith('[input]'):
+                    # no text will be displayed until the user types it,
+                    # but the instruction can be passed through as the answer string to serve as a prompt
+                    label = "[input]"
+                    inputFlag = 1
+                elif answerString.startswith('['):
+                    spaceAt = answerString.find(' ')
+                    closeBracketAt = answerString.find(']')
+                    # The syntax only has a chance of being correct if the space comes before the closing bracket
+                    if spaceAt > 0 and closeBracketAt > 0 and spaceAt < closeBracketAt:
+                       linkString = answerString[ 1 : spaceAt]
+                       label = '[' + answerString[ spaceAt + 1 :  ]
+                    else:
+                       print "Incorrect syntax in answer: %s " % answerString
+                else:
+                    label = answerString
+                link.append( linkString )
+                answer.append( label )
+                inputFlags.append( inputFlag )
+
                 # NOTE: +1 means to leave off first semi-colon
                 responseString = strings[ onString ][ int( string_types[ onString ] ) + 1: ].strip()
 
@@ -141,7 +217,8 @@ Create list of string types::
                 # with additional ;'s or digits ( including + and - ) or brackets
                 # IF none found, leave action as 0
                 actionValue = 0
-                while len( responseString ) and responseString[ 0 ] == ';':
+                linkString = ''
+                while len( responseString ) and responseString.startswith(';'):
                     actionValue += 1
                     responseString = responseString[ 1: ].lstrip()
                 digits = ''
@@ -149,27 +226,35 @@ Create list of string types::
                     digits += responseString[ 0 ]
                     responseString = responseString[ 1: ].lstrip()
                 if len( digits ): actionValue = int( digits )
-                if responseString[ 0 ] == '[':
+                if responseString.startswith('['):
                     linkEnd = responseString.find(']')
-                    link    = responseString[1:linkEnd]
+                    linkString    = responseString[1:linkEnd]
                     responseString = responseString[ linkEnd + 1: ].lstrip()
                     actionValue = 88
                     # now look at link and decide whether it is a page name that needs help to become a URL
-                    if not ( link[:4] == "http" or link[ :-4 ] == '.txt' ):
-                        # get start of URL from .cfg file
-                        config = ConfigParser.RawConfigParser()
-                        config.read( 'openallure.cfg' )
-                        url = config.get( 'Source', 'url' )
-                        slashAt = url.rfind( '/' ) + 1
-                        link = url[0:slashAt] + link
-                    destination.append( link )
-                else:
-                    destination.append( "" )
+                    if not ( linkString[:4] == "http" or linkString[ :-4 ] == '.txt' ):
+                        linkString = self.path + linkString
+                        print linkString
 
+                # If there is [input] in the answerString and no destination in the responseString, default to aimlResponse.txt and actionValue=88
+                if inputFlag and len( linkString ) == 0:
+                    linkString = 'aimlResponse.txt'
+                    actionValue = 88
+
+                destination.append( linkString )
                 response.append( responseString )
                 action.append( actionValue )
 
             onString += 1
+
         # append last question if not already signaled by N at end of inputs
-        if len( question ): sequence.append( [question, answer, response, action, destination] )
+        if len( question ): sequence.append( [question, answer, response, action, destination, link, inputFlags] )
+
+        # catch sequence with a question with no answers and turn it into an input
+        if len(sequence[0][1]) == 0:
+            sequence[0][1] = ['[input]']
+            sequence[0][3] = [88]
+            sequence[0][4] = ['aimlResponse.txt']
+            sequence[0][6] = [1]
+
         return sequence
