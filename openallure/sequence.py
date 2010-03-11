@@ -138,26 +138,31 @@ class Sequence( object ):
 
     def classify( self,strings ):
         """
-Create list of string types::
+        Create list of string types::
 
-   Identify strings which contain new line only   ( type N )
-   #             or which contain ; or ;; markers ( type indicated by offset of marker between Answer ; Response )
-   #             or else mark as question         ( type Q )
+           Identify strings which contain new line only   ( type N )
+           #             or which contain ; or ;; markers ( type indicated by offset of marker between Answer ; Response )
+           #             or else mark as question         ( type Q )
 
         """
         string_types = []
         for i in strings:
-            if i.strip() in ["","\n","\\n"]: string_types.append( "N" )
+            if i.strip() in ["","\n","\\n"]:
+                string_types.append( "N" )
             else:
-               slash_at = i.find( ";" )
-               if slash_at > 0:  string_types.append( str( slash_at ) )
-               else:             string_types.append( "Q" )
-#            print i, string_types[-1]
+                slash_at = i.find( ";" )
+                if slash_at > 0:  
+                    string_types.append( str( slash_at ) )
+                else: 
+                    string_types.append( "Q" )
+                #print i, string_types[-1]
         return string_types
 
     def regroup( self,strings,string_types ):
-        """Use string_types to sort strings into Questions,
-                                    Answers, Responses and Subsequent Actions"""
+        """
+        Use string_types to sort strings into Questions,
+        answers, Responses and Subsequent Actions.
+        """
         onString    = 0
         sequence    = []
         question    = []
@@ -236,7 +241,8 @@ Create list of string types::
                         linkString = self.path + linkString
                         print linkString
 
-                # If there is [input] in the answerString and no destination in the responseString, default to aimlResponse.txt and actionValue=88
+                # If there is [input] in the answerString and no destination in the responseString, 
+                # default to aimlResponse.txt and actionValue=88
                 if inputFlag and len( linkString ) == 0:
                     linkString = 'aimlResponse.txt'
                     actionValue = 88

@@ -7,10 +7,11 @@ Collection of functions for rendering text-to-speech
 Copyright (c) 2010 John Graves
 
 MIT License: see LICENSE.txt
+
+TODO: Add standalone tests for text-to-speech modules.
 """
 
-import pygame
-import dragonfly
+import os
 import ConfigParser
 
 class Voice( object ):
@@ -24,10 +25,11 @@ class Voice( object ):
         config.read( 'openallure.cfg' )
         self.systemHasDragonfly = eval( config.get( 'Voice', 'systemHasDragonfly' ) )
         self.systemHasEspeak    = eval( config.get( 'Voice', 'systemHasEspeak' ) )
+        if self.systemHasDragonfly:
+        	import dragonfly
 
     def speak( self,phrase ):
        """Say or print phrase using available text-to-speech engine or stdout"""
-
        if self.systemHasDragonfly:
            e = dragonfly.get_engine()
            e.speak( phrase )
@@ -35,4 +37,17 @@ class Voice( object ):
            os.system( 'espeak -s150 "' + phrase + '"' )
        else:
            print phrase
+           #import pygame
            #pygame.time.wait( 500 )
+           
+def test_voice():
+	'''
+	Create a Voice instance and check that it works
+	'''
+	
+	voice = Voice()
+	voice.speak("Hello World")
+	
+if __name__ == "__main__":
+	test_voice()
+
