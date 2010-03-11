@@ -156,17 +156,21 @@ class GreenScreen():
 
         Finds which, and how many pixels in a surface are within a threshold of a color.
 
-        It can set the destination surface where all of the pixels not within the threshold are changed to diff_color.
-        If inverse is optionally set to True, the pixels that are within the threshold are instead changed to diff_color.
+        It can set the destination surface where all of the pixels not within the 
+        threshold are changed to diff_color. If inverse is optionally set to True,
+        the pixels that are within the threshold are instead changed to diff_color.
 
-        If the optional second surface is given, it is used to threshold against rather than the specified color.
-        That is, it will find each pixel in the first Surface that is within the threshold of the pixel at the same coordinates of the second Surface.
+        If the optional second surface is given, it is used to threshold against 
+        rather than the specified color. That is, it will find each pixel in the 
+        first Surface that is within the threshold of the pixel at the same 
+        coordinates of the second Surface.
 
         If change_return is set to 0, it can be used to just count the number of pixels within the threshold if you set.
         If change_return is set to 1, the pixels set in DestSurface will be those from the color.
         If change_return is set to 2, the pixels set in DestSurface will be those from the first Surface.
 
-        You can use a threshold of ( r,g,b,a ) where the r,g,b can have different thresholds. So you could use an r threshold of 40 and a blue threshold of 2 if you like.
+        You can use a threshold of ( r,g,b,a ) where the r,g,b can have different thresholds. 
+        So you could use an r threshold of 40 and a blue threshold of 2 if you like.
 
         New in pygame 1.8
 

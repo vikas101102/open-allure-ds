@@ -14,33 +14,45 @@ MIT License: see LICENSE.txt
 
 __version__='0.1d4dev'
 
+# Standard Python modules
+import logging
+import os
 import ConfigParser
+
+# 3rd Party modules
+import pygame
+import aiml
+
+# Import from OpenAllureDS modules
+from sequence import Sequence
+from video import VideoCapturePlayer, GreenScreen
+from gesture import Gesture
+from text import Text
+from voice import Voice
+
+
+# Setup logging
+# provide instructions and other useful information (hide by elevating logging level:
+logging.basicConfig( level=logging.DEBUG )
+    
+    
+WELCOME_TEXT = """   Welcome to Open Allure. Voice-and-vision enabled dialog system.
+
+   F3 to Show webcam. F4 to Recalibrate.
+   
+   F5 to show pixels. Escape to quit.
+   
+   Enjoy!
+"""
 
 def main():
     """Initialization and event loop"""
-    import logging
-    import sequence
-    import video
-    import gesture
-    import pygame
-    import text
-    import voice
-    import ConfigParser
-    import aiml
-    import os
 
     global voiceChoice
 
-    # provide instructions and other useful information (hide by elevating logging level:
-    LEVELS = { 'debug'   : logging.DEBUG,
-               'info'    : logging.INFO,
-               'warning' : logging.WARNING,
-               'error'   : logging.ERROR,
-               'critical': logging.CRITICAL }
+    print(WELCOME_TEXT)
 
-    print("\n\n   Open Allure. Voice-and-vision enabled dialog system.\n\n   F3 to Show webcam. F4 to Recalibrate. \n\n   F5 to Show pixels. Escape to quit.\n\n   Enjoy!\n\n")
 
-    logging.basicConfig( level=logging.DEBUG )
     logging.info( "Open Allure Version: %s" % __version__ )
     logging.debug( "Pygame Version: %s" % pygame.__version__ )
 
@@ -56,28 +68,28 @@ def main():
     url = config.get( 'Source', 'url' )
     backgroundColor = eval( config.get( 'Colors', 'background' ) )
 
-    seq = sequence.Sequence( filename=url )
+    seq = Sequence( filename=url )
     logging.info( "Sequence Loaded with %s questions" % str( len( seq.sequence ) ) )
     #print seq.sequence
 
     # load initial AIML file
     k = aiml.Kernel()
-    aiml = config.get( 'Source', 'aiml' )
+    aiml_file = config.get( 'Source', 'aiml' )
     aimlLoadPattern = config.get( 'Source', 'aimlLoadPattern' )
-    k.learn( aiml )
+    k.learn( aiml_file )
     AIMLResponse = k.respond( aimlLoadPattern )
-    logging.info( "AIML %s" % (aiml + " " + AIMLResponse ) )
+    logging.info( "AIML %s" % (aiml_file + " " + AIMLResponse ) )
 
     # load browser command string
     browser = config.get( 'Browser', 'browser' )
 
-    greenScreen = video.GreenScreen()
-    vcp         = video.VideoCapturePlayer( processFunction=greenScreen.process )
-    gesture     = gesture.Gesture()
-    voice       = voice.Voice()
+    greenScreen = GreenScreen()
+    vcp         = VideoCapturePlayer( processFunction=greenScreen.process )
+    gesture     = Gesture()
+    voice       = Voice()
 
     margins     = [ 20, 20, 620, 460 ]
-    text        = text.Text( margins )
+    text        = Text( margins )
 
     showFlag = False
 
@@ -282,7 +294,7 @@ def main():
                   # voice.speak( "New source of questions" )
                   path = seq.path
                   #print "path is ", path
-                  seq = sequence.Sequence( filename = question[ 4 ][ answer ], path = path )
+                  seq = Sequence( filename = question[ 4 ][ answer ], path = path )
                   onQuestion = 0
                   ready = False
               elif next == 99:

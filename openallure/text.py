@@ -31,19 +31,18 @@ class Text(object):
 
     def buildQuestionText( self, question ):
         """
-Prepare text of question and answers for display and reading aloud::
+        Prepare text of question and answers for display and reading aloud::
 
-   questionText[0] is question
-   questionText[1] is question + answer 1
-   questionText[2] is question + answer 1 + answer 2
-   etc.
+        questionText[0] is question
+        questionText[1] is question + answer 1
+        questionText[2] is question + answer 1 + answer 2
+        etc.
 
-   justQuestionText[0] is first (perhaps only) part of question
-   justQuestionText[1] is next part of question
-   etc.
+        justQuestionText[0] is first (perhaps only) part of question
+        justQuestionText[1] is next part of question
+        etc.
 
-   choiceCount tells how may answers there are
-
+        choiceCount tells how may answers there are.
         """
         questionText = [""]
         questionText[0] = " ".join( question[0] ) + "\n"
@@ -120,15 +119,15 @@ Prepare text of question and answers for display and reading aloud::
 
     def paintText( self, screen, justQuestionText, onText, questionText, onAnswer, highlight, stated, choice, colorLevel, colorLevels ):
         """
-Paint words of **justQuestionText** and **questionText** on **screen** with appropriate colors.
+		Paint words of **justQuestionText** and **questionText** on **screen** with appropriate colors.
 
-What is appropriate depends on
+		What is appropriate depends on
 
-* whether the question is **stated** (everything has been read aloud)
-* how far along (**onText**) in the **justQuestionText** the reading of the question is
-* how far along (**onAnswer**) in the **questionText** the reading of the answers is
-* whether a **choice** has been selected
-* if touched by **highlight**, the dwellTime-based **colorLevel** (out of  **colorLevels**)
+		* whether the question is **stated** (everything has been read aloud)
+		* how far along (**onText**) in the **justQuestionText** the reading of the question is
+		* how far along (**onAnswer**) in the **questionText** the reading of the answers is
+		* whether a **choice** has been selected
+		* if touched by **highlight**, the dwellTime-based **colorLevel** (out of  **colorLevels**)
         """
         # If not stated, start with all unreadColor
         if not stated:
