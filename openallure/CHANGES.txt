@@ -1,3 +1,6 @@
+v0.1d5, 10 March 2010
+   Added NLTK-based chatbot text input capabilities.
+
 v0.1d4, 6 March 2010
    Brought back voice recognition code.
 

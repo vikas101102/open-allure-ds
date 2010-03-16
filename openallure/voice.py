@@ -13,6 +13,10 @@ TODO: Add standalone tests for text-to-speech modules.
 
 import os
 import ConfigParser
+try:
+    import dragonfly
+except ImportError:
+    pass
 
 class Voice( object ):
     """Text-to-speech Functionality ( optional )"""
@@ -25,29 +29,25 @@ class Voice( object ):
         config.read( 'openallure.cfg' )
         self.systemHasDragonfly = eval( config.get( 'Voice', 'systemHasDragonfly' ) )
         self.systemHasEspeak    = eval( config.get( 'Voice', 'systemHasEspeak' ) )
-        if self.systemHasDragonfly:
-        	import dragonfly
 
-    def speak( self,phrase ):
+    def speak( self, phrase ):
        """Say or print phrase using available text-to-speech engine or stdout"""
+
        if self.systemHasDragonfly:
            e = dragonfly.get_engine()
            e.speak( phrase )
        elif self.systemHasEspeak:
            os.system( 'espeak -s150 "' + phrase + '"' )
        else:
-           print phrase
-           #import pygame
+           print( phrase )
            #pygame.time.wait( 500 )
-           
-def test_voice():
-	'''
-	Create a Voice instance and check that it works
-	'''
-	
-	voice = Voice()
-	voice.speak("Hello World")
-	
-if __name__ == "__main__":
-	test_voice()
 
+def test_voice():
+    '''
+    Create a Voice instance and check that it works
+    '''
+    voice = Voice()
+    voice.speak("Hello World")
+
+if __name__ == "__main__":
+    test_voice()

@@ -61,16 +61,13 @@ class Gesture(object):
         """
         Find which choice is selected in an
         **image** where
-        **textRegions** contains a list of coordinates (upper left x y, lower right x y) 
-        of non-overlapping regions within the image.
+        **textRegions** contains a list of coordinates (upper left x y, lower right x y) of non-overlapping regions within the image.
 
         A row of boxes is checked along the lower edge of each region.
 
-        Each box has width **boxWidth** and they can be placed using **boxPlacementList**
-        in a manner that leaves a gap mid-image so head motion does not interfere with hand gestures.
+        Each box has width **boxWidth** and they can be placed using **boxPlacementList** in a manner that leaves a gap mid-image so head motion does not interfere with hand gestures.
 
-        Function returns a (choice, boxCount) tuple. This allows for auto-recalibration 
-        when choice 0 is selected with too many boxes.
+        Function returns a (choice, boxCount) tuple. This allows for auto-recalibration when choice 0 is selected with too many boxes.
 
         If no choice is selected, a choice of -1 is returned.
 
