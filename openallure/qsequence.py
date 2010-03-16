@@ -1,12 +1,12 @@
 """
-sequence.py
+qsequence.py
 a component of openallure.py
 
 Parses separate content file
 
 **Usage**
 
-Sequence( *filename* ) returns a sequence object
+QSequence( *filename* ) returns a question sequence object
 
 *filename* can be either a local file or a URL
 
@@ -82,8 +82,9 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-import urllib
 import ConfigParser
+import urllib
+import os
 from BeautifulSoup import BeautifulSoup, SoupStrainer          # For processing HTML
 
 class QSequence( object ):
@@ -119,20 +120,24 @@ class QSequence( object ):
            cleanUnicodeTextStr = "\n".join(["\n".join(list) for list in cleanUnicodeText])
 
            if len(cleanUnicodeTextStr) == 0:
-              print( "\n\n   No text marked with <pre> </pre> found at %s" % filename )
-              print( "   Check view source for &lt;pre&gt; which is currently not supported.\n\n" )
-              os.sys.exit()
+##              print( "\n\n   No text marked with <pre> </pre> found at %s" % filename )
+##              print( "   Check view source for &lt;pre&gt; which is currently not supported.\n\n" )
+##              os.sys.exit()
+               inputs = ["Hmmm. It seems " + url,"does not have a script","marked with <pre> </pre>.","What now?","[input];;"]
+           else:
+               # split back into lines (inputs)
+               inputs = cleanUnicodeTextStr.splitlines()
 
-           # split back into lines (inputs)
-           inputs = cleanUnicodeTextStr.splitlines()
-
-           # set path attribute to be everything up to through last slash in url
-           slashAt = filename.rfind( '/' ) + 1
-           self.path = filename[0:slashAt]
+               # set path attribute to be everything up to through last slash in url
+               slashAt = filename.rfind( '/' ) + 1
+               self.path = filename[0:slashAt]
 
         else:
            # read file
-           inputs = open( filename ).readlines()
+           try:
+               inputs = open( filename ).readlines()
+           except IOError:
+               inputs = ["Well, it seems " + filename,"could not be opened.","What now?","[input];;"]
 
         # parse into sequence
         self.sequence = self.regroup( inputs, self.classify( inputs ) )
@@ -235,8 +240,10 @@ class QSequence( object ):
                     responseString = responseString[ linkEnd + 1: ].lstrip()
                     actionValue = 88
                     # now look at link and decide whether it is a page name that needs help to become a URL
-                    if not ( linkString[:4] == "http" or linkString[ :-4 ] == '.txt' ):
-                        linkString = self.path + linkString
+                    if not linkString.startswith("http"):
+                        # do not put a path in front of a .txt file
+                        if not linkString.endswith('.txt'):
+                            linkString = self.path + linkString
                         #print linkString
 
 ##                # If there is [input] in the answerString and no destination in the responseString, default to aimlResponse.txt and actionValue=88

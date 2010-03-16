@@ -16,6 +16,10 @@ http://www.crummy.com/software/BeautifulSoup/download/3.x/BeautifulSoup-3.0.8.ta
 Version 3.0.8 was used during development of Open Allure
 (easy_install BeautifulSoup)
 
+NLTK
+http://www.nltk.org/download
+Steven Bird, <sb@csse.unimelb.edu.au>
+
 License
 =======
 
