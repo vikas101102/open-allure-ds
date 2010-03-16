@@ -86,7 +86,8 @@ import urllib
 import ConfigParser
 from BeautifulSoup import BeautifulSoup, SoupStrainer          # For processing HTML
 
-class Sequence( object ):
+class QSequence( object ):
+    """A Question Sequence contains (multiple) question blocks consisting of a question with answers/responses/actions"""
 
     def __init__( self, filename="openallure.txt", path='' ):
         """
@@ -100,7 +101,7 @@ class Sequence( object ):
            try:
               urlOpen = urllib.urlopen( filename )
            except urlOpenError:
-              print "Could not open %s" % filename
+              print( "Could not open %s" % filename )
 
            # parse out text marked with <pre> </pre>
            links = SoupStrainer('pre')
@@ -118,8 +119,8 @@ class Sequence( object ):
            cleanUnicodeTextStr = "\n".join(["\n".join(list) for list in cleanUnicodeText])
 
            if len(cleanUnicodeTextStr) == 0:
-              print "\n\n   No text marked with <pre> </pre> found at %s" % filename
-              print "   Check view source for &lt;pre&gt; which is currently not supported.\n\n"
+              print( "\n\n   No text marked with <pre> </pre> found at %s" % filename )
+              print( "   Check view source for &lt;pre&gt; which is currently not supported.\n\n" )
               os.sys.exit()
 
            # split back into lines (inputs)
@@ -140,9 +141,9 @@ class Sequence( object ):
         """
         Create list of string types::
 
-           Identify strings which contain new line only   ( type N )
-           #             or which contain ; or ;; markers ( type indicated by offset of marker between Answer ; Response )
-           #             or else mark as question         ( type Q )
+        Identify strings which contain new line only   ( type N )
+        #             or which contain ; or ;; markers ( type indicated by offset of marker between Answer ; Response )
+        #             or else mark as question         ( type Q )
 
         """
         string_types = []
@@ -150,19 +151,16 @@ class Sequence( object ):
             if i.strip() in ["","\n","\\n"]:
                 string_types.append( "N" )
             else:
-                slash_at = i.find( ";" )
-                if slash_at > 0:  
-                    string_types.append( str( slash_at ) )
-                else: 
-                    string_types.append( "Q" )
-                #print i, string_types[-1]
+               slash_at = i.find( ";" )
+               if slash_at > 0:
+                   string_types.append( str( slash_at ) )
+               else:
+                   string_types.append( "Q" )
+#            print i, string_types[-1]
         return string_types
 
     def regroup( self,strings,string_types ):
-        """
-        Use string_types to sort strings into Questions,
-        answers, Responses and Subsequent Actions.
-        """
+        """Use string_types to sort strings into Questions, Answers, Responses and Subsequent Actions"""
         onString    = 0
         sequence    = []
         question    = []
@@ -208,7 +206,7 @@ class Sequence( object ):
                        linkString = answerString[ 1 : spaceAt]
                        label = '[' + answerString[ spaceAt + 1 :  ]
                     else:
-                       print "Incorrect syntax in answer: %s " % answerString
+                       print( "Incorrect syntax in answer: %s " % answerString )
                 else:
                     label = answerString
                 link.append( linkString )
@@ -239,12 +237,16 @@ class Sequence( object ):
                     # now look at link and decide whether it is a page name that needs help to become a URL
                     if not ( linkString[:4] == "http" or linkString[ :-4 ] == '.txt' ):
                         linkString = self.path + linkString
-                        print linkString
+                        #print linkString
 
-                # If there is [input] in the answerString and no destination in the responseString, 
-                # default to aimlResponse.txt and actionValue=88
+##                # If there is [input] in the answerString and no destination in the responseString, default to aimlResponse.txt and actionValue=88
+##                if inputFlag and len( linkString ) == 0:
+##                    linkString = 'aimlResponse.txt'
+##                    actionValue = 88
+                # If there is [input] in the answerString and no destination in the responseString,
+                # default to nltkResponse.txt and actionValue=88
                 if inputFlag and len( linkString ) == 0:
-                    linkString = 'aimlResponse.txt'
+                    linkString = 'nltkResponse.txt'
                     actionValue = 88
 
                 destination.append( linkString )
@@ -260,7 +262,7 @@ class Sequence( object ):
         if len(sequence[0][1]) == 0:
             sequence[0][1] = ['[input]']
             sequence[0][3] = [88]
-            sequence[0][4] = ['aimlResponse.txt']
+            sequence[0][4] = ['nltkResponse.txt']
             sequence[0][6] = [1]
 
         return sequence

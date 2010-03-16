@@ -12,47 +12,336 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d4dev'
+__version__='0.1d5dev'
 
 # Standard Python modules
-import logging
-import os
 import ConfigParser
+import logging
+import random
+import re
+import string
 
 # 3rd Party modules
+from nltk.corpus import wordnet
 import pygame
-import aiml
 
-# Import from OpenAllureDS modules
-from sequence import Sequence
-from video import VideoCapturePlayer, GreenScreen
+# Import from Open Allure DS modules
 from gesture import Gesture
-from text import Text
+from qsequence import QSequence
+from text import OpenAllureText
+from video import VideoCapturePlayer, GreenScreen
 from voice import Voice
 
-
 # Setup logging
-# provide instructions and other useful information (hide by elevating logging level:
 logging.basicConfig( level=logging.DEBUG )
-    
-    
+
 WELCOME_TEXT = """   Welcome to Open Allure. Voice-and-vision enabled dialog system.
 
-   F3 to Show webcam. F4 to Recalibrate.
-   
-   F5 to show pixels. Escape to quit.
-   
+   F3 to show webcam. F4 to recalibrate green screen.
+   F5 to show pixels for gestures. Escape to quit.
+
    Enjoy!
 """
+
+reflections = {
+  "am"     : "are",
+  "was"    : "were",
+  "i"      : "you",
+  "i'd"    : "you would",
+  "i've"   : "you have",
+  "i'll"   : "you will",
+  "my"     : "your",
+  "are"    : "am",
+  "you've" : "I have",
+  "you'll" : "I will",
+  "your"   : "my",
+  "yours"  : "mine",
+  "you"    : "me",
+  "me"     : "you"
+}
+
+class OpenAllure(object):
+    def __init__(self):
+        self.voiceChoice = -1
+        self.question = []
+        self.ready = False
+        self.stated = False
+        self.currentString = ''
+
+# create instance of OpenAllure object
+openallure = OpenAllure()
+
+
+class Chat(object):
+    def __init__(self, tuples, reflections={}):
+        """
+        Initialize the chatbot.  tuples is a list of patterns and responses.  Each
+        pattern is a regular expression matching the user's statement or question,
+        e.g. r'I like (.*)'.  For each such pattern a list of possible responses
+        is given, e.g. ['Why do you like %1', 'Did you ever dislike %1'].  Material
+        which is matched by parenthesized sections of the patterns (e.g. .*) is mapped to
+        the numbered positions in the responses, e.g. %1.
+
+        @type tuples: C{list} of C{tuple}
+        @param tuples: The patterns and responses
+        @type reflections: C{dict}
+        @param reflections: A mapping between first and second person expressions
+        @rtype: C{None}
+        """
+
+        self._tuples = [(re.compile(x, re.IGNORECASE),y,z) for (x,y,z) in tuples]
+        self._reflections = reflections
+
+    # bug: only permits single word expressions to be mapped
+    def _substitute(self, inputString):
+        """
+        Substitute words in the string, according to the specified reflections,
+        e.g. "I'm" -> "you are"
+
+        @type inputString: C{string}
+        @param inputString: The string to be mapped
+        @rtype: C{string}
+        """
+
+        words = ""
+        for word in string.split(string.lower(inputString)):
+            if self._reflections.has_key(word):
+                word = self._reflections[word]
+            words += ' ' + word
+        return words
+
+    def _wildcards(self, response, match):
+        pos = string.find(response,'%')
+        while pos >= 0:
+            num = string.atoi(response[pos+1:pos+2])
+            response = response[:pos] + \
+                self._substitute(match.group(num)) + \
+                response[pos+2:]
+            pos = string.find(response,'%')
+        return response
+
+    def respond(self, inputString):
+        """
+        Generate a response to the user input.
+
+        @type inputString: C{string}
+        @param inputString: The string to be mapped
+        @rtype: C{string}
+        """
+
+        # check each pattern
+        for (pattern, response, responseType) in self._tuples:
+            match = pattern.match(inputString)
+
+            # did the pattern match?
+            if match:
+                if responseType == "text":
+                    if isinstance(response,tuple):
+                        resp = random.choice(response)    # pick a random response
+                    else:
+                        resp = response
+                    resp = self._wildcards(resp, match) # process wildcards
+
+                if responseType == "wordLookup":
+                    pos = string.find(response,'%')
+                    num = string.atoi(response[pos+1:pos+2])
+                    wordToLookup = match.group(num)
+                    #print( wordToLookup )
+                    wordToLookupSynsets = wordnet.synsets( wordToLookup )
+                    resp =wordToLookupSynsets[0].definition
+
+                if responseType == "math":
+                    operands = []
+                    pos = string.find(response,'%')
+                    while pos >= 0:
+                        num = string.atoi(response[pos+1:pos+2])
+                        operands.append(match.group(num))
+                        response = response[:pos] + \
+                            self._substitute(match.group(num)) + \
+                            response[pos+2:]
+                        pos = string.find(response,'%')
+                    operator = response.split()[3]
+                    errorMessage = ""
+                    if operator == "add":
+                       evalString = operands[0] + '+' + operands[1]
+                       try:
+                           calculatedResult = eval(evalString)
+                       except SyntaxError:
+                           calculatedResult = 0
+                           errorMessage = " (due to syntax error)"
+                       resp = "Adding " + " to ".join(operands) + " gives " + \
+                               str(calculatedResult) + errorMessage
+                    if operator == "subtract":
+                       evalString = operands[0] + '-' + operands[1]
+                       try:
+                           calculatedResult = eval(evalString)
+                       except SyntaxError:
+                           calculatedResult = 0
+                           errorMessage = " (due to syntax error)"
+                       resp = "Subtracting " + operands[1] + " from " + \
+                               operands[0] + " gives " + \
+                               str(calculatedResult) + errorMessage
+                    if operator == "multiply":
+                       evalString = operands[0] + '*' + operands[1]
+                       try:
+                           calculatedResult = eval(evalString)
+                       except SyntaxError:
+                           calculatedResult = 0
+                           errorMessage = " (due to syntax error)"
+                       resp = "Multiplying " + " by ".join(operands) + " gives " + \
+                               str(calculatedResult) + errorMessage
+                    if operator == "divide":
+                       evalString = operands[0] + '* 1.0 /' + operands[1]
+                       try:
+                           calculatedResult = eval(evalString)
+                       except SyntaxError:
+                           calculatedResult = 0
+                           errorMessage = " (due to syntax error)"
+                       resp = "Dividing " + " by ".join(operands) + " gives " + \
+                               str(calculatedResult) + errorMessage
+
+                if responseType == "wordMath":
+                    operands = []
+                    pos = string.find(response,'%')
+                    while pos >= 0:
+                        num = string.atoi(response[pos+1:pos+2])
+                        numberWord = match.group(num)
+                        if numberWord[0] in string.digits:
+                            number = eval( numberWord )
+                        else:
+                            number = ['zero','one','two','three','four','five','six','seven','eight','nine','ten'].index(numberWord)
+                        operands.append(str(number))
+                        response = response[:pos] + \
+                            self._substitute(match.group(num)) + \
+                            response[pos+2:]
+                        pos = string.find(response,'%')
+                    operator = response.split()[3]
+                    errorMessage = ""
+                    if operator == "add":
+                       evalString = operands[0] + '+' + operands[1]
+                       try:
+                           calculatedResult = eval(evalString)
+                       except SyntaxError:
+                           calculatedResult = 0
+                           errorMessage = " (due to syntax error)"
+                       resp = "Adding " + " to ".join(operands) + " gives " + \
+                               str(calculatedResult) + errorMessage
+                    if operator == "subtract":
+                       evalString = operands[0] + '-' + operands[1]
+                       try:
+                           calculatedResult = eval(evalString)
+                       except SyntaxError:
+                           calculatedResult = 0
+                           errorMessage = " (due to syntax error)"
+                       resp = "Subtracting " + operands[1] + " from " + \
+                               operands[0] + " gives " + \
+                               str(calculatedResult) + errorMessage
+                    if operator == "multiply":
+                       evalString = operands[0] + '*' + operands[1]
+                       try:
+                           calculatedResult = eval(evalString)
+                       except SyntaxError:
+                           calculatedResult = 0
+                           errorMessage = " (due to syntax error)"
+                       resp = "Multiplying " + " by ".join(operands) + " gives " + \
+                               str(calculatedResult) + errorMessage
+                    if operator == "divide":
+                       evalString = operands[0] + '* 1.0 /' + operands[1]
+                       try:
+                           calculatedResult = eval(evalString)
+                       except SyntaxError:
+                           calculatedResult = 0
+                           errorMessage = " (due to syntax error)"
+                       resp = "Dividing " + " by ".join(operands) + " gives " + \
+                               str(calculatedResult) + errorMessage
+
+                # fix munged punctuation at the end
+                if resp[-2:] == '?.': resp = resp[:-2] + '.'
+                if resp[-2:] == '??': resp = resp[:-2] + '?'
+                return resp
+
+    # Hold a conversation with a chatbot
+    def converse(self, quit="quit"):
+        input = ""
+        while input != quit:
+            input = quit
+            try: input = raw_input(">")
+            except EOFError:
+                print( input )
+            if input:
+                while input[-1] in "!.": input = input[:-1]
+                print( self.respond(input) )
+
+
+# responses are matched top to bottom, so non-specific matches occur later
+# for each match, a list of possible responses is provided
+responses = (
+
+
+    (r'hello(.*)',
+    ( "I'm not%1"),"text"),
+
+    (r'(good|bad)',
+    ( "I'm not%1"),"text"),
+
+# Extract numbers from math expressions
+
+    # Addition
+    (r'[a-z]*\s*[a-z\']*\s*(\-?[0-9.]+)\s*\+\s*(\-?[0-9.]+)',
+    ( "You want to add%1 and%2"),"math"),
+    # Subtraction
+    (r'[a-z]*\s*[a-z\']*\s*(\-?[0-9.]+)\s*\-\s*(\-?[0-9.]+)',
+    ( "You want to subtract%1 minus%2"),"math"),
+    # Multiplication
+    (r'[a-z]*\s*[a-z\']*\s*(\-?[0-9.]+)\s*\*\s*(\-?[0-9.]+)',
+    ( "You want to multiply%1 by%2"),"math"),
+    # Division /
+    (r'[a-z]*\s*[a-z\']*\s*(\-?[0-9.]+)\s*\/\s*(\-?[0-9.]+)',
+    ( "You want to divide%1 by%2"),"math"),
+
+# Word math expressions
+
+    # Addition
+    (r'(what is|what\'s|find|calculate|add)\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)\s+plus\s(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)',
+    ( "You want to add%2 and%3"),"wordMath"),
+
+    (r'add\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)\s+(and|plus)\s(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)',
+    ( "You want to add%1 and%3"),"wordMath"),
+
+    # Subtraction
+    (r'(what is|what\'s|find|calculate|subtract)\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)\s+minus\s(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)',
+    ( "You want to subtract%2 minus%3"),"wordMath"),
+
+    (r'subtract\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)\s+from\s(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)',
+    ( "You want to subtract%2 minus%1"),"wordMath"),
+
+    # Multiplication
+    (r'(what is|what\'s|find|calculate|multiply)\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)\s+(times|multiplied by)\s(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)',
+    ( "You want to multiply%2 by%4"),"wordMath"),
+
+    # Division /
+    (r'(what is|what\'s|find|calculate|divide)\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)\s+(over|divided by|by)\s(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)',
+    ( "You want to divide%2 by%4"),"wordMath"),
+
+# Word lookup expressions
+
+    (r'(what is an|what is a|what is the|what is|search for|search|what\'s|find|define)\s+(.*)',
+    ( "You want to define%2"),"wordLookup"),
+
+# fall through case -
+# when stumped, respond with generic zen wisdom
+#
+# Test returning multiline response
+    (r'(.*)',
+     ( "Sorry, I don't understand that. What now?\nQuit;;Thanks" ),"text")
+)
+
+
 
 def main():
     """Initialization and event loop"""
 
-    global voiceChoice
-
-    print(WELCOME_TEXT)
-
-
+    # provide instructions and other useful information (hide by elevating logging level:
     logging.info( "Open Allure Version: %s" % __version__ )
     logging.debug( "Pygame Version: %s" % pygame.__version__ )
 
@@ -62,23 +351,27 @@ def main():
     screen = pygame.display.set_mode( screenRect.size )
     del screenRect
 
-    # load initial sequence from url specified in openallure.cfg file
+    # load initial question sequence from url specified in openallure.cfg file
     config = ConfigParser.RawConfigParser()
     config.read( 'openallure.cfg' )
     url = config.get( 'Source', 'url' )
     backgroundColor = eval( config.get( 'Colors', 'background' ) )
-
-    seq = Sequence( filename=url )
-    logging.info( "Sequence Loaded with %s questions" % str( len( seq.sequence ) ) )
+    seq = QSequence( filename=url )
+    logging.info( "Question sequence Loaded with %s questions" % str( len( seq.sequence ) ) )
     #print seq.sequence
 
-    # load initial AIML file
-    k = aiml.Kernel()
-    aiml_file = config.get( 'Source', 'aiml' )
-    aimlLoadPattern = config.get( 'Source', 'aimlLoadPattern' )
-    k.learn( aiml_file )
-    AIMLResponse = k.respond( aimlLoadPattern )
-    logging.info( "AIML %s" % (aiml_file + " " + AIMLResponse ) )
+##    # load initial AIML file
+##    k = aiml.Kernel()
+##    aiml = config.get( 'Source', 'aiml' )
+##    aimlLoadPattern = config.get( 'Source', 'aimlLoadPattern' )
+##    k.learn( aiml )
+##    AIMLResponse = k.respond( aimlLoadPattern )
+##    logging.info( "AIML %s" % (aiml + " " + AIMLResponse ) )
+
+    # initialize chatbot
+    openallure_chatbot = Chat(responses, reflections)
+    logging.info( "Chatbot initialized." )
+
 
     # load browser command string
     browser = config.get( 'Browser', 'browser' )
@@ -89,9 +382,9 @@ def main():
     voice       = Voice()
 
     margins     = [ 20, 20, 620, 460 ]
-    text        = Text( margins )
+    text        = OpenAllureText( margins )
 
-    showFlag = False
+    showFlag = eval( config.get( 'Video', 'showFlag' ) )
 
     # start on first question of sequence
     # TODO: have parameter file track position in sequence at quit and resume there on restart
@@ -99,9 +392,9 @@ def main():
 
     # initialize mode flags
     # Has new question from sequence been prepared?
-    ready = False
-    # Has question been stated (read aloud)?
-    stated = False
+    openallure.ready = False
+    # Has question been openallure.stated (read aloud)?
+    openallure.stated = False
     # What choice (if any) has been highlighted by gesture or keyboard?
     highlight= 0
     # When was choice first highlighted by gesture?
@@ -114,7 +407,7 @@ def main():
     # What questions have been shown (list)?
     questions = []
     # What has been typed in so far
-    currentString = ""
+    openallure.currentString = ""
 
 
     # Greetings
@@ -122,17 +415,17 @@ def main():
 
     while 1:
 
-        if not ready:
+        if not openallure.ready:
             # prepare for question display
-            question = seq.sequence[ onQuestion ]
-            choiceCount, questionText, justQuestionText = text.buildQuestionText( question )
+            openallure.question = seq.sequence[ onQuestion ]
+            choiceCount, questionText, justQuestionText = text.buildQuestionText( openallure.question )
 
             textRegions = text.preRender( questionText[ choiceCount ] )
 
             # initialize pointers - no part of the question text and none of the answers
             # have been read aloud.  Note that question text is numbered from 0
             # while answers are numbered from 1.
-            stated = False
+            openallure.stated = False
             onText = 0
             onAnswer = 0
             next = 0
@@ -146,14 +439,14 @@ def main():
             eliminate = []
 
             # initialize typed input
-            currentString = ''
+            openallure.currentString = ''
 
             # clear screen of last question
             screen.fill( backgroundColor )
             greenScreen.calibrated = False
             greenScreen.backgrounds = []
             vcp.processruns = 0
-            ready = True
+            openallure.ready = True
 
         # get keyboard input
         for event in pygame.event.get():
@@ -171,7 +464,8 @@ def main():
             # Define toggle keys and capture character by character string inputs
             elif event.type == pygame.KEYDOWN:
                # Keys 1 through 6 select choices 1 through 6
-               if event.key in range( pygame.K_1, pygame.K_6 ):
+               if event.key in range( pygame.K_1, pygame.K_6 ) and \
+                  not openallure.question[ 6 ][choiceCount - 1 ] == 1:
                    answer = event.key - pygame.K_1
                    if answer < choiceCount:
                        choice = ( answer + 1, 0 )
@@ -185,36 +479,90 @@ def main():
                     greenScreen.calibrated = False
                elif event.key == pygame.K_F5:
                     gesture.showPixels = not gesture.showPixels
+               elif event.key == pygame.K_F6:
+                    # reveal all the attributes of openallure
+                    print( openallure.__dict__ )
+                    # drop into interpreter for debugging
+                    import code; code.interact(local=locals())
 
                # Allow space to silence reading of question unless there is an input (which might require a space)
-               elif event.key == pygame.K_SPACE and not question[ 6 ][choiceCount - 1 ] == 1:
+               elif event.key == pygame.K_SPACE and not openallure.question[ 6 ][choiceCount - 1 ] == 1:
                     # Silence reading of question
-                    stated = True
+                    openallure.stated = True
                elif event.key == pygame.K_RETURN:
-                   # This takes last response (which can be input string)
-                   answer = choiceCount - 1
-                   choice = ( choiceCount, 0 )
-               elif event.key == pygame.K_BACKSPACE and question[ 6 ][choiceCount - 1 ] == 1:
-                   currentString = currentString[0:-1]
-                   question[ 1 ][ choiceCount - 1 ] = currentString
-                   questionText[ choiceCount ] = questionText[ choiceCount - 1 ] + "\n" + currentString
+                   if openallure.currentString:
+                          nltkResponse = openallure_chatbot.respond( openallure.currentString )
+                          print nltkResponse
+                          # if nltkResponse is one line containing a semicolon, replace the semicolon with \n
+                          if nltkResponse.find('\n') == -1:
+                              nltkResponse = nltkResponse.replace(';','\n')
+                          filename = "nltkResponse.txt"
+                          f = open( filename, 'w' )
+                          f.write( nltkResponse )
+                          f.write( "\n[input];;\n")
+                          f.close()
+                          if nltkResponse:
+                              answer = choiceCount - 1
+                              choice = ( choiceCount, 0 )
+##                        aimlResponse = k.respond( openallure.currentString )
+##                        # print answer, k.respond( openallure.currentString )
+##                        # put response in a file for now
+##                        filename = "aimlResponse.txt"
+##                        f = open( filename, 'w')
+##                        ##                print k.respond( openallure.currentString )
+##                        ##                print k.respond( openallure.currentString ).replace( '\\n ', '\n' )
+##                        f.write( aimlResponse.replace( '\\n ', '\n' ) )
+##                        f.close()
+##                        if aimlResponse:
+##                           answer = choiceCount - 1
+##                           choice = ( choiceCount, 0 )
+                   else:
+                       # This takes last response
+                       answer = choiceCount - 1
+                       choice = ( choiceCount, 0 )
+               elif event.key == pygame.K_BACKSPACE and openallure.question[ 6 ][choiceCount - 1 ] == 1:
+                   openallure.currentString = openallure.currentString[0:-1]
+                   openallure.question[ 1 ][ choiceCount - 1 ] = openallure.currentString
+                   questionText[ choiceCount ] = questionText[ choiceCount - 1 ] + "\n" + openallure.currentString
                    screen.fill(backgroundColor)
-               elif event.key <= 127 and question[ 6 ][choiceCount - 1 ] == 1:
+               elif event.key <= 127 and openallure.question[ 6 ][choiceCount - 1 ] == 1:
+##                   print event.key
                    mods = pygame.key.get_mods()
                    if mods & pygame.KMOD_SHIFT:
-                       currentString += chr( event.key ).upper()
+                       if event.key in range( 48, 58 ):
+                           openallure.currentString += \
+                           (')','!','@','#','$','%','^','&','*','('
+                           )[range( 48, 58 ).index( event.key )]
+                       elif event.key == 45:
+                           openallure.currentString += "_"
+                       elif event.key == 61:
+                           openallure.currentString += "+"
+                       else:
+                           openallure.currentString += chr( event.key ).upper()
                    else:
-                       currentString += chr( event.key )
-                   question[ 1 ][ choiceCount - 1 ] = currentString
-                   questionText[ choiceCount ] = questionText[ choiceCount - 1 ] + "\n" + currentString
+                       openallure.currentString += chr( event.key )
+                   openallure.question[ 1 ][ choiceCount - 1 ] = openallure.currentString
+                   questionText[ choiceCount ] = questionText[ choiceCount - 1 ] + "\n" + openallure.currentString
                    screen.fill(backgroundColor)
 
-#        print voiceChoice
-        if voiceChoice > 0:
-            answer = voiceChoice - 1
-            voiceChoice = 0
+#        print openallure.voiceChoice
+        if openallure.voiceChoice > 0:
+            openallure.stated = 1
+            answer = openallure.voiceChoice - 1
+            colorLevel = 0
+            openallure.voiceChoice = 0
+            # Update screen to reflect choice
+            text.paintText(screen,
+                           justQuestionText, onText,
+                           questionText,     onAnswer,
+                           highlight,
+                           openallure.stated,
+                           choice,
+                           colorLevel,colorLevels)
+            pygame.display.flip()
 
-        if answer < 0 and ready:
+
+        if answer < 0 and openallure.ready:
             # check webcam
             processedImage = vcp.get_and_flip( show=showFlag )
             choice         = gesture.choiceSelected( processedImage, textRegions, margins )
@@ -240,9 +588,9 @@ def main():
                     # choice has been highlighted long enough to actually be the desired selection
                     choiceMade = True
                     answer = choice[ 0 ] - 1
-    ##                print question[1]
+    ##                print openallure.question[1]
     ##                print choice[0]
-                    voice.speak( "You selected " + question[ 1 ][ answer ] )
+                    voice.speak( "You selected " + openallure.question[ 1 ][ answer ] )
                     highlight = 0
                 else:
                     # block a choice that has not been highlighted long enough
@@ -260,43 +608,44 @@ def main():
                            justQuestionText, onText,
                            questionText,     onAnswer,
                            highlight,
-                           stated,
+                           openallure.stated,
                            choice,
                            colorLevel,colorLevels)
+
         elif not choice == ( - 1, 0 ):
-            # respond to choice
-            if len( currentString ):
-                voice.speak("You entered " + currentString )
-                # print answer, k.respond( currentString )
-                # put response in a file for now
-                filename = "aimlResponse.txt"
-                f = open( filename, 'w')
-                print k.respond( currentString )
-                print k.respond( currentString ).replace( '\\n ', '\n' )
-                f.write( k.respond( currentString ).replace( '\\n ', '\n' ) )
-                f.close()
+            # respond to choice when something has been typed and entered
+            if len( openallure.currentString ):
+##                if len( aimlResponse ) == 0:
+                if len( nltkResponse ) == 0:
+                    choice = ( -1, 0 )
+                    answer = -1
+                    voice.speak("Try again")
+                else:
+                    voice.speak("You entered " + openallure.currentString )
+                # Reset string
+                openallure.currentString = ''
 
             # check whether a link is associated with this answer and, if so, follow it
-            if question[ 5 ][ answer ]:
-                os.system( browser + " " + question[ 5 ][ answer ] )
+            if openallure.question[ 5 ][ answer ]:
+                os.system( browser + " " + openallure.question[ 5 ][ answer ] )
 
             #check that response exists for answer
-            if answer < len( question[ 2 ] ) and (isinstance( question[ 2 ][ answer ], str ) or \
-                                                  isinstance( question[ 2 ][ answer ], unicode)):
+            if answer < len( openallure.question[ 2 ] ) and (isinstance( openallure.question[ 2 ][ answer ], str ) or \
+                                                  isinstance( openallure.question[ 2 ][ answer ], unicode)):
                   #speak response to answer
-                  voice.speak(question[ 2 ][ answer ].strip())
+                  voice.speak(openallure.question[ 2 ][ answer ].strip())
 
             #check that next sequence exists as integer for answer
-            if answer < len( question[ 3 ] ) and isinstance( question[ 3 ][ answer ], int ):
+            if answer < len( openallure.question[ 3 ] ) and isinstance( openallure.question[ 3 ][ answer ], int ):
               #get new sequence or advance in sequence
-              next = question[ 3 ][ answer ]
+              next = openallure.question[ 3 ][ answer ]
               if next == 88:
                   # voice.speak( "New source of questions" )
                   path = seq.path
                   #print "path is ", path
-                  seq = Sequence( filename = question[ 4 ][ answer ], path = path )
+                  seq = QSequence( filename = openallure.question[ 4 ][ answer ], path = path )
                   onQuestion = 0
-                  ready = False
+                  openallure.ready = False
               elif next == 99:
                   voice.speak( "Taking dictation" )
                   #TODO
@@ -319,7 +668,7 @@ def main():
                       voice.speak( "You have reached the end. Goodbye." )
                       return
                   else:
-                      ready  = False
+                      openallure.ready  = False
 
             else:
                # invalid or final choice
@@ -327,15 +676,15 @@ def main():
                print seq.sequence
                return
 
-        if not stated:
-            if onAnswer == len(question[1])+1:
-                stated = True
+        if not openallure.stated:
+            if onAnswer == len(openallure.question[1])+1:
+                openallure.stated = True
             else:
                 # work through statement of question
                 # this means speaking each part of the question and each of the answers
                 # UNLESS the process is cut short by other events
-                if onAnswer > 0 and onAnswer < len( question[ 1 ] ) + 1 :
-                    answerText = question[ 1 ][ onAnswer-1 ]
+                if onAnswer > 0 and onAnswer < len( openallure.question[ 1 ] ) + 1 :
+                    answerText = openallure.question[ 1 ][ onAnswer-1 ]
                     if not answerText.startswith('[input]'):
                         # Check for answer with "A. "
                         if answerText[ 1:3 ] == '. ' :
@@ -345,13 +694,13 @@ def main():
                         del answerText
                     onAnswer += 1
 
-                if onText < len( question[ 0 ] ):
+                if onText < len( openallure.question[ 0 ] ):
                     # speak the current part of the question
-                    voice.speak( question[ 0 ][ onText ] )
+                    voice.speak( openallure.question[ 0 ][ onText ] )
                     # and move on to the next part (which needs to be displayed before being spoken)
                     onText += 1
                     # once all the parts of the question are done, start working through answers
-                    if onText == len( question[ 0 ] ):
+                    if onText == len( openallure.question[ 0 ] ):
                        onAnswer = 1
 
 # initialize speech recognition before entering main()
@@ -362,7 +711,7 @@ systemHasEspeak    = eval( config.get( 'Voice', 'systemHasEspeak' ) )
 
 _dictation = 0
 
-voiceChoice = 0
+openallure.voiceChoice = 0
 
 def speak(phrase):
    #print phrase
@@ -380,7 +729,7 @@ if systemHasDragonfly:
     from dragonfly import *
 
     e = dragonfly.get_engine()
-    e.speak("Hello. Using dragonfly.")
+##    e.speak("Hello. Using dragonfly.")
     grammar = Grammar("openallure")
 
     class SpeakRule(CompoundRule):
@@ -389,141 +738,143 @@ if systemHasDragonfly:
 
         def _process_recognition(self, node, extras):
 ##            # stop reading
-##            global _silence, choice, _dictation, on_question, question, sequence, _stated, _quit
+##            global _silence, choice, _dictation, on_question, question, sequence, _openallure.stated, _quit
 ##            _silence = 1
-            global voiceChoice
 
-            # repeat voice recognition
-            answer = " ".join(node.words())
-            answer1 = node.words()[0]
-            speak("You said %s!" % answer)
+            openallure.stated = True
 
-            if _dictation == 0:
-                # check for valid answer (see if words match)
-                onAnswer = 0
-                match = 0
-##                for i in question[1]:
-##                    onAnswer += 1
-##                    #check against available answers - in lower case without punctuation
-##                    # and allow first part only (eg "Yes." in "Yes. I agree.")
-##                    # or first word
-##                    answer = answer.lower().strip('.')
-##                    if answer == i.lower().strip('.?!') or answer == i.lower().split('.')[0] or answer == i.lower().split()[0]:
-##                       voiceChoice = onAnswer
-##                       match = 1
-                if not match:
-                    #check first word against number words
-                    onAnswer = 0
-                    for i in ["one","two","three","four","five","six"]:
-                        onAnswer += 1
-                        if answer1 == i or answer == i:
-                           voiceChoice = onAnswer
-                           match = 1
-                if not match:
-                    #check first word against "choice" + number words
-                    onAnswer = 0
-                    for i in ["choice one","choice two","choice three","choice four","choice five","choice six"]:
-                        onAnswer += 1
-                        if answer == i:
-                           voiceChoice = onAnswer
-                           match = 1
-                if not match:
-                    #check first word against "answer" + number words
-                    onAnswer = 0
-                    for i in ["answer one","answer two","answer three","answer four","answer five","answer six"]:
-                        onAnswer += 1
-                        if answer == i:
-                           voiceChoice = onAnswer
-                           match = 1
-                if not match:
-                    #check first word against words similar to number words
-                    onAnswer = 0
-                    for i in ["won","to","tree","for","fife","sex"]:
-                        onAnswer += 1
-                        if answer1 == i:
-                           voiceChoice = onAnswer
-                           match = 1
-                if not match:
-                    #check against ordinal words
-                    onAnswer = 0
-                    for i in ["first","second","third","fourth","fifth","sixth"]:
-                        onAnswer += 1
-                        if answer1 == i:
-                           voiceChoice = onAnswer
-                           match = 1
-                if not match:
-                    #check against ordinal words + "choice"
-                    onAnswer = 0
-                    for i in ["first choice","second choice","third choice","fourth choice","fifth choice","sixth choice"]:
-                        onAnswer += 1
-                        if answer == i:
-                           voiceChoice = onAnswer
-                           match = 1
-                if not match:
-                    #check against ordinal words + "answer"
-                    onAnswer = 0
-                    for i in ["first answer","second answer","third answer","fourth answer","fifth answer","sixth answer"]:
-                        onAnswer += 1
-                        if answer == i:
-                           voiceChoice = onAnswer
-                           match = 1
-                if not match:
-                    #check against letter words
-                    onAnswer = 0
-                    for i in ["A.","B.","C.","D.","E.","F."]:
-                        onAnswer += 1
-                        if answer1 == i:
-                           voiceChoice = onAnswer
-                           match = 1
-##                if not match:
-##                    #check against control words
-##                    for i in ["next","next question","skip to next question"]:
-##                       if answer == i:
-##                          _silence = 1
-##                          on_text = 0
-##                          onAnswer = 0
-##                          skip_response = 1
-##
-##                          # Choice is first non-zero entry in question[3]
-##                          on_choice = 0
-##                          for i in question[3]:
-##                              on_choice += 1
-##                              if not i == 0:
-##                                  voiceChoice = on_choice
-##                                  speak("On question " + str(on_question + i))
-##                                  break
-##                          match = 1
-##                if not match:
-##                    for i in ["back","prior","previous","back up","back one","prior question","previous question"]:
-##                       if answer == i:
-##                          _silence = 1
-##                          on_text = 0
-##                          onAnswer = 0
-##                          voiceChoice = -1
-##                          if len(questions) > 0:
-##                              speak("Returning to question " + str(questions[-1]))
-##                          else:
-##                              on_question = 0
-##                          match = 1
-##                if not match:
-##                    for i in ["quit now","exit now","i give up"]:
-##                       if answer == i:
-##                           _quit = 1
-##                           match = 1
+            if openallure.ready:
+                # repeat voice recognition
+                answer = " ".join(node.words())
+                answer1 = node.words()[0]
+                # speak("You said %s!" % answer)
 
-                if not match:
-                    speak("Try again.")
-##            else:
-##                speak("Thank you. Let's move on.")
-##                on_question = on_question + 1
-##                # avoid stepping past end of sequence
-##                on_question = min(on_question,len(sequence)-1)
-##                question = sequence[on_question]
-##                build_question_text(question)
-##                voiceChoice = 0
-##                _dictation = 0
-##            if match and verbose: print "dragonfly voiceChoice " + str(voiceChoice)
-                e.speak("dragonfly voice Choice " + str(voiceChoice))
+                if _dictation == 0:
+                    # check for valid answer (see if words match)
+                    onAnswer = 0
+                    match = 0
+                    for i in openallure.question[1]:
+                        onAnswer += 1
+                        #check against available answers - in lower case without punctuation
+                        # and allow first part only (eg "Yes." in "Yes. I agree.")
+                        # or first word
+                        answer = answer.lower().strip('.')
+                        if answer == i.lower().strip('.?!') or answer == i.lower().split('.')[0] or answer == i.lower().split()[0]:
+                           openallure.voiceChoice = onAnswer
+                           match = 1
+                    if not match:
+                        #check first word against number words
+                        onAnswer = 0
+                        for i in ["one","two","three","four","five","six"]:
+                            onAnswer += 1
+                            if answer1 == i or answer == i:
+                               openallure.voiceChoice = onAnswer
+                               match = 1
+                    if not match:
+                        #check first word against "choice" + number words
+                        onAnswer = 0
+                        for i in ["choice one","choice two","choice three","choice four","choice five","choice six"]:
+                            onAnswer += 1
+                            if answer == i:
+                               openallure.voiceChoice = onAnswer
+                               match = 1
+                    if not match:
+                        #check first word against "answer" + number words
+                        onAnswer = 0
+                        for i in ["answer one","answer two","answer three","answer four","answer five","answer six"]:
+                            onAnswer += 1
+                            if answer == i:
+                               openallure.voiceChoice = onAnswer
+                               match = 1
+                    if not match:
+                        #check first word against words similar to number words
+                        onAnswer = 0
+                        for i in ["won","to","tree","for","fife","sex"]:
+                            onAnswer += 1
+                            if answer1 == i:
+                               openallure.voiceChoice = onAnswer
+                               match = 1
+                    if not match:
+                        #check against ordinal words
+                        onAnswer = 0
+                        for i in ["first","second","third","fourth","fifth","sixth"]:
+                            onAnswer += 1
+                            if answer1 == i:
+                               openallure.voiceChoice = onAnswer
+                               match = 1
+                    if not match:
+                        #check against ordinal words + "choice"
+                        onAnswer = 0
+                        for i in ["first choice","second choice","third choice","fourth choice","fifth choice","sixth choice"]:
+                            onAnswer += 1
+                            if answer == i:
+                               openallure.voiceChoice = onAnswer
+                               match = 1
+                    if not match:
+                        #check against ordinal words + "answer"
+                        onAnswer = 0
+                        for i in ["first answer","second answer","third answer","fourth answer","fifth answer","sixth answer"]:
+                            onAnswer += 1
+                            if answer == i:
+                               openallure.voiceChoice = onAnswer
+                               match = 1
+                    if not match:
+                        #check against letter words
+                        onAnswer = 0
+                        for i in ["A.","B.","C.","D.","E.","F."]:
+                            onAnswer += 1
+                            if answer1 == i:
+                               openallure.voiceChoice = onAnswer
+                               match = 1
+    ##                if not match:
+    ##                    #check against control words
+    ##                    for i in ["next","next question","skip to next question"]:
+    ##                       if answer == i:
+    ##                          _silence = 1
+    ##                          on_text = 0
+    ##                          onAnswer = 0
+    ##                          skip_response = 1
+    ##
+    ##                          # Choice is first non-zero entry in openallure.question[3]
+    ##                          on_choice = 0
+    ##                          for i in openallure.question[3]:
+    ##                              on_choice += 1
+    ##                              if not i == 0:
+    ##                                  openallure.voiceChoice = on_choice
+    ##                                  speak("On question " + str(on_question + i))
+    ##                                  break
+    ##                          match = 1
+    ##                if not match:
+    ##                    for i in ["back","prior","previous","back up","back one","prior question","previous question"]:
+    ##                       if answer == i:
+    ##                          _silence = 1
+    ##                          on_text = 0
+    ##                          onAnswer = 0
+    ##                          openallure.voiceChoice = -1
+    ##                          if len(questions) > 0:
+    ##                              speak("Returning to question " + str(questions[-1]))
+    ##                          else:
+    ##                              on_question = 0
+    ##                          match = 1
+    ##                if not match:
+    ##                    for i in ["quit now","exit now","i give up"]:
+    ##                       if answer == i:
+    ##                           _quit = 1
+    ##                           match = 1
+
+##                    if not match:
+##                        speak("Try again.")
+    ##            else:
+    ##                speak("Thank you. Let's move on.")
+    ##                on_question = on_question + 1
+    ##                # avoid stepping past end of sequence
+    ##                on_question = min(on_question,len(sequence)-1)
+    ##                openallure.question = sequence[on_question]
+    ##                build_question_text(openallure.question)
+    ##                openallure.voiceChoice = 0
+    ##                _dictation = 0
+    ##            if match and verbose: print "dragonfly openallure.voiceChoice " + str(openallure.voiceChoice)
+    ##                e.speak("dragonfly voice Choice " + str(openallure.voiceChoice))
 
     grammar.add_rule(SpeakRule())    # Add the top-level rule.
     grammar.load()                   # Load the grammar.
