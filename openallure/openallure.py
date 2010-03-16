@@ -12,11 +12,12 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d5dev'
+__version__='0.1d6dev'
 
 # Standard Python modules
 import ConfigParser
 import logging
+import os
 import random
 import re
 import string
@@ -146,9 +147,13 @@ class Chat(object):
                     pos = string.find(response,'%')
                     num = string.atoi(response[pos+1:pos+2])
                     wordToLookup = match.group(num)
+                    wordToLookup = wordToLookup.strip(',./?!;')
                     #print( wordToLookup )
                     wordToLookupSynsets = wordnet.synsets( wordToLookup )
-                    resp =wordToLookupSynsets[0].definition
+                    try:
+                       resp =wordToLookupSynsets[0].definition
+                    except IndexError:
+                        resp = '"'+ wordToLookup + '" was not found in the dictionary. Try again.'
 
                 if responseType == "math":
                     operands = []
@@ -209,7 +214,9 @@ class Chat(object):
                         if numberWord[0] in string.digits:
                             number = eval( numberWord )
                         else:
-                            number = ['zero','one','two','three','four','five','six','seven','eight','nine','ten'].index(numberWord)
+                            number = ['zero','one','two','three','four','five','six','seven','eight','nine','ten',
+                                      'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen',
+                                      'nineteen','twenty'].index(numberWord)
                         operands.append(str(number))
                         response = response[:pos] + \
                             self._substitute(match.group(num)) + \
@@ -278,11 +285,11 @@ class Chat(object):
 responses = (
 
 
-    (r'hello(.*)',
-    ( "I'm not%1"),"text"),
-
-    (r'(good|bad)',
-    ( "I'm not%1"),"text"),
+    (r'(demo|hi|hello)(.*)',
+    ( "Welcome.\nHere are some choices:\nDo simple math;;\nExplore a dictionary;;;\nLearn about Open Allure;[about.txt]\n[input];;;;\n\nOK.\nTry some two operand math\nlike ADD 2 + 2:\n[input];;\n\nLook up words\nby entering DEFINE <word>:\n[input];;\n"),"text"),
+##
+##    (r'(good|bad)',
+##    ( "I'm not%1","You're%1","So%1"),"text"),
 
 # Extract numbers from math expressions
 
@@ -302,30 +309,33 @@ responses = (
 # Word math expressions
 
     # Addition
-    (r'(what is|what\'s|find|calculate|add)\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)\s+plus\s(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)',
+    (r'(what is|what\'s|find|calculate|add)\s+(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|[0-9.]+)\s+plus\s(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)',
     ( "You want to add%2 and%3"),"wordMath"),
 
-    (r'add\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)\s+(and|plus)\s(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)',
+    (r'add\s+(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)\s+(and|plus)\s(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)',
     ( "You want to add%1 and%3"),"wordMath"),
 
     # Subtraction
-    (r'(what is|what\'s|find|calculate|subtract)\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)\s+minus\s(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)',
+    (r'(what is|what\'s|find|calculate|subtract)\s+(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)\s+minus\s(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)',
     ( "You want to subtract%2 minus%3"),"wordMath"),
 
-    (r'subtract\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)\s+from\s(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)',
+    (r'subtract\s+(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)\s+from\s(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)',
     ( "You want to subtract%2 minus%1"),"wordMath"),
 
     # Multiplication
-    (r'(what is|what\'s|find|calculate|multiply)\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)\s+(times|multiplied by)\s(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)',
+    (r'(what is|what\'s|find|calculate|multiply)\s+(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)\s+(times|multiplied by)\s(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)',
     ( "You want to multiply%2 by%4"),"wordMath"),
 
     # Division /
-    (r'(what is|what\'s|find|calculate|divide)\s+(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)\s+(over|divided by|by)\s(zero|one|two|three|four|five|six|seven|eight|nine|ten|[0-9.]+)',
+    (r'(what is|what\'s|find|calculate|divide)\s+(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)\s+(over|divided by|by)\s(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)',
     ( "You want to divide%2 by%4"),"wordMath"),
 
 # Word lookup expressions
 
-    (r'(what is an|what is a|what is the|what is|search for|search|what\'s|find|define)\s+(.*)',
+    (r'(what does|what\'s)\s+(.*)\s+mean(.*)',
+    ( "You want to define%2"),"wordLookup"),
+
+    (r'(what is an|what is a|what is the|what is|search for|search|what\'s an|what\'s a|what\'s|find|define)\s+(.*)',
     ( "You want to define%2"),"wordLookup"),
 
 # fall through case -
@@ -492,6 +502,7 @@ def main():
                elif event.key == pygame.K_RETURN:
                    if openallure.currentString:
                           nltkResponse = openallure_chatbot.respond( openallure.currentString )
+                          print openallure.currentString
                           print nltkResponse
                           # if nltkResponse is one line containing a semicolon, replace the semicolon with \n
                           if nltkResponse.find('\n') == -1:
@@ -529,10 +540,10 @@ def main():
 ##                   print event.key
                    mods = pygame.key.get_mods()
                    if mods & pygame.KMOD_SHIFT:
-                       if event.key in range( 48, 58 ):
+                       if event.key in range( 47, 58 ):
                            openallure.currentString += \
-                           (')','!','@','#','$','%','^','&','*','('
-                           )[range( 48, 58 ).index( event.key )]
+                           ('?',')','!','@','#','$','%','^','&','*','('
+                           )[range( 47, 58 ).index( event.key )]
                        elif event.key == 45:
                            openallure.currentString += "_"
                        elif event.key == 61:
