@@ -31,8 +31,10 @@ class Gesture(object):
         Gesture recognition depends on particular pixels which can be shown (or not)
         """
         self.showPixels = 0
+        self.imageWithPixels = None
+        self.scaledImageWithPixels = None
 
-    def isBoxSelected( self, imageArray, xoffset, yoffset, threshold=10, n=11, spacing=2 ):
+    def isBoxSelected( self, imageArray, imageCopyArray, xoffset, yoffset, threshold=10, n=11, spacing=2 ):
        """
        Determine whether a box located at (lower right) coordinate
        **xoffset**, **yoffset** in an
@@ -45,16 +47,19 @@ class Gesture(object):
        #print xUpperLeft
        yUpperLeft = max( 0, yoffset - n * spacing )
        count = 0
+
        for i    in range( 1, n ):
           for j in range( 1, n ):
              # test pixel
              if imageArray[ i * spacing + xUpperLeft, j * spacing + yUpperLeft ] > 0:
-                #print i*spacing+xUpperLeft,j*spacing+yUpperLeft
                 count += 1
-             if self.showPixels: imageArray[i*spacing+xUpperLeft,j*spacing+yUpperLeft] = 16777215
+#                print count, i * spacing + xUpperLeft, j * spacing + yUpperLeft, imageArray[ i * spacing + xUpperLeft, j * spacing + yUpperLeft ]
+
        if count > threshold:
+          imageCopyArray[ xUpperLeft : xoffset, yUpperLeft : yoffset ] = (255, 0, 0)
           return 1
        else:
+          imageCopyArray[ xUpperLeft : xoffset, yUpperLeft : yoffset ] = 16777215
           return 0
 
     def choiceSelected( self, image, textRegions, margins, boxWidth=35, boxPlacementList=DEFAULT_BOX_PLACEMENT ):
@@ -74,21 +79,32 @@ class Gesture(object):
         TODO: Use a better system which allows hand gestures to be recognized even with a moving face as the background.
         """
         imageArray = pygame.PixelArray( image )
+
+        # add pixel highlights to imageCopyArray
+        imageCopy = image.copy()
+        imageCopyArray = pygame.PixelArray( imageCopy )
+
         yLowerRight = 3
-        for choice, coordinates in enumerate(textRegions):
+        choice = -1
+        for on_choice, coordinates in enumerate(textRegions):
            boxCount = 0
            for aBox in boxPlacementList:
                if aBox < 0:
                    # come in from right margin
-                   boxCount += self.isBoxSelected(imageArray,margins[2]+aBox*boxWidth,margins[1]+coordinates[yLowerRight])
+                   boxCount += self.isBoxSelected(imageArray,imageCopyArray,margins[2]+aBox*boxWidth,margins[1]+coordinates[yLowerRight])
                else:
-                   boxCount += self.isBoxSelected(imageArray,margins[0]+aBox*boxWidth,margins[1]+coordinates[yLowerRight])
+                   boxCount += self.isBoxSelected(imageArray,imageCopyArray,margins[0]+aBox*boxWidth,margins[1]+coordinates[yLowerRight])
 ##              if boxCount > 5 and calibrate == 1:
 ##                 #speak("Need to recalibrate")
 ##                 #print "boxCount" , boxCount
 ##                 GreenScreen.__init__(greenScreen)
 ##                 calibrate = 0
            if boxCount:
-               return choice, boxCount
-        #else
-        return -1, 0
+		       choice = on_choice
+		       break
+
+        self.imageWithPixels = imageCopyArray.make_surface()
+
+        self.scaledImageWithPixels = imageCopyArray[::4,::4].make_surface()
+
+        return choice, boxCount

@@ -13,6 +13,7 @@ TODO: Add standalone tests for text-to-speech modules.
 
 import os
 import ConfigParser
+import pygame
 try:
     import dragonfly
 except ImportError:
@@ -40,7 +41,8 @@ class Voice( object ):
            os.system( 'espeak -s150 "' + phrase + '"' )
        else:
            print( phrase )
-           #pygame.time.wait( 500 )
+           # Allow time for user to move hand down
+           pygame.time.wait( 500 )
 
 def test_voice():
     '''

@@ -12,7 +12,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d6dev'
+__version__='0.1d7dev'
 
 # Standard Python modules
 import ConfigParser
@@ -36,10 +36,11 @@ from voice import Voice
 # Setup logging
 logging.basicConfig( level=logging.DEBUG )
 
-WELCOME_TEXT = """   Welcome to Open Allure. Voice-and-vision enabled dialog system.
+WELCOME_TEXT = """
+   Welcome to Open Allure, a voice-and-vision enabled dialog system.
 
-   F3 to show webcam. F4 to recalibrate green screen.
-   F5 to show pixels for gestures. Escape to quit.
+   F4 to recalibrate green screen.
+   Escape to quit.
 
    Enjoy!
 """
@@ -69,9 +70,7 @@ class OpenAllure(object):
         self.stated = False
         self.currentString = ''
 
-# create instance of OpenAllure object
 openallure = OpenAllure()
-
 
 class Chat(object):
     def __init__(self, tuples, reflections={}):
@@ -136,6 +135,10 @@ class Chat(object):
 
             # did the pattern match?
             if match:
+                if responseType == "quit":
+                    #TODO: Make this more polite
+                    os.sys.exit()
+
                 if responseType == "text":
                     if isinstance(response,tuple):
                         resp = random.choice(response)    # pick a random response
@@ -286,7 +289,13 @@ responses = (
 
 
     (r'(demo|hi|hello)(.*)',
-    ( "Welcome.\nHere are some choices:\nDo simple math;;\nExplore a dictionary;;;\nLearn about Open Allure;[about.txt]\n[input];;;;\n\nOK.\nTry some two operand math\nlike ADD 2 + 2:\n[input];;\n\nLook up words\nby entering DEFINE <word>:\n[input];;\n"),"text"),
+    ( "Welcome.\nHere are some choices:\nDo simple math;;\nExplore a dictionary;;;\nLearn about Open Allure;[about.txt]\n[input];;;;\n\nOK.\nTry some two operand math\nlike ADD 2 + 2:\n[input];;\n\nLook up words\nby entering WHAT IS <word>:\n[input];;\n"),"text"),
+
+    (r'(.*)(turing|loebner)(.*)',
+    ( "I was hoping this would come up.\nLook at std-turing.aiml;[turing.txt]"),"text"),
+
+    (r'(quit|exit)',
+    ( "Request to quit"),"quit"),
 ##
 ##    (r'(good|bad)',
 ##    ( "I'm not%1","You're%1","So%1"),"text"),
@@ -335,7 +344,7 @@ responses = (
     (r'(what does|what\'s)\s+(.*)\s+mean(.*)',
     ( "You want to define%2"),"wordLookup"),
 
-    (r'(what is an|what is a|what is the|what is|search for|search|what\'s an|what\'s a|what\'s|find|define)\s+(.*)',
+    (r'(what is an|what is a|what is the|what is|search for|search|what\'s an|what\'s a|what\'s|find|define|defined)\s+(.*)',
     ( "You want to define%2"),"wordLookup"),
 
 # fall through case -
@@ -356,10 +365,10 @@ def main():
     logging.debug( "Pygame Version: %s" % pygame.__version__ )
 
     # initialize pyGame screen
-    screenRect = pygame.rect.Rect( 0, 0, 640, 480 )
+    textRect = pygame.rect.Rect( 0, 0, 640, 480 )
+    screenRect = pygame.rect.Rect( 0, 0, 752, 600 )
     pygame.init()
     screen = pygame.display.set_mode( screenRect.size )
-    del screenRect
 
     # load initial question sequence from url specified in openallure.cfg file
     config = ConfigParser.RawConfigParser()
@@ -380,7 +389,7 @@ def main():
 
     # initialize chatbot
     openallure_chatbot = Chat(responses, reflections)
-    logging.info( "Chatbot initialized." )
+    logging.info( "Chatbot initialized" )
 
 
     # load browser command string
@@ -421,7 +430,11 @@ def main():
 
 
     # Greetings
+    vcp.talk()
     voice.speak( 'Hello' )
+    vcp.smile()
+
+    print WELCOME_TEXT
 
     while 1:
 
@@ -452,11 +465,17 @@ def main():
             openallure.currentString = ''
 
             # clear screen of last question
-            screen.fill( backgroundColor )
+            screen.fill( backgroundColor, rect=textRect )
             greenScreen.calibrated = False
             greenScreen.backgrounds = []
             vcp.processruns = 0
             openallure.ready = True
+
+        # make sure currentString has been added to questionText
+        # as new contents may have been added by voice
+        if openallure.currentString:
+            questionText[ choiceCount ] = questionText[ choiceCount - 1 ] + \
+                                          "\n" + openallure.currentString
 
         # get keyboard input
         for event in pygame.event.get():
@@ -535,7 +554,7 @@ def main():
                    openallure.currentString = openallure.currentString[0:-1]
                    openallure.question[ 1 ][ choiceCount - 1 ] = openallure.currentString
                    questionText[ choiceCount ] = questionText[ choiceCount - 1 ] + "\n" + openallure.currentString
-                   screen.fill(backgroundColor)
+                   screen.fill( backgroundColor, rect=textRect)
                elif event.key <= 127 and openallure.question[ 6 ][choiceCount - 1 ] == 1:
 ##                   print event.key
                    mods = pygame.key.get_mods()
@@ -553,8 +572,30 @@ def main():
                    else:
                        openallure.currentString += chr( event.key )
                    openallure.question[ 1 ][ choiceCount - 1 ] = openallure.currentString
-                   questionText[ choiceCount ] = questionText[ choiceCount - 1 ] + "\n" + openallure.currentString
-                   screen.fill(backgroundColor)
+                   questionText[ choiceCount ] = questionText[ choiceCount - 1 ] + \
+                                                 "\n" + openallure.currentString
+                   screen.fill( backgroundColor, rect=textRect)
+
+        if openallure.voiceChoice > 0:
+            print openallure.voiceChoice
+            openallure.stated = 1
+            choice = ( openallure.voiceChoice, 0 )
+            # block non-choices
+            if choice[ 0 ] < 0 or choice[ 0 ] > len( questionText ) - 1 :
+                choice = ( -1, 0 )
+            else:
+                answer = openallure.voiceChoice - 1
+                colorLevel = 0
+                openallure.voiceChoice = 0
+                # Update screen to reflect choice
+                text.paintText(screen,
+                               justQuestionText, onText,
+                               questionText,     onAnswer,
+                               highlight,
+                               openallure.stated,
+                               choice,
+                               colorLevel,colorLevels)
+                pygame.display.flip()
 
 #        print openallure.voiceChoice
         if openallure.voiceChoice > 0:
@@ -576,10 +617,37 @@ def main():
         if answer < 0 and openallure.ready:
             # check webcam
             processedImage = vcp.get_and_flip( show=showFlag )
-            choice         = gesture.choiceSelected( processedImage, textRegions, margins )
-            if showFlag:
-                vcp.display.blit( processedImage, ( 0, 0 ) )
-                pygame.display.flip()
+
+            # show a photo
+            if isinstance( vcp.photoSmile,pygame.Surface ) and openallure.currentString == '' and openallure.stated == 1:
+               vcp.display.blit( vcp.photoSmile, (650,10))
+
+            if isinstance( vcp.photoTalk,pygame.Surface ) and openallure.currentString == '' and openallure.stated == 0:
+               vcp.display.blit( vcp.photoTalk, (650,10))
+
+            if isinstance( vcp.photoListen,pygame.Surface ) and not openallure.currentString == '':
+               vcp.display.blit( vcp.photoListen, (650,10))
+
+            # show the raw input
+            if isinstance( vcp.snapshotThumbnail,pygame.Surface ):
+                vcp.display.blit( vcp.snapshotThumbnail, (10,480) )
+
+            # show the green screen
+            if isinstance( vcp.processedShotThumbnail,pygame.Surface ):
+                vcp.display.blit( vcp.processedShotThumbnail, (190,480) )
+
+            # obtain choice from processed snapshot
+            if isinstance( processedImage,pygame.Surface ):
+                choice = gesture.choiceSelected( processedImage, textRegions, margins )
+##                if choice[0]> 0:
+##                    print choice
+
+            # show selected boxes
+            if isinstance( gesture.scaledImageWithPixels,pygame.Surface ):
+                vcp.display.blit( gesture.scaledImageWithPixels, (370,480) )
+
+            pygame.display.flip()
+
             # block non-choices
             if choice[ 0 ] < 0 or choice[ 0 ] > len( questionText ) - 1 :
                 choice = ( -1, 0 )
@@ -594,7 +662,8 @@ def main():
                 # lower color level to 0
                 colorLevel = colorLevels - int( dwellTime / colorLevelStepTime )
                 colorLevel = max( 0, colorLevel )
-                #TODO: provide shortcut to go immediately to colorLevel=0 if choice[1] (number of selected boxes) is big enough
+                #TODO: provide shortcut to go immediately to colorLevel=0
+                #if choice[1] (number of selected boxes) is big enough
                 if colorLevel == 0:
                     # choice has been highlighted long enough to actually be the desired selection
                     choiceMade = True
@@ -615,6 +684,7 @@ def main():
                 else:
                     choiceStartTime = pygame.time.get_ticks()
 
+            screen.fill( backgroundColor, rect=textRect )
             text.paintText(screen,
                            justQuestionText, onText,
                            questionText,     onAnswer,
@@ -651,7 +721,7 @@ def main():
               #get new sequence or advance in sequence
               next = openallure.question[ 3 ][ answer ]
               if next == 88:
-                  # voice.speak( "New source of questions" )
+                  # speak( "New source of questions" )
                   path = seq.path
                   #print "path is ", path
                   seq = QSequence( filename = openallure.question[ 4 ][ answer ], path = path )
@@ -740,7 +810,8 @@ if systemHasDragonfly:
     from dragonfly import *
 
     e = dragonfly.get_engine()
-##    e.speak("Hello. Using dragonfly.")
+    e.speak("Using dragonfly.")
+
     grammar = Grammar("openallure")
 
     class SpeakRule(CompoundRule):
@@ -758,7 +829,7 @@ if systemHasDragonfly:
                 # repeat voice recognition
                 answer = " ".join(node.words())
                 answer1 = node.words()[0]
-                # speak("You said %s!" % answer)
+                speak("You said %s!" % answer)
 
                 if _dictation == 0:
                     # check for valid answer (see if words match)
@@ -852,7 +923,7 @@ if systemHasDragonfly:
     ##                              on_choice += 1
     ##                              if not i == 0:
     ##                                  openallure.voiceChoice = on_choice
-    ##                                  speak("On question " + str(on_question + i))
+    ##                                  voice.speak("On question " + str(on_question + i))
     ##                                  break
     ##                          match = 1
     ##                if not match:
@@ -863,7 +934,7 @@ if systemHasDragonfly:
     ##                          onAnswer = 0
     ##                          openallure.voiceChoice = -1
     ##                          if len(questions) > 0:
-    ##                              speak("Returning to question " + str(questions[-1]))
+    ##                              voice.speak("Returning to question " + str(questions[-1]))
     ##                          else:
     ##                              on_question = 0
     ##                          match = 1
@@ -873,10 +944,13 @@ if systemHasDragonfly:
     ##                           _quit = 1
     ##                           match = 1
 
-##                    if not match:
+                    if not match:
+                        # try plugging into currentString
+                        openallure.currentString = answer
+                        openallure.question[ 1 ][ choiceCount - 1 ] = openallure.currentString
 ##                        speak("Try again.")
     ##            else:
-    ##                speak("Thank you. Let's move on.")
+    ##                voice.speak("Thank you. Let's move on.")
     ##                on_question = on_question + 1
     ##                # avoid stepping past end of sequence
     ##                on_question = min(on_question,len(sequence)-1)

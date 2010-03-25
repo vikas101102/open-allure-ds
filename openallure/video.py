@@ -9,6 +9,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
+import ConfigParser
 import logging
 import pygame
 
@@ -38,7 +39,8 @@ class VideoCapturePlayer( object ):
         logging.debug( "Initializing Video Capture Class" )
 
         #set display size in pixels = width,height
-        size                        =   640,480
+        displaySize = 752,600
+        size = 640,480
 
         processRuns = 0
 
@@ -50,10 +52,18 @@ class VideoCapturePlayer( object ):
         if self.display is None:
             if self.show is True:
                 # create a display surface. standard pygame stuff
-                self.display = pygame.display.set_mode( self.size, 0 )
+                self.display = pygame.display.set_mode( self.displaySize, 0 )
             else:
                 pygame.display.init()
-                self.display = pygame.surface.Surface( self.size )
+                self.display = pygame.surface.Surface( self.displaySize )
+
+		#bring in photos
+        logging.debug( "Loading photos: smile listen and talk" )
+        config = ConfigParser.RawConfigParser()
+        config.read( 'openallure.cfg' )
+        self.photoSmile = pygame.image.load( config.get( 'Photos', 'smile' ) ).convert()
+        self.photoListen = pygame.image.load( config.get( 'Photos', 'listen' ) ).convert()
+        self.photoTalk = pygame.image.load( config.get( 'Photos', 'talk' ) ).convert()
 
         import pygame.camera as camera
         camera.init()
@@ -75,25 +85,34 @@ class VideoCapturePlayer( object ):
         # bit depth to be the same as that of the display surface.
         self.snapshot = pygame.surface.Surface( self.size, 0, self.display )
 
+        # place holders for thumbnails
+        self.snapshotThumbnail = None
+        self.processedShotThumbnail = None
+
+    def smile( self ):
+        self.display.blit( self.photoSmile, (650,10))
+        pygame.display.flip()
+
+    def talk( self ):
+        self.display.blit( self.photoTalk, (650,10))
+        pygame.display.flip()
+
+    def listen( self ):
+        self.display.blit( self.photoListen, (650,10))
+        pygame.display.flip()
 
     def get_and_flip( self, show=True ):
         """
         Use webcam to take a snapshot, flip it right-to-left, subtract the background ( green screen ) and then display it.
         """
-        import pygame
 
         # Capture an image
-##        if isinstance( self.snapshot, pygame.Surface ):
         self.snapshot = self.camera.get_image( self.snapshot )
-##        else:
-##            # Don't quit until pygame coughs up a surface
-##            while isinstance( self.snapshot, None ):
-##               self.snapshot = pygame.surface.Surface( self.size, 0, self.display )
-##               self.snapshot = self.camera.get_image( self.snapshot )
 
         # Flip array version of image around the y axis.
         ar = pygame.PixelArray( self.snapshot )
         ar[:] = ar[::-1,:]
+        self.snapshotThumbnail  = ar[::4,::4].make_surface()
         del ar
 
         if self.processFunction:
@@ -108,21 +127,27 @@ class VideoCapturePlayer( object ):
                 # Flip array version of image around the y axis.
                 ar = pygame.PixelArray( self.snapshot )
                 ar[:] = ar[::-1,:]
+                # scaledown
+                self.snapshotThumbnail  = ar[::4,::4].make_surface()
                 del ar
 
             #apply green screen process
-            processedShot = self.processFunction( self.snapshot )
+            self.processedShot = self.processFunction( self.snapshot )
 
-            if isinstance( processedShot,pygame.Surface ):
-                self.snapshot = processedShot
+            if isinstance( self.processedShot,pygame.Surface ):
+                processedShotCopy = self.processedShot.copy()
+                ar_processedShotCopy = pygame.PixelArray( processedShotCopy )
+                # scaledown
+                self.processedShotThumbnail  = ar_processedShotCopy[::4,::4].make_surface()
+                del ar_processedShotCopy
 
             self.processRuns += 1
 
-        if show is True:
+#        if show is True:
             # blit it to the display surface.  simple!
-            self.display.blit( self.snapshot, ( 0,0 ) )
+#            self.display.blit( self.snapshot, ( 0,0 ) )
 
-        return self.snapshot
+        return self.processedShot
 
 class GreenScreen():
     """Process to capture average background image and subtract from snapshot image"""
