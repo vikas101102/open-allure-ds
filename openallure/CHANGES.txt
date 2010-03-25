@@ -1,3 +1,9 @@
+v0.1d7, 25 March 2010
+   New three panel interface and smile/talk/listen photos
+
+v0.1d6, 15 March 2010
+   Cleaned up regular expression matches a bit
+
 v0.1d5, 10 March 2010
    Added NLTK-based chatbot text input capabilities.
 
