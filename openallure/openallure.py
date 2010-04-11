@@ -12,7 +12,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d7dev'
+__version__='0.1d8dev'
 
 # Standard Python modules
 import ConfigParser
@@ -138,6 +138,13 @@ class Chat(object):
                 if responseType == "quit":
                     #TODO: Make this more polite
                     os.sys.exit()
+
+                if responseType == "open":
+                    pos = string.find(response,'%')
+                    num = string.atoi(response[pos+1:pos+2])
+                    sequenceToOpen = match.group(num)
+                    print pos, num, sequenceToOpen
+                    resp = "Confirm\nOpen " + sequenceToOpen + ';[' + sequenceToOpen + ']'
 
                 if responseType == "text":
                     if isinstance(response,tuple):
@@ -293,6 +300,9 @@ responses = (
 
     (r'(.*)(turing|loebner)(.*)',
     ( "I was hoping this would come up.\nLook at std-turing.aiml;[turing.txt]"),"text"),
+
+    (r'(open|start)\s*([a-zA-Z0-9\-\_\.\/\:]+)',
+    ( "Request to open new sequence%2"),"open"),
 
     (r'(quit|exit)',
     ( "Request to quit"),"quit"),
@@ -471,6 +481,9 @@ def main():
             vcp.processruns = 0
             openallure.ready = True
 
+            # clear any previous response
+            nltkResponse = ''
+
         # make sure currentString has been added to questionText
         # as new contents may have been added by voice
         if openallure.currentString:
@@ -559,10 +572,10 @@ def main():
 ##                   print event.key
                    mods = pygame.key.get_mods()
                    if mods & pygame.KMOD_SHIFT:
-                       if event.key in range( 47, 58 ):
+                       if event.key in range( 47, 60 ):
                            openallure.currentString += \
-                           ('?',')','!','@','#','$','%','^','&','*','('
-                           )[range( 47, 58 ).index( event.key )]
+                           ('?',')','!','@','#','$','%','^','&','*','(','',':'
+                           )[range( 47, 60 ).index( event.key )]
                        elif event.key == 45:
                            openallure.currentString += "_"
                        elif event.key == 61:
