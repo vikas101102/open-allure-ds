@@ -1,3 +1,8 @@
+v0.1d9, 14 April 2010
+    Added systemHasSay to openallure.cfg and voice.py to use Mac say for text to speech
+    Allowed keys 1 through 6 when [input] is part of question to retain answer selection function
+    Made browser command line call dependent on os.name
+    
 v0.1d8, 29 March 2010
     Added open/start commands
 

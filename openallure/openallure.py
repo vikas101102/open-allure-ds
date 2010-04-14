@@ -12,7 +12,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d8dev'
+__version__='0.1d9dev'
 
 # Standard Python modules
 import ConfigParser
@@ -143,8 +143,9 @@ class Chat(object):
                     pos = string.find(response,'%')
                     num = string.atoi(response[pos+1:pos+2])
                     sequenceToOpen = match.group(num)
-                    print pos, num, sequenceToOpen
-                    resp = "Confirm\nOpen " + sequenceToOpen + ';[' + sequenceToOpen + ']'
+                 
+                    resp = 'Confirm\nOpen ' + sequenceToOpen + \
+                           ';[' + sequenceToOpen + ']'
 
                 if responseType == "text":
                     if isinstance(response,tuple):
@@ -402,8 +403,14 @@ def main():
     logging.info( "Chatbot initialized" )
 
 
-    # load browser command string
-    browser = config.get( 'Browser', 'browser' )
+    # load browser command line strings and select appropriate one
+    # nt for Windows, posix otherwise (Mac, linux)
+    ntBrowser = config.get( 'Browser', 'ntBrowser' )
+    posixBrowser = config.get( 'Browser', 'posixBrowser' )
+    if os.name == 'nt':
+        browser = ntBrowser
+    else:
+        browser = posixBrowser
 
     greenScreen = GreenScreen()
     vcp         = VideoCapturePlayer( processFunction=greenScreen.process )
@@ -507,11 +514,22 @@ def main():
             elif event.type == pygame.KEYDOWN:
                # Keys 1 through 6 select choices 1 through 6
                if event.key in range( pygame.K_1, pygame.K_6 ) and \
-                  not openallure.question[ 6 ][choiceCount - 1 ] == 1:
+                  (not openallure.question[ 6 ][ choiceCount - 1 ] == 1 or
+                  (openallure.question[ 6 ][ choiceCount - 1 ] == 1 and
+                  openallure.currentString == '' ) ):
                    answer = event.key - pygame.K_1
                    if answer < choiceCount:
                        choice = ( answer + 1, 0 )
                        colorLevel = 0
+                       # Update screen to reflect choice
+                       text.paintText(screen,
+                                      justQuestionText, onText,
+                                      questionText,     onAnswer,
+                                      highlight,
+                                      openallure.stated,
+                                      choice,
+                                      colorLevel,colorLevels)
+                       pygame.display.flip()
                    else:
                        answer = -1
 
@@ -534,8 +552,8 @@ def main():
                elif event.key == pygame.K_RETURN:
                    if openallure.currentString:
                           nltkResponse = openallure_chatbot.respond( openallure.currentString )
-                          print openallure.currentString
-                          print nltkResponse
+                          # print openallure.currentString
+                          # print nltkResponse
                           # if nltkResponse is one line containing a semicolon, replace the semicolon with \n
                           if nltkResponse.find('\n') == -1:
                               nltkResponse = nltkResponse.replace(';','\n')
@@ -547,18 +565,6 @@ def main():
                           if nltkResponse:
                               answer = choiceCount - 1
                               choice = ( choiceCount, 0 )
-##                        aimlResponse = k.respond( openallure.currentString )
-##                        # print answer, k.respond( openallure.currentString )
-##                        # put response in a file for now
-##                        filename = "aimlResponse.txt"
-##                        f = open( filename, 'w')
-##                        ##                print k.respond( openallure.currentString )
-##                        ##                print k.respond( openallure.currentString ).replace( '\\n ', '\n' )
-##                        f.write( aimlResponse.replace( '\\n ', '\n' ) )
-##                        f.close()
-##                        if aimlResponse:
-##                           answer = choiceCount - 1
-##                           choice = ( choiceCount, 0 )
                    else:
                        # This takes last response
                        answer = choiceCount - 1
@@ -609,23 +615,6 @@ def main():
                                choice,
                                colorLevel,colorLevels)
                 pygame.display.flip()
-
-#        print openallure.voiceChoice
-        if openallure.voiceChoice > 0:
-            openallure.stated = 1
-            answer = openallure.voiceChoice - 1
-            colorLevel = 0
-            openallure.voiceChoice = 0
-            # Update screen to reflect choice
-            text.paintText(screen,
-                           justQuestionText, onText,
-                           questionText,     onAnswer,
-                           highlight,
-                           openallure.stated,
-                           choice,
-                           colorLevel,colorLevels)
-            pygame.display.flip()
-
 
         if answer < 0 and openallure.ready:
             # check webcam

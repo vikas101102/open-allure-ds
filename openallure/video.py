@@ -69,7 +69,7 @@ class VideoCapturePlayer( object ):
         camera.init()
 
         # get a list of available cameras.
-        self.cameraList = camera.list_cameras()
+        self.cameraList = ['0'] # camera.list_cameras()
         if not self.cameraList:
             raise ValueError( "Sorry, no cameras detected." )
 

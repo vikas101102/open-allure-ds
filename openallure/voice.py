@@ -30,6 +30,7 @@ class Voice( object ):
         config.read( 'openallure.cfg' )
         self.systemHasDragonfly = eval( config.get( 'Voice', 'systemHasDragonfly' ) )
         self.systemHasEspeak    = eval( config.get( 'Voice', 'systemHasEspeak' ) )
+        self.systemHasSay       = eval( config.get( 'Voice', 'systemHasSay' ) )
 
     def speak( self, phrase ):
        """Say or print phrase using available text-to-speech engine or stdout"""
@@ -39,6 +40,8 @@ class Voice( object ):
            e.speak( phrase )
        elif self.systemHasEspeak:
            os.system( 'espeak -s150 "' + phrase + '"' )
+       elif self.systemHasSay:
+           os.system( 'say "' + phrase + '"' )
        else:
            print( phrase )
            # Allow time for user to move hand down

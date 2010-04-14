@@ -27,8 +27,8 @@ allows one script
 to lead to another.
 We are in a script called about.txt now.
 
-Continue to web-based script;[http://openallureds.ning.com/profiles/blogs/webbased-script]
-Continue to local file about2.txt;[about2.txt]
+Continue to a web-based script;[http://openallureds.ning.com/profiles/blogs/webbased-script]
+Continue to a local file about2.txt;[about2.txt]
 [input];;
 
 
