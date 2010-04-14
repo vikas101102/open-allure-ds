@@ -18,7 +18,7 @@ coming from the sun?
 
 It is reflected ; No.  This would cause the blue color to be brighter in one direction, just as we see a reflection of the sun in a mirror only from a certain angle.
 It is refracted ; No, like reflection, this would cause the blue color to bend in one direction, just as we see the blue color in a rainbow only from a certain angle.
-Is is scattered ;; Correct.
+It is scattered ;; Correct.
 
 Air absorbs some of the blue light from the sun.
 That light is then radiated in random directions.
