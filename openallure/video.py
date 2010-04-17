@@ -12,6 +12,7 @@ MIT License: see LICENSE.txt
 import ConfigParser
 import logging
 import pygame
+import sys
 
 class VideoCapturePlayer( object ):
     """
@@ -69,7 +70,10 @@ class VideoCapturePlayer( object ):
         camera.init()
 
         # get a list of available cameras.
-        self.cameraList = ['0'] # camera.list_cameras()
+        if sys.platform == 'darwin':
+            self.cameraList = ['0'] # camera.list_cameras()
+        else:
+            self.cameraList = camera.list_cameras()
         if not self.cameraList:
             raise ValueError( "Sorry, no cameras detected." )
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 text.py
 a component of openallure.py

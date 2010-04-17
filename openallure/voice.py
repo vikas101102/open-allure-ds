@@ -37,13 +37,13 @@ class Voice( object ):
 
        if self.systemHasDragonfly:
            e = dragonfly.get_engine()
-           e.speak( phrase )
+           e.speak( phrase.encode( 'utf-8' ) )
        elif self.systemHasEspeak:
-           os.system( 'espeak -s150 "' + phrase + '"' )
+           os.system( 'espeak -s150 "' + phrase.encode( 'utf-8' ) + '"' )
        elif self.systemHasSay:
-           os.system( 'say "' + phrase + '"' )
+           os.system( 'say "' + phrase.encode( 'utf-8' ) + '"' )
        else:
-           print( phrase )
+           print( phrase.encode( 'utf-8' ) )
            # Allow time for user to move hand down
            pygame.time.wait( 500 )
 
