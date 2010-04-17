@@ -1,3 +1,7 @@
+v0.1d10, 16 April 2010
+    Changed to use os.platform
+    Changed to using unicode for sequence text
+    
 v0.1d9, 14 April 2010
     Added systemHasSay to openallure.cfg and voice.py to use Mac say for text to speech
     Allowed keys 1 through 6 when [input] is part of question to retain answer selection function

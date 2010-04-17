@@ -133,9 +133,12 @@ class QSequence( object ):
                self.path = filename[0:slashAt]
 
         else:
-           # read file
+           # read file and decode with utf-8
            try:
-               inputs = open( filename ).readlines()
+               raw = open( filename ).readlines()
+               inputs = []
+               for line in raw:
+                   inputs.append( unicode( line, 'utf-8' ) )
            except IOError:
                inputs = ["Well, it seems " + filename,"could not be opened.","What now?","[input];;"]
 
