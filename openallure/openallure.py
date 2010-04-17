@@ -12,7 +12,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d10dev'
+__version__='0.1d11dev'
 
 # Standard Python modules
 import ConfigParser
