@@ -19,8 +19,6 @@ class OpenAllureText(object):
 
     def __init__( self, margins ):
 
-        self.font = pygame.font.SysFont( "default", 50 )
-
         self.boundingRectangle = pygame.Rect( margins )
 
         # put colors on things
@@ -30,6 +28,12 @@ class OpenAllureText(object):
         self.readColor      = eval( config.get( 'Colors', 'readText' ))
         self.selectedColor  = eval( config.get( 'Colors', 'selectedText' ))
         self.highlightColor = eval( config.get( 'Colors', 'highlightedText' ))
+
+        # set font
+        self.fontName = config.get( 'Font', 'font' )
+        self.fontSize = eval( config.get( 'Font', 'size' ) )
+        self.font = pygame.font.SysFont( self.fontName, self.fontSize )
+
 
     def buildQuestionText( self, question ):
         """
