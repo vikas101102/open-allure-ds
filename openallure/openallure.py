@@ -12,7 +12,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d11dev'
+__version__='0.1d12dev'
 
 # Standard Python modules
 import ConfigParser
@@ -21,6 +21,7 @@ import os
 import random
 import re
 import string
+import sys
 
 # 3rd Party modules
 from nltk.corpus import wordnet
@@ -390,27 +391,21 @@ def main():
     logging.info( "Question sequence Loaded with %s questions" % str( len( seq.sequence ) ) )
     #print seq.sequence
 
-##    # load initial AIML file
-##    k = aiml.Kernel()
-##    aiml = config.get( 'Source', 'aiml' )
-##    aimlLoadPattern = config.get( 'Source', 'aimlLoadPattern' )
-##    k.learn( aiml )
-##    AIMLResponse = k.respond( aimlLoadPattern )
-##    logging.info( "AIML %s" % (aiml + " " + AIMLResponse ) )
-
+    # read configuration options
+    delayTime = int( config.get( 'Options', 'delayTime' ) )
+    
     # initialize chatbot
     openallure_chatbot = Chat(responses, reflections)
     logging.info( "Chatbot initialized" )
 
 
     # load browser command line strings and select appropriate one
-    # nt for Windows, posix otherwise (Mac, linux)
-    ntBrowser = config.get( 'Browser', 'ntBrowser' )
-    posixBrowser = config.get( 'Browser', 'posixBrowser' )
-    if os.name == 'nt':
-        browser = ntBrowser
+    darwinBrowser = config.get( 'Browser', 'darwinBrowser' )
+    windowsBrowser = config.get( 'Browser', 'windowsBrowser' )
+    if sys.platform == 'darwin':
+        browser = darwinBrowser
     else:
-        browser = posixBrowser
+        browser = windowsBrowser
 
     greenScreen = GreenScreen()
     vcp         = VideoCapturePlayer( processFunction=greenScreen.process )
@@ -435,6 +430,8 @@ def main():
     highlight= 0
     # When was choice first highlighted by gesture?
     choiceStartTime = 0
+    # When was the statement of the question complete?
+    delayStartTime = 0
     # How much of highlight color should be blended with selected color? in how many steps? with how much time (in ticks) per step?
     colorLevel = colorLevels = 12
     colorLevelStepTime = 100
@@ -487,9 +484,18 @@ def main():
             greenScreen.backgrounds = []
             vcp.processruns = 0
             openallure.ready = True
-
+            
             # clear any previous response
             nltkResponse = ''
+            
+        # check for automatic page turn    
+        if openallure.stated == True and \
+           not openallure.currentString and \
+           openallure.question[ 1 ][ choiceCount - 1 ] == u'[next]' and \
+           pygame.time.get_ticks() - delayStartTime > delayTime:
+            # This takes last response
+            answer = choiceCount - 1
+            choice = ( choiceCount, 0 )
 
         # make sure currentString has been added to questionText
         # as new contents may have been added by voice
@@ -696,9 +702,11 @@ def main():
                            colorLevel,colorLevels)
 
         elif not choice == ( - 1, 0 ):
+        
+            openallure.stated = True
+            
             # respond to choice when something has been typed and entered
-            if len( openallure.currentString ):
-##                if len( aimlResponse ) == 0:
+            if openallure.currentString:
                 if len( nltkResponse ) == 0:
                     choice = ( -1, 0 )
                     answer = -1
@@ -713,20 +721,24 @@ def main():
                 os.system( browser + " " + openallure.question[ 5 ][ answer ] )
 
             #check that response exists for answer
-            if answer < len( openallure.question[ 2 ] ) and (isinstance( openallure.question[ 2 ][ answer ], str ) or \
-                                                  isinstance( openallure.question[ 2 ][ answer ], unicode)):
+            if answer < len( openallure.question[ 2 ] ) and \
+                (isinstance( openallure.question[ 2 ][ answer ], str ) or \
+                 isinstance( openallure.question[ 2 ][ answer ], unicode ) ):
                   #speak response to answer
                   voice.speak(openallure.question[ 2 ][ answer ].strip())
 
             #check that next sequence exists as integer for answer
-            if answer < len( openallure.question[ 3 ] ) and isinstance( openallure.question[ 3 ][ answer ], int ):
+            if answer < len( openallure.question[ 3 ] ) and \
+                 isinstance( openallure.question[ 3 ][ answer ], int ):
               #get new sequence or advance in sequence
               next = openallure.question[ 3 ][ answer ]
-              if next == 88:
+              if not openallure.question[ 4 ][ answer ] == '' and \
+                 not openallure.question[ 1 ][ answer ] == u'[next]':
                   # speak( "New source of questions" )
                   path = seq.path
                   #print "path is ", path
-                  seq = QSequence( filename = openallure.question[ 4 ][ answer ], path = path )
+                  seq = QSequence( filename = openallure.question[ 4 ][ answer ], 
+                                   path = path )
                   onQuestion = 0
                   openallure.ready = False
               elif next == 99:
@@ -760,15 +772,19 @@ def main():
                return
 
         if not openallure.stated:
-            if onAnswer == len(openallure.question[1])+1:
+            # work through statement of question
+            # speaking each part of the question and each of the answers
+            # (unless the process is cut short by other events)
+            
+            # Stop when onAnswer pointer is beyond length of answer list
+            if onAnswer > len(openallure.question[1]):
                 openallure.stated = True
             else:
-                # work through statement of question
-                # this means speaking each part of the question and each of the answers
-                # UNLESS the process is cut short by other events
+                # Speak each answer (but only after speaking the full question below)
                 if onAnswer > 0 and onAnswer < len( openallure.question[ 1 ] ) + 1 :
                     answerText = openallure.question[ 1 ][ onAnswer-1 ]
-                    if not answerText.startswith('[input]'):
+                    if not ( answerText.startswith( '[input]' ) or
+                             answerText.startswith( '[next]' ) ):
                         # Check for answer with "A. "
                         if answerText[ 1:3 ] == '. ' :
                            voice.speak( answerText[ 3: ].strip() )
@@ -777,14 +793,20 @@ def main():
                         del answerText
                     onAnswer += 1
 
+                # Speak each part of the question using onText pointer
+                # to step through parts of question list
                 if onText < len( openallure.question[ 0 ] ):
                     # speak the current part of the question
                     voice.speak( openallure.question[ 0 ][ onText ] )
-                    # and move on to the next part (which needs to be displayed before being spoken)
+                    # and move on to the next part 
+                    # (which needs to be displayed before being spoken)
                     onText += 1
-                    # once all the parts of the question are done, start working through answers
+                    # once all the parts of the question are done, 
+                    # start working through answers
                     if onText == len( openallure.question[ 0 ] ):
                        onAnswer = 1
+                       # Take note of time for automatic page turns
+                       delayStartTime = pygame.time.get_ticks()
 
 # initialize speech recognition before entering main()
 config = ConfigParser.RawConfigParser()
