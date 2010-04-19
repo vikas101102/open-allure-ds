@@ -35,7 +35,8 @@ class VideoCapturePlayer( object ):
 
     def __init__(self, processFunction=None,
                        display        =None,
-                       show           =True, **argd):
+                       show           =True,
+                       photos         =None,**argd):
 
         logging.debug( "Initializing Video Capture Class" )
 
@@ -59,12 +60,9 @@ class VideoCapturePlayer( object ):
                 self.display = pygame.surface.Surface( self.displaySize )
 
 		#bring in photos
-        logging.debug( "Loading photos: smile listen and talk" )
-        config = ConfigParser.RawConfigParser()
-        config.read( 'openallure.cfg' )
-        self.photoSmile = pygame.image.load( config.get( 'Photos', 'smile' ) ).convert()
-        self.photoListen = pygame.image.load( config.get( 'Photos', 'listen' ) ).convert()
-        self.photoTalk = pygame.image.load( config.get( 'Photos', 'talk' ) ).convert()
+        self.photoSmile  = pygame.image.load( photos[0] ).convert()
+        self.photoTalk   = pygame.image.load( photos[1] ).convert()
+        self.photoListen = pygame.image.load( photos[2] ).convert()
 
         import pygame.camera as camera
         camera.init()

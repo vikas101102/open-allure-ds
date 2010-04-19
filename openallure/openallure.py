@@ -12,7 +12,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d12dev'
+__version__='0.1d13dev'
 
 # Standard Python modules
 import ConfigParser
@@ -70,6 +70,13 @@ class OpenAllure(object):
         self.ready = False
         self.stated = False
         self.currentString = ''
+        #bring in photo file names
+        config = ConfigParser.RawConfigParser()
+        config.read( 'openallure.cfg' )
+        self.photos = [ config.get( 'Photos', 'smile' ) ,
+                        config.get( 'Photos', 'talk' ) ,
+                        config.get( 'Photos', 'listen' ) ]
+
 
 openallure = OpenAllure()
 
@@ -144,7 +151,7 @@ class Chat(object):
                     pos = string.find(response,'%')
                     num = string.atoi(response[pos+1:pos+2])
                     sequenceToOpen = match.group(num)
-                 
+
                     resp = 'Confirm\nOpen ' + sequenceToOpen + \
                            ';[' + sequenceToOpen + ']'
 
@@ -388,12 +395,18 @@ def main():
     url = config.get( 'Source', 'url' )
     backgroundColor = eval( config.get( 'Colors', 'background' ) )
     seq = QSequence( filename=url )
+
+    # initial url may override photos
+    if seq.sequence[0][7]:
+        logging.info( "Taking photo names from %s" % url )
+        openallure.photos = seq.sequence[0][7]
+
     logging.info( "Question sequence Loaded with %s questions" % str( len( seq.sequence ) ) )
     #print seq.sequence
 
     # read configuration options
     delayTime = int( config.get( 'Options', 'delayTime' ) )
-    
+
     # initialize chatbot
     openallure_chatbot = Chat(responses, reflections)
     logging.info( "Chatbot initialized" )
@@ -408,7 +421,7 @@ def main():
         browser = windowsBrowser
 
     greenScreen = GreenScreen()
-    vcp         = VideoCapturePlayer( processFunction=greenScreen.process )
+    vcp         = VideoCapturePlayer( processFunction=greenScreen.process, photos=openallure.photos )
     gesture     = Gesture()
     voice       = Voice()
 
@@ -484,11 +497,11 @@ def main():
             greenScreen.backgrounds = []
             vcp.processruns = 0
             openallure.ready = True
-            
+
             # clear any previous response
             nltkResponse = ''
-            
-        # check for automatic page turn    
+
+        # check for automatic page turn
         if openallure.stated == True and \
            not openallure.currentString and \
            openallure.question[ 1 ][ choiceCount - 1 ] == u'[next]' and \
@@ -563,11 +576,11 @@ def main():
                           # if nltkResponse is one line containing a semicolon, replace the semicolon with \n
                           if nltkResponse.find('\n') == -1:
                               nltkResponse = nltkResponse.replace(';','\n')
-                          filename = "nltkResponse.txt"
-                          f = open( filename, 'w' )
-                          f.write( nltkResponse )
-                          f.write( "\n[input];;\n")
-                          f.close()
+##                          filename = "nltkResponse.txt"
+##                          f = open( filename, 'w' )
+##                          f.write( nltkResponse )
+##                          f.write( "\n[input];;\n")
+##                          f.close()
                           if nltkResponse:
                               answer = choiceCount - 1
                               choice = ( choiceCount, 0 )
@@ -622,18 +635,38 @@ def main():
                                colorLevel,colorLevels)
                 pygame.display.flip()
 
+#        print openallure.voiceChoice
+        if openallure.voiceChoice > 0:
+            openallure.stated = 1
+            answer = openallure.voiceChoice - 1
+            colorLevel = 0
+            openallure.voiceChoice = 0
+            # Update screen to reflect choice
+            text.paintText(screen,
+                           justQuestionText, onText,
+                           questionText,     onAnswer,
+                           highlight,
+                           openallure.stated,
+                           choice,
+                           colorLevel,colorLevels)
+            pygame.display.flip()
+
+
         if answer < 0 and openallure.ready:
             # check webcam
             processedImage = vcp.get_and_flip( show=showFlag )
 
             # show a photo
-            if isinstance( vcp.photoSmile,pygame.Surface ) and openallure.currentString == '' and openallure.stated == 1:
+            if isinstance( vcp.photoSmile,pygame.Surface ) and \
+              openallure.currentString == '' and openallure.stated == 1:
                vcp.display.blit( vcp.photoSmile, (650,10))
 
-            if isinstance( vcp.photoTalk,pygame.Surface ) and openallure.currentString == '' and openallure.stated == 0:
+            if isinstance( vcp.photoTalk,pygame.Surface ) and \
+              openallure.currentString == '' and openallure.stated == 0:
                vcp.display.blit( vcp.photoTalk, (650,10))
 
-            if isinstance( vcp.photoListen,pygame.Surface ) and not openallure.currentString == '':
+            if isinstance( vcp.photoListen,pygame.Surface ) and \
+              not openallure.currentString == '':
                vcp.display.blit( vcp.photoListen, (650,10))
 
             # show the raw input
@@ -702,9 +735,9 @@ def main():
                            colorLevel,colorLevels)
 
         elif not choice == ( - 1, 0 ):
-        
+
             openallure.stated = True
-            
+
             # respond to choice when something has been typed and entered
             if openallure.currentString:
                 if len( nltkResponse ) == 0:
@@ -737,8 +770,15 @@ def main():
                   # speak( "New source of questions" )
                   path = seq.path
                   #print "path is ", path
-                  seq = QSequence( filename = openallure.question[ 4 ][ answer ], 
-                                   path = path )
+                  seq = QSequence( filename = openallure.question[ 4 ][ answer ],
+                                   path = path,
+                                   nltkResponse = nltkResponse )
+        		  #bring in (potentially new) photos
+                  if seq.sequence[0][7]:
+                      logging.info( "Using new photo names" )
+                      vcp.photoSmile = pygame.image.load( seq.sequence[0][7][0] ).convert()
+                      vcp.photoTalk = pygame.image.load( seq.sequence[0][7][1] ).convert()
+                      vcp.photoListen = pygame.image.load( seq.sequence[0][7][2] ).convert()
                   onQuestion = 0
                   openallure.ready = False
               elif next == 99:
@@ -775,7 +815,7 @@ def main():
             # work through statement of question
             # speaking each part of the question and each of the answers
             # (unless the process is cut short by other events)
-            
+
             # Stop when onAnswer pointer is beyond length of answer list
             if onAnswer > len(openallure.question[1]):
                 openallure.stated = True
@@ -798,10 +838,10 @@ def main():
                 if onText < len( openallure.question[ 0 ] ):
                     # speak the current part of the question
                     voice.speak( openallure.question[ 0 ][ onText ] )
-                    # and move on to the next part 
+                    # and move on to the next part
                     # (which needs to be displayed before being spoken)
                     onText += 1
-                    # once all the parts of the question are done, 
+                    # once all the parts of the question are done,
                     # start working through answers
                     if onText == len( openallure.question[ 0 ] ):
                        onAnswer = 1
