@@ -19,9 +19,7 @@
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <link rel="top" title="OpenAllure v0.1d1dev (alpha) documentation" href="../index.html" />
-    <link rel="next" title="video" href="video.html" />
-    <link rel="prev" title="openallure" href="openallure.html" /> 
+    <link rel="top" title="OpenAllure v0.1d1dev (alpha) documentation" href="../index.html" /> 
   </head>
   <body>
     <div class="related">
@@ -33,12 +31,6 @@
         <li class="right" >
           <a href="../modindex.html" title="Global Module Index"
              accesskey="M">modules</a> |</li>
-        <li class="right" >
-          <a href="video.html" title="video"
-             accesskey="N">next</a> |</li>
-        <li class="right" >
-          <a href="openallure.html" title="openallure"
-             accesskey="P">previous</a> |</li>
         <li><a href="../index.html">OpenAllure v0.1d1dev (alpha) documentation</a> &raquo;</li> 
       </ul>
     </div>  
@@ -48,78 +40,8 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="module-sequence">
-<h1><cite>sequence</cite><a class="headerlink" href="#module-sequence" title="Permalink to this headline">¶</a></h1>
-<p>sequence.py
-a component of openallure.py</p>
-<p>Parses separate content file</p>
-<p><strong>Usage</strong></p>
-<p>Sequence( <em>filename</em> ) returns a sequence object</p>
-<p><em>filename</em> can be either a local file or a URL</p>
-<p>An input file is plain text with the format:</p>
-<div class="highlight-python"><pre>Question part1
-[ optional Question part2 ]
-[ optional blank line ]
-Answer 1 &lt;separator&gt; Response 1
-Answer 2 &lt;separator&gt; Response 2
- etc ...
-up to 6 answers
-[ blank line ]
-Next question ...</pre>
-</div>
-<p>where &lt;separator&gt; can be:</p>
-<div class="highlight-python"><pre>;                no action
-;; or ;1 or ;+1  advance to next question
-;-1              return to prior question ( in order exposed in sequence )
-;;; or ;2 or ;+2 advance two questions</pre>
-</div>
-<p><strong>Output</strong></p>
-<p>List of lists:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="c">#   [   The whole sequence of questions is outermost list,</span>
-<span class="c">#                             so seq[ 0 ] is everything about the first question</span>
-<span class="c">#    [  The parts of the a question including the question set, answer set, response set and action set are next level list,</span>
-<span class="c">#                             so seq[ ][ 0 ] is the question set</span>
-<span class="c">#                                seq[ ][ 1 ] is the answer set</span>
-<span class="c">#                                seq[ ][ 2 ] is the response set</span>
-<span class="c">#                                seq[ ][ 3 ] is the action set</span>
-<span class="c">#     [ The parts of the question are the next level list,</span>
-<span class="c">#                             so seq[ ][ 0 ][ 0 ] is the first part of the question, for example &quot;What color&quot;</span>
-<span class="c">#                            and seq[ ][ 0 ][ 1 ] is the next  part of the question, for example &quot;is the sky?&quot; ],</span>
-<span class="c">#     [ The answers are the next list,</span>
-<span class="c">#                             so seq[ ][ 1 ][ 0 ] is the first  answer, for example &quot;Black&quot;</span>
-<span class="c">#                            and seq[ ][ 1 ][ 1 ] is the second answer, for example &quot;Blue&quot; ],</span>
-<span class="c">#     [ The response are the next list,</span>
-<span class="c">#                             so seq[ ][2][ 0 ] is the first  response, for example &quot;Yes, at night.&quot;</span>
-<span class="c">#                            and seq[ ][2][ 1 ] is the second response, for example &quot;Yes, during the day.&quot; ],</span>
-<span class="c">#     [ The actions are the next list,</span>
-<span class="c">#                             so seq[ ][3][ 0 ] is the first  action, for example 0 ( meaning take no action )</span>
-<span class="c">#                            and seq[ ][3][ 1 ] is the second action, for example 1 ( meaning advance one question ) ]]]</span>
-</pre></div>
-</div>
-<p>See <a class="reference external" href="http://code.google.com/p/open-allure-ds/wiki/SeparateContentFileSyntax">Open Allure wiki</a> for details and examples.</p>
-<p>Copyright (c) 2010 John Graves</p>
-<p>MIT License: see LICENSE.txt</p>
-<dl class="class">
-<dt id="sequence.Sequence">
-<em class="property">class </em><tt class="descclassname">sequence.</tt><tt class="descname">Sequence</tt><big>(</big><em>filename='openallure.txt'</em><big>)</big><a class="headerlink" href="#sequence.Sequence" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
-<dt id="sequence.Sequence.classify">
-<tt class="descname">classify</tt><big>(</big><em>strings</em><big>)</big><a class="headerlink" href="#sequence.Sequence.classify" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create list of string types:</p>
-<div class="highlight-python"><pre>Identify strings which contain new line only   ( type N )
-#             or which contain ; or ;; markers ( type indicated by offset of marker between Answer ; Response )
-#             or else mark as question         ( type Q )</pre>
-</div>
-</dd></dl>
-
-<dl class="method">
-<dt id="sequence.Sequence.regroup">
-<tt class="descname">regroup</tt><big>(</big><em>strings</em>, <em>string_types</em><big>)</big><a class="headerlink" href="#sequence.Sequence.regroup" title="Permalink to this definition">¶</a></dt>
-<dd>Use string_types to sort strings into Questions,
-Answers, Responses and Subsequent Actions</dd></dl>
-
-</dd></dl>
-
+  <div class="section" id="sequence">
+<h1><cite>sequence</cite><a class="headerlink" href="#sequence" title="Permalink to this headline">¶</a></h1>
 </div>
 
 
@@ -128,12 +50,6 @@ Answers, Responses and Subsequent Actions</dd></dl>
       </div>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
-            <h4>Previous topic</h4>
-            <p class="topless"><a href="openallure.html"
-                                  title="previous chapter"><cite>openallure</cite></a></p>
-            <h4>Next topic</h4>
-            <p class="topless"><a href="video.html"
-                                  title="next chapter"><cite>video</cite></a></p>
           <div id="searchbox" style="display: none">
             <h3>Quick search</h3>
               <form class="search" action="../search.html" method="get">
@@ -160,18 +76,12 @@ Answers, Responses and Subsequent Actions</dd></dl>
         <li class="right" >
           <a href="../modindex.html" title="Global Module Index"
              >modules</a> |</li>
-        <li class="right" >
-          <a href="video.html" title="video"
-             >next</a> |</li>
-        <li class="right" >
-          <a href="openallure.html" title="openallure"
-             >previous</a> |</li>
         <li><a href="../index.html">OpenAllure v0.1d1dev (alpha) documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2010, John Graves.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.4.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.5.
     </div>
   </body>
 </html>

@@ -2,15 +2,15 @@
 qsequence.py
 a component of openallure.py
 
-Parses separate content file
+Parses separate content file into question sequence object
 
 **Usage**
 
 QSequence( *filename* ) returns a question sequence object
 
-*filename* can be either a local file or a URL
+*filename* can be either a local file or a URL containing preformatted text
 
-An input file is plain text with the format::
+An input file is a plain text file with the format::
 
    Question part1
    [ optional Question part2 ]
@@ -26,6 +26,7 @@ where Answer can be::
 
    [link label]     to open link in separate browser when label is selected
    [input]          to enable user input
+   [next]           to enable user input, but only until an automatic "page turn"
 
 where <separator> can be::
 
@@ -90,19 +91,19 @@ from BeautifulSoup import BeautifulSoup, SoupStrainer          # For processing 
 class QSequence( object ):
     """A Question Sequence contains (multiple) question blocks consisting of a question with answers/responses/actions"""
 
-    def __init__( self, filename="openallure.txt", path='' ):
+    def __init__( self, filename=u"openallure.txt", path='' ):
         """
         Read either a local plain text file or text tagged <pre> </pre> from a webpage
         """
         # attribute storing path to sequence (excludes name)
         self.path = path
 
-        if filename.startswith("http://"):
+        if filename.startswith(u"http://"):
            # read text tagged with <pre> </pre> from website
            try:
               urlOpen = urllib.urlopen( filename )
            except urlOpenError:
-              print( "Could not open %s" % filename )
+              print( u"Could not open %s" % filename )
 
            # parse out text marked with <pre> </pre>
            links = SoupStrainer('pre')
@@ -123,7 +124,10 @@ class QSequence( object ):
 ##              print( "\n\n   No text marked with <pre> </pre> found at %s" % filename )
 ##              print( "   Check view source for &lt;pre&gt; which is currently not supported.\n\n" )
 ##              os.sys.exit()
-               inputs = ["Hmmm. It seems " + url,"does not have a script","marked with <pre> </pre>.","What now?","[input];;"]
+               inputs = [u"Hmmm. It seems " + url,u"does not have a script",
+                         u"marked with <pre> </pre>.",
+                         u"What now?",
+                         u"[input];;"]
            else:
                # split back into lines (inputs)
                inputs = cleanUnicodeTextStr.splitlines()
@@ -140,18 +144,21 @@ class QSequence( object ):
                for line in raw:
                    inputs.append( unicode( line, 'utf-8' ) )
            except IOError:
-               inputs = ["Well, it seems " + filename,"could not be opened.","What now?","[input];;"]
+               inputs = [u"Well ... It seems " + filename,u"could not be opened.",
+                         u"What now?",
+                         u"[input];;"]
 
         # parse into sequence
         self.sequence = self.regroup( inputs, self.classify( inputs ) )
 
     def classify( self,strings ):
         """
-        Create list of string types::
+Create list of string types::
 
-        Identify strings which contain new line only   ( type N )
-        #             or which contain ; or ;; markers ( type indicated by offset of marker between Answer ; Response )
-        #             or else mark as question         ( type Q )
+    Identify strings which contain new line only   ( type N )
+    #             or which contain ; or ;; markers ( type indicated by offset of separator 
+    #                                                     between Answer ; Response )
+    #             or else mark as question         ( type Q )
 
         """
         string_types = []
@@ -184,7 +191,8 @@ class QSequence( object ):
                 # signal for end of question IF there are responses
                 if len( response ):
                     # add to sequence and reset
-                    sequence.append( [question, answer, response, action, destination, link, inputFlags] )
+                    sequence.append( [question, answer, response, action, 
+                                      destination, link, inputFlags] )
                     question    = []
                     answer      = []
                     response    = []
@@ -201,10 +209,17 @@ class QSequence( object ):
                 # 2/ a link in the wiki format [link label]
                 linkString = ""
                 inputFlag = 0
-                if answerString.startswith('[input]'):
+                if answerString.startswith(u'[input]'):
                     # no text will be displayed until the user types it,
-                    # but the instruction can be passed through as the answer string to serve as a prompt
-                    label = "[input]"
+                    # but the instruction can be passed through as the answer string 
+                    # to serve as a prompt
+                    label = u"[input]"
+                    inputFlag = 1
+                elif answerString.startswith(u'[next]'):
+                    # no text will be displayed until the user types it,
+                    # but the instruction can be passed through as the answer string 
+                    # to serve as a prompt
+                    label = u"[next]"
                     inputFlag = 1
                 elif answerString.startswith('['):
                     spaceAt = answerString.find(' ')
@@ -212,9 +227,9 @@ class QSequence( object ):
                     # The syntax only has a chance of being correct if the space comes before the closing bracket
                     if spaceAt > 0 and closeBracketAt > 0 and spaceAt < closeBracketAt:
                        linkString = answerString[ 1 : spaceAt]
-                       label = '[' + answerString[ spaceAt + 1 :  ]
+                       label = '[' + answerString[ spaceAt + 1 : ]
                     else:
-                       print( "Incorrect syntax in answer: %s " % answerString )
+                       print( u"Incorrect syntax in answer: %s " % answerString )
                 else:
                     label = answerString
                 link.append( linkString )
@@ -240,8 +255,7 @@ class QSequence( object ):
                 if responseString.startswith('['):
                     linkEnd = responseString.find(']')
                     linkString    = responseString[1:linkEnd]
-                    responseString = responseString[ linkEnd + 1: ].lstrip()
-                    actionValue = 88
+                    responseString = responseString[ linkEnd + 1 : ].lstrip()
                     # now look at link and decide whether it is a page name that needs help to become a URL
                     if not linkString.startswith("http"):
                         # do not put a path in front of a .txt file
@@ -249,15 +263,10 @@ class QSequence( object ):
                             linkString = self.path + linkString
                         #print linkString
 
-##                # If there is [input] in the answerString and no destination in the responseString, default to aimlResponse.txt and actionValue=88
-##                if inputFlag and len( linkString ) == 0:
-##                    linkString = 'aimlResponse.txt'
-##                    actionValue = 88
                 # If there is [input] in the answerString and no destination in the responseString,
-                # default to nltkResponse.txt and actionValue=88
+                # default to nltkResponse.txt
                 if inputFlag and len( linkString ) == 0:
-                    linkString = 'nltkResponse.txt'
-                    actionValue = 88
+                    linkString = u'nltkResponse.txt'
 
                 destination.append( linkString )
                 response.append( responseString )
@@ -270,9 +279,9 @@ class QSequence( object ):
 
         # catch sequence with a question with no answers and turn it into an input
         if len(sequence[0][1]) == 0:
-            sequence[0][1] = ['[input]']
-            sequence[0][3] = [88]
-            sequence[0][4] = ['nltkResponse.txt']
+            sequence[0][1] = [u'[input]']
+            sequence[0][3] = [0]
+            sequence[0][4] = [u'nltkResponse.txt']
             sequence[0][6] = [1]
 
         return sequence

@@ -4,8 +4,15 @@ Open Allure
 
 Open Allure is a voice-and-vision enabled dialog system
 
+For the latest version, please check http://openallureds.org
+
 Dependencies
 ============
+
+These may vary depending on the platform
+
+dragonfly
+http://code.google.com/p/dragonfly/
 
 Pygame
 http://www.pygame.org/download.shtml

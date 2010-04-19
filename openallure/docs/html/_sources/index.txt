@@ -25,11 +25,23 @@ Open Allure is part of the output of the `Open Allure project`_.
 Dependencies
 ============
 
-Open Allure uses pyGame_ and BeautifulSoup_.
+Open Allure uses pyGame_ and BeautifulSoup_ and NLTK_ (Natural Language Toolkit).
+
+Voice recognition depends on the operating system or other software. For Windows, dragonfly_ 
+connects to the Windows Speech API. For Mac, dragonfly_ connects to `MacSpeech Dictate`_. For linux, 
+we're still looking to connect a voice recognition backend -- please pitch in!
 
 .. _pyGame: http://www.pygame.org/
 
 .. _BeautifulSoup: http://www.crummy.com/software/BeautifulSoup/
+
+.. _NLTK: _http://www.nltk.org/download
+
+.. _dragonfly: http://code.google.com/p/dragonfly/
+
+.. _MacSpeech Dictate: http://www.macspeech.com
+
+
 
 Modules
 =======
@@ -38,7 +50,7 @@ Modules
    :maxdepth: 2
 
    modules/openallure
-   modules/sequence
+   modules/qsequence
    modules/video
    modules/gesture
    modules/text

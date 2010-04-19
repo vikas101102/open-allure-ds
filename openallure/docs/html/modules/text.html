@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>text &mdash; OpenAllure v0.1d1dev (alpha) documentation</title>
+    <title>text &mdash; OpenAllure v0.1d12dev (alpha) documentation</title>
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.1d1dev (alpha)',
+        VERSION:     '0.1d12dev (alpha)',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <link rel="top" title="OpenAllure v0.1d1dev (alpha) documentation" href="../index.html" />
+    <link rel="top" title="OpenAllure v0.1d12dev (alpha) documentation" href="../index.html" />
     <link rel="next" title="voice" href="voice.html" />
     <link rel="prev" title="gesture" href="gesture.html" /> 
   </head>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="gesture.html" title="gesture"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">OpenAllure v0.1d1dev (alpha) documentation</a> &raquo;</li> 
+        <li><a href="../index.html">OpenAllure v0.1d12dev (alpha) documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -56,11 +56,12 @@ a component of openallure.py</p>
 <p>Copyright (c) 2010 John Graves</p>
 <p>MIT License: see LICENSE.txt</p>
 <dl class="class">
-<dt id="text.Text">
-<em class="property">class </em><tt class="descclassname">text.</tt><tt class="descname">Text</tt><big>(</big><em>margins</em><big>)</big><a class="headerlink" href="#text.Text" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="method">
-<dt id="text.Text.buildQuestionText">
-<tt class="descname">buildQuestionText</tt><big>(</big><em>question</em><big>)</big><a class="headerlink" href="#text.Text.buildQuestionText" title="Permalink to this definition">¶</a></dt>
+<dt id="text.OpenAllureText">
+<em class="property">class </em><tt class="descclassname">text.</tt><tt class="descname">OpenAllureText</tt><big>(</big><em>margins</em><big>)</big><a class="headerlink" href="#text.OpenAllureText" title="Permalink to this definition">¶</a></dt>
+<dd><p>Text rendered to screen in Open Allure</p>
+<dl class="method">
+<dt id="text.OpenAllureText.buildQuestionText">
+<tt class="descname">buildQuestionText</tt><big>(</big><em>question</em><big>)</big><a class="headerlink" href="#text.OpenAllureText.buildQuestionText" title="Permalink to this definition">¶</a></dt>
 <dd><p>Prepare text of question and answers for display and reading aloud:</p>
 <div class="highlight-python"><pre>questionText[0] is question
 questionText[1] is question + answer 1
@@ -76,8 +77,8 @@ choiceCount tells how may answers there are</pre>
 </dd></dl>
 
 <dl class="method">
-<dt id="text.Text.paintText">
-<tt class="descname">paintText</tt><big>(</big><em>screen</em>, <em>justQuestionText</em>, <em>onText</em>, <em>questionText</em>, <em>onAnswer</em>, <em>highlight</em>, <em>stated</em>, <em>choice</em>, <em>colorLevel</em>, <em>colorLevels</em><big>)</big><a class="headerlink" href="#text.Text.paintText" title="Permalink to this definition">¶</a></dt>
+<dt id="text.OpenAllureText.paintText">
+<tt class="descname">paintText</tt><big>(</big><em>screen</em>, <em>justQuestionText</em>, <em>onText</em>, <em>questionText</em>, <em>onAnswer</em>, <em>highlight</em>, <em>stated</em>, <em>choice</em>, <em>colorLevel</em>, <em>colorLevels</em><big>)</big><a class="headerlink" href="#text.OpenAllureText.paintText" title="Permalink to this definition">¶</a></dt>
 <dd><p>Paint words of <strong>justQuestionText</strong> and <strong>questionText</strong> on <strong>screen</strong> with appropriate colors.</p>
 <p>What is appropriate depends on</p>
 <ul class="simple">
@@ -90,13 +91,13 @@ choiceCount tells how may answers there are</pre>
 </dd></dl>
 
 <dl class="method">
-<dt id="text.Text.preRender">
-<tt class="descname">preRender</tt><big>(</big><em>questionText</em>, <em>screenWidth=640</em>, <em>rightMargin=20</em><big>)</big><a class="headerlink" href="#text.Text.preRender" title="Permalink to this definition">¶</a></dt>
+<dt id="text.OpenAllureText.preRender">
+<tt class="descname">preRender</tt><big>(</big><em>questionText</em>, <em>screenWidth=640</em>, <em>rightMargin=20</em><big>)</big><a class="headerlink" href="#text.OpenAllureText.preRender" title="Permalink to this definition">¶</a></dt>
 <dd>Pre-render text to find regions where it will be placed within screen with <strong>screenWidth</strong> and right margin of <strong>rightMargin</strong></dd></dl>
 
 <dl class="method">
-<dt id="text.Text.writewrap">
-<tt class="descname">writewrap</tt><big>(</big><em>s</em>, <em>font</em>, <em>rect</em>, <em>color</em>, <em>text</em><big>)</big><a class="headerlink" href="#text.Text.writewrap" title="Permalink to this definition">¶</a></dt>
+<dt id="text.OpenAllureText.writewrap">
+<tt class="descname">writewrap</tt><big>(</big><em>s</em>, <em>font</em>, <em>rect</em>, <em>color</em>, <em>text</em><big>)</big><a class="headerlink" href="#text.OpenAllureText.writewrap" title="Permalink to this definition">¶</a></dt>
 <dd><p>write wrapped text</p>
 <p>Copied from PyGame Utilities</p>
 </dd></dl>
@@ -149,12 +150,12 @@ choiceCount tells how may answers there are</pre>
         <li class="right" >
           <a href="gesture.html" title="gesture"
              >previous</a> |</li>
-        <li><a href="../index.html">OpenAllure v0.1d1dev (alpha) documentation</a> &raquo;</li> 
+        <li><a href="../index.html">OpenAllure v0.1d12dev (alpha) documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
       &copy; Copyright 2010, John Graves.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.4.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 0.6.5.
     </div>
   </body>
 </html>

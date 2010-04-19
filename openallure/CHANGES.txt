@@ -1,3 +1,6 @@
+v0.1d12, 19 April 2010
+    [next] variant of [input] with automatic page turn after delay set in openallure.cfg
+    
 v0.1d11, 17 April 2010
     Allow change of font and font size in openallure.cfg.  Permits Chinese characters.
     

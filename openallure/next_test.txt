@@ -1,0 +1,16 @@
+First question
+
+[next];;
+
+Second question
+
+[next];2 Should skip third question
+
+Third question
+
+[next];
+
+Fourth question
+
+[next];;
+
