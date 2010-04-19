@@ -1,6 +1,6 @@
 # Sphinx inventory version 1
 # Project: OpenAllure
-# Version: 0.1d12
+# Version: 0.1d13
 openallure mod modules/openallure.html
 text mod modules/text.html
 qsequence mod modules/qsequence.html
@@ -32,6 +32,7 @@ text.OpenAllureText.buildQuestionText method modules/text.html
 text.OpenAllureText class modules/text.html
 video.VideoCapturePlayer.listen method modules/video.html
 voice.test_voice function modules/voice.html
+openallure.SpeakRule class modules/openallure.html
 video.VideoCapturePlayer.talk method modules/video.html
 qsequence.QSequence.regroup method modules/qsequence.html
 video.GreenScreen.threshold method modules/video.html

@@ -12,6 +12,7 @@ QSequence( *filename* ) returns a question sequence object
 
 An input file is a plain text file with the format::
 
+   [ configuration overrides ]
    Question part1
    [ optional Question part2 ]
    [ optional blank line ]
@@ -21,6 +22,12 @@ An input file is a plain text file with the format::
    up to 6 answers
    [ blank line ]
    Next question ...
+
+where configuration overrides can be::
+
+   smile            image to use for smiling avatar
+   talk             image to use for talking avatar
+   listen           image to use for listening avatar
 
 where Answer can be::
 
@@ -73,6 +80,7 @@ List of lists::
    #     [ The inputs are the next list,
    #                             so seq[ ][ 6 ][ 0 ] is the first  input, for example 0 (indicating no input on this answer)
    #                            and seq[ ][ 6 ][ 1 ] is the second link, for example 1 (indicating input allowed on this answer)
+   #     Special case for photos    seq[0][ 7 ] is list of smile/talk/listen photo names
 
 See `Open Allure wiki`_ for details and examples.
 
@@ -91,7 +99,7 @@ from BeautifulSoup import BeautifulSoup, SoupStrainer          # For processing 
 class QSequence( object ):
     """A Question Sequence contains (multiple) question blocks consisting of a question with answers/responses/actions"""
 
-    def __init__( self, filename=u"openallure.txt", path='' ):
+    def __init__( self, filename=u"openallure.txt", path='', nltkResponse=None ):
         """
         Read either a local plain text file or text tagged <pre> </pre> from a webpage
         """
@@ -136,6 +144,8 @@ class QSequence( object ):
                slashAt = filename.rfind( '/' ) + 1
                self.path = filename[0:slashAt]
 
+        elif filename.startswith("nltkResponse.txt"):
+            inputs = nltkResponse.split("\n")
         else:
            # read file and decode with utf-8
            try:
@@ -156,7 +166,7 @@ class QSequence( object ):
 Create list of string types::
 
     Identify strings which contain new line only   ( type N )
-    #             or which contain ; or ;; markers ( type indicated by offset of separator 
+    #             or which contain ; or ;; markers ( type indicated by offset of separator
     #                                                     between Answer ; Response )
     #             or else mark as question         ( type Q )
 
@@ -175,7 +185,8 @@ Create list of string types::
         return string_types
 
     def regroup( self,strings,string_types ):
-        """Use string_types to sort strings into Questions, Answers, Responses and Subsequent Actions"""
+        """Use string_types to sort strings into
+        Questions, Answers, Responses and Subsequent Actions"""
         onString    = 0
         sequence    = []
         question    = []
@@ -185,14 +196,37 @@ Create list of string types::
         destination = []
         link        = []
         inputFlags  = []
+        photos      = []
+        photoSmile = photoTalk = photoListen = None
         while onString < len( strings ):
-            if string_types[ onString ] == "Q": question.append( strings[ onString ].rstrip() )
+            if string_types[ onString ] == "Q":
+                # check for configuration overrides
+                if strings[ onString ].startswith('['):
+                    # strip [ and ] and then split on =
+                    bracketAt = strings[ onString ].find( ']' )
+                    configItem, configValue = \
+                       strings[ onString ][ 1 : bracketAt ].split( '=' )
+                    if configItem.strip() == 'smile':
+                        photoSmile = configValue.strip()
+                    elif configItem.strip() == 'talk':
+                        photoTalk = configValue.strip()
+                    elif configItem.strip() == 'listen':
+                        photoListen = configValue.strip()
+                    if isinstance( photoSmile, unicode ) and \
+                       isinstance( photoTalk, unicode ) and \
+                       isinstance( photoListen, unicode ):
+                        photos.append( photoSmile )
+                        photos.append( photoTalk )
+                        photos.append( photoListen )
+                        del photoSmile, photoTalk, photoListen
+                else:
+                    question.append( strings[ onString ].rstrip() )
             elif string_types[ onString ] == "N":
                 # signal for end of question IF there are responses
                 if len( response ):
                     # add to sequence and reset
-                    sequence.append( [question, answer, response, action, 
-                                      destination, link, inputFlags] )
+                    sequence.append( [question, answer, response, action,
+                                      destination, link, inputFlags, photos] )
                     question    = []
                     answer      = []
                     response    = []
@@ -200,6 +234,7 @@ Create list of string types::
                     destination = []
                     link        = []
                     inputFlags  = []
+                    photos      = []
             else:
                 # use number to break string into answer and response
                 answerString = strings[ onString ][ :int( string_types[ onString ] ) ].rstrip()
@@ -211,13 +246,13 @@ Create list of string types::
                 inputFlag = 0
                 if answerString.startswith(u'[input]'):
                     # no text will be displayed until the user types it,
-                    # but the instruction can be passed through as the answer string 
+                    # but the instruction can be passed through as the answer string
                     # to serve as a prompt
                     label = u"[input]"
                     inputFlag = 1
                 elif answerString.startswith(u'[next]'):
                     # no text will be displayed until the user types it,
-                    # but the instruction can be passed through as the answer string 
+                    # but the instruction can be passed through as the answer string
                     # to serve as a prompt
                     label = u"[next]"
                     inputFlag = 1
@@ -248,23 +283,27 @@ Create list of string types::
                     actionValue += 1
                     responseString = responseString[ 1: ].lstrip()
                 digits = ''
-                while len( responseString ) and ( responseString[ 0 ].isdigit() or responseString[ 0 ] in ['+','-'] ):
+                while len( responseString ) and \
+                         ( responseString[ 0 ].isdigit() or
+                           responseString[ 0 ] in ['+','-'] ):
                     digits += responseString[ 0 ]
                     responseString = responseString[ 1: ].lstrip()
-                if len( digits ): actionValue = int( digits )
+                if len( digits ):
+                    actionValue = int( digits )
                 if responseString.startswith('['):
                     linkEnd = responseString.find(']')
                     linkString    = responseString[1:linkEnd]
                     responseString = responseString[ linkEnd + 1 : ].lstrip()
-                    # now look at link and decide whether it is a page name that needs help to become a URL
+                    # now look at link and decide whether it is a page name
+                    # that needs help to become a URL
                     if not linkString.startswith("http"):
                         # do not put a path in front of a .txt file
                         if not linkString.endswith('.txt'):
                             linkString = self.path + linkString
                         #print linkString
 
-                # If there is [input] in the answerString and no destination in the responseString,
-                # default to nltkResponse.txt
+                # If there is [input] in the answerString and no destination
+                # in the responseString, default to nltkResponse.txt
                 if inputFlag and len( linkString ) == 0:
                     linkString = u'nltkResponse.txt'
 
@@ -275,7 +314,9 @@ Create list of string types::
             onString += 1
 
         # append last question if not already signaled by N at end of inputs
-        if len( question ): sequence.append( [question, answer, response, action, destination, link, inputFlags] )
+        if len( question ):
+            sequence.append( [question, answer, response, action,
+                              destination, link, inputFlags, photos] )
 
         # catch sequence with a question with no answers and turn it into an input
         if len(sequence[0][1]) == 0:
@@ -283,5 +324,6 @@ Create list of string types::
             sequence[0][3] = [0]
             sequence[0][4] = [u'nltkResponse.txt']
             sequence[0][6] = [1]
+        # photos will not be changed if they are not found
 
         return sequence

@@ -4,13 +4,14 @@ First question
 
 Second question
 
+Third ;; Should reach third question when selected
 [next];2 Should skip third question
 
 Third question
 
-[next];
+[next];;
 
 Fourth question
 
-[next];;
+[next];-3 Back to start
 
