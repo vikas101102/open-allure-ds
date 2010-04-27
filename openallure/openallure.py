@@ -12,7 +12,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d13dev'
+__version__='0.1d14dev'
 
 # Standard Python modules
 import ConfigParser
@@ -406,11 +406,11 @@ def main():
 
     # read configuration options
     delayTime = int( config.get( 'Options', 'delayTime' ) )
+    allowNext = int( config.get( 'Options', 'allowNext' ) )
 
     # initialize chatbot
     openallure_chatbot = Chat(responses, reflections)
     logging.info( "Chatbot initialized" )
-
 
     # load browser command line strings and select appropriate one
     darwinBrowser = config.get( 'Browser', 'darwinBrowser' )
@@ -427,8 +427,6 @@ def main():
 
     margins     = [ 20, 20, 620, 460 ]
     text        = OpenAllureText( margins )
-
-    showFlag = eval( config.get( 'Video', 'showFlag' ) )
 
     # start on first question of sequence
     # TODO: have parameter file track position in sequence at quit and resume there on restart
@@ -552,12 +550,8 @@ def main():
                    else:
                        answer = -1
 
-               elif event.key == pygame.K_F3:
-                    showFlag = not showFlag
                elif event.key == pygame.K_F4:
                     greenScreen.calibrated = False
-               elif event.key == pygame.K_F5:
-                    gesture.showPixels = not gesture.showPixels
                elif event.key == pygame.K_F6:
                     # reveal all the attributes of openallure
                     print( openallure.__dict__ )
@@ -573,14 +567,11 @@ def main():
                           nltkResponse = openallure_chatbot.respond( openallure.currentString )
                           # print openallure.currentString
                           # print nltkResponse
+
                           # if nltkResponse is one line containing a semicolon, replace the semicolon with \n
                           if nltkResponse.find('\n') == -1:
                               nltkResponse = nltkResponse.replace(';','\n')
-##                          filename = "nltkResponse.txt"
-##                          f = open( filename, 'w' )
-##                          f.write( nltkResponse )
-##                          f.write( "\n[input];;\n")
-##                          f.close()
+
                           if nltkResponse:
                               answer = choiceCount - 1
                               choice = ( choiceCount, 0 )
@@ -654,7 +645,7 @@ def main():
 
         if answer < 0 and openallure.ready:
             # check webcam
-            processedImage = vcp.get_and_flip( show=showFlag )
+            processedImage = vcp.get_and_flip()
 
             # show a photo
             if isinstance( vcp.photoSmile,pygame.Surface ) and \
@@ -851,8 +842,8 @@ def main():
 # initialize speech recognition before entering main()
 config = ConfigParser.RawConfigParser()
 config.read( 'openallure.cfg' )
-systemHasDragonfly = eval( config.get( 'Voice', 'systemHasDragonfly' ) )
-systemHasEspeak    = eval( config.get( 'Voice', 'systemHasEspeak' ) )
+useDragonfly = eval( config.get( 'Voice', 'useDragonfly' ) )
+useEspeak    = eval( config.get( 'Voice', 'useEspeak' ) )
 
 _dictation = 0
 
@@ -860,16 +851,16 @@ openallure.voiceChoice = 0
 
 def speak(phrase):
    #print phrase
-   if systemHasDragonfly:
+   if useDragonfly:
 	   e = dragonfly.get_engine()
 	   e.speak(phrase)
-   if systemHasEspeak:
+   if useEspeak:
        os.system('espeak -s150 "' + phrase + '"')
-   if not (systemHasDragonfly or systemHasEspeak):
+   if not (useDragonfly or useEspeak):
        print phrase
        pygame.time.wait(500)
 
-if systemHasDragonfly:
+if useDragonfly:
     import dragonfly
     from dragonfly import *
 
@@ -972,41 +963,40 @@ if systemHasDragonfly:
                             if answer1 == i:
                                openallure.voiceChoice = onAnswer
                                match = 1
-    ##                if not match:
-    ##                    #check against control words
-    ##                    for i in ["next","next question","skip to next question"]:
-    ##                       if answer == i:
-    ##                          _silence = 1
-    ##                          on_text = 0
-    ##                          onAnswer = 0
-    ##                          skip_response = 1
-    ##
-    ##                          # Choice is first non-zero entry in openallure.question[3]
-    ##                          on_choice = 0
-    ##                          for i in openallure.question[3]:
-    ##                              on_choice += 1
-    ##                              if not i == 0:
-    ##                                  openallure.voiceChoice = on_choice
-    ##                                  voice.speak("On question " + str(on_question + i))
-    ##                                  break
-    ##                          match = 1
-    ##                if not match:
-    ##                    for i in ["back","prior","previous","back up","back one","prior question","previous question"]:
-    ##                       if answer == i:
-    ##                          _silence = 1
-    ##                          on_text = 0
-    ##                          onAnswer = 0
-    ##                          openallure.voiceChoice = -1
-    ##                          if len(questions) > 0:
-    ##                              voice.speak("Returning to question " + str(questions[-1]))
-    ##                          else:
-    ##                              on_question = 0
-    ##                          match = 1
-    ##                if not match:
-    ##                    for i in ["quit now","exit now","i give up"]:
-    ##                       if answer == i:
-    ##                           _quit = 1
-    ##                           match = 1
+                    if not match and allowNext:
+                        #check against control words xxx
+                        for i in ["next","next question","skip to next question"]:
+                           if answer == i:
+                              skipResponse = 1
+
+                              # Choice is first non-zero entry in openallure.question[3]
+                              onChoice = 0
+                              for i in openallure.question[3]:
+                                  onChoice += 1
+                                  if not i == 0:
+                                      openallure.voiceChoice = onChoice
+                                      break
+                              del onChoice
+                              match = 1
+                    if not match:
+                        for i in ["back","prior","previous","back up","back one",
+                                  "prior question","previous question"]:
+                           if answer == i:
+                              _silence = 1
+                              on_text = 0
+                              onAnswer = 0
+                              openallure.voiceChoice = -1
+                              if len(questions) > 0:
+                                  voice.speak("Returning to question " +
+                                               str(questions[-1]))
+                              else:
+                                  on_question = 0
+                              match = 1
+                    if not match:
+                        for i in ["quit now","exit now","i give up"]:
+                           if answer == i:
+                               pygame.QUIT = 1
+                               match = 1
 
                     if not match:
                         # try plugging into currentString

@@ -1,3 +1,6 @@
+v0.1d14, 27 April 2010
+    systemHasX configuration options changed to useX (and then only if possible).
+
 v0.1d13, 19 April 2010
     Override speaker avatar in scripts
     Stop using .txt file for nltkResponse

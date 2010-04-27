@@ -28,9 +28,8 @@ class Gesture(object):
     """
     def __init__(self):
         """
-        Gesture recognition depends on particular pixels which can be shown (or not)
+        Gesture recognition depends on particular pixels
         """
-        self.showPixels = 0
         self.imageWithPixels = None
         self.scaledImageWithPixels = None
 

@@ -5,7 +5,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>voice &mdash; OpenAllure v0.1d14dev (alpha) documentation</title>
+    <title>CHANGES.txt &mdash; OpenAllure v0.1d14dev (alpha) documentation</title>
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
@@ -20,8 +20,8 @@
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <link rel="top" title="OpenAllure v0.1d14dev (alpha) documentation" href="../index.html" />
-    <link rel="next" title="video" href="video.html" />
-    <link rel="prev" title="text" href="text.html" /> 
+    <link rel="next" title="ethics_notice.txt" href="ethics_notice.html" />
+    <link rel="prev" title="video" href="../modules/video.html" /> 
   </head>
   <body>
     <div class="related">
@@ -34,10 +34,10 @@
           <a href="../modindex.html" title="Global Module Index"
              accesskey="M">modules</a> |</li>
         <li class="right" >
-          <a href="video.html" title="video"
+          <a href="ethics_notice.html" title="ethics_notice.txt"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="text.html" title="text"
+          <a href="../modules/video.html" title="video"
              accesskey="P">previous</a> |</li>
         <li><a href="../index.html">OpenAllure v0.1d14dev (alpha) documentation</a> &raquo;</li> 
       </ul>
@@ -48,30 +48,47 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="module-voice">
-<h1><cite>voice</cite><a class="headerlink" href="#module-voice" title="Permalink to this headline">¶</a></h1>
-<p>voice.py
-a component of openallure.py</p>
-<p>Collection of functions for rendering text-to-speech</p>
-<p>Copyright (c) 2010 John Graves</p>
-<p>MIT License: see LICENSE.txt</p>
-<p>TODO: Add standalone tests for text-to-speech modules.</p>
-<dl class="class">
-<dt id="voice.Voice">
-<em class="property">class </em><tt class="descclassname">voice.</tt><tt class="descname">Voice</tt><a class="headerlink" href="#voice.Voice" title="Permalink to this definition">¶</a></dt>
-<dd><p>Text-to-speech Functionality ( optional )</p>
-<dl class="method">
-<dt id="voice.Voice.speak">
-<tt class="descname">speak</tt><big>(</big><em>phrase</em><big>)</big><a class="headerlink" href="#voice.Voice.speak" title="Permalink to this definition">¶</a></dt>
-<dd>Say or print phrase using available text-to-speech engine or stdout</dd></dl>
-
-</dd></dl>
-
-<dl class="function">
-<dt id="voice.test_voice">
-<tt class="descclassname">voice.</tt><tt class="descname">test_voice</tt><big>(</big><big>)</big><a class="headerlink" href="#voice.test_voice" title="Permalink to this definition">¶</a></dt>
-<dd>Create a Voice instance and check that it works</dd></dl>
-
+  <div class="section" id="changes-txt">
+<h1><cite>CHANGES.txt</cite><a class="headerlink" href="#changes-txt" title="Permalink to this headline">¶</a></h1>
+<dl class="docutils">
+<dt>v0.1d14, 27 April 2010</dt>
+<dd>systemHasX configuration options changed to useX (and then only if possible).</dd>
+<dt>v0.1d13, 19 April 2010</dt>
+<dd>Override speaker avatar in scripts
+Stop using .txt file for nltkResponse</dd>
+<dt>v0.1d12, 19 April 2010</dt>
+<dd>[next] variant of [input] with automatic page turn after delay set in openallure.cfg</dd>
+<dt>v0.1d11, 17 April 2010</dt>
+<dd>Allow change of font and font size in openallure.cfg.  Permits Chinese characters.</dd>
+<dt>v0.1d10, 16 April 2010</dt>
+<dd>Changed to use os.platform
+Changed to using unicode for sequence text</dd>
+<dt>v0.1d9, 14 April 2010</dt>
+<dd>Added systemHasSay to openallure.cfg and voice.py to use Mac say for text to speech
+Allowed keys 1 through 6 when [input] is part of question to retain answer selection function
+Made browser command line call dependent on os.name</dd>
+<dt>v0.1d8, 29 March 2010</dt>
+<dd>Added open/start commands</dd>
+<dt>v0.1d7, 25 March 2010</dt>
+<dd>New three panel interface and smile/talk/listen photos</dd>
+<dt>v0.1d6, 15 March 2010</dt>
+<dd>Cleaned up regular expression matches a bit</dd>
+<dt>v0.1d5, 10 March 2010</dt>
+<dd>Added NLTK-based chatbot text input capabilities.</dd>
+<dt>v0.1d4, 6 March 2010</dt>
+<dd>Brought back voice recognition code.</dd>
+<dt>v0.1d3, 4 March 2010</dt>
+<dd>In sequence.py, Sequence has path attribute to allow navigation
+to follow to new local source</dd>
+<dt>v0.1d2, 2 March 2010</dt>
+<dd>Added connection to AIML</dd>
+<dt>v0.1d1, 26 February 2010</dt>
+<dd>Added ability to read text from URL
+Added openallure.cfg configuration file
+Removed utils.py</dd>
+<dt>v0.1d0, 12 February 2010</dt>
+<dd>Initial release.</dd>
+</dl>
 </div>
 
 
@@ -81,11 +98,11 @@ a component of openallure.py</p>
       <div class="sphinxsidebar">
         <div class="sphinxsidebarwrapper">
             <h4>Previous topic</h4>
-            <p class="topless"><a href="text.html"
-                                  title="previous chapter"><cite>text</cite></a></p>
+            <p class="topless"><a href="../modules/video.html"
+                                  title="previous chapter"><cite>video</cite></a></p>
             <h4>Next topic</h4>
-            <p class="topless"><a href="video.html"
-                                  title="next chapter"><cite>video</cite></a></p>
+            <p class="topless"><a href="ethics_notice.html"
+                                  title="next chapter"><cite>ethics_notice.txt</cite></a></p>
           <div id="searchbox" style="display: none">
             <h3>Quick search</h3>
               <form class="search" action="../search.html" method="get">
@@ -113,10 +130,10 @@ a component of openallure.py</p>
           <a href="../modindex.html" title="Global Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="video.html" title="video"
+          <a href="ethics_notice.html" title="ethics_notice.txt"
              >next</a> |</li>
         <li class="right" >
-          <a href="text.html" title="text"
+          <a href="../modules/video.html" title="video"
              >previous</a> |</li>
         <li><a href="../index.html">OpenAllure v0.1d14dev (alpha) documentation</a> &raquo;</li> 
       </ul>

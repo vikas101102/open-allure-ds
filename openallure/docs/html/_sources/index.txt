@@ -6,9 +6,10 @@
 Welcome to Open Allure's documentation!
 =======================================
 
-Open Allure is a voice-and-vision enabled dialog system written in Python_.  
+Open Allure is a voice-and-vision enabled dialog system written in Python_.
 
-Edit the openallure.cfg file to configure the location of the question/answer/response sequence.
+Edit the openallure.cfg file to configure the location of the initial
+question/answer/response sequence.
 
 .. _Python: http://www.python.org/
 
@@ -16,19 +17,29 @@ Open Allure is part of the output of the `Open Allure project`_.
 
 .. _Open Allure project: http://openallureds.org
 
-`A collection of short videos`_ about the Open Allure project are available and there is `a Google group you can join`_ for updates and discussion.
+`A collection of short videos`_ about the Open Allure project are available and
+there is `a Google group you can join`_ for updates and discussion.
 
 .. _A collection of short videos: http://bit.ly/openallure
 
 .. _a Google group you can join: http://bit.ly/openalluregg
+
+Cross-Platform Status
+=====================
+
+Open Allure aims to run on Windows, Linux and Mac. The Windows platform
+currently tops the feature list with working voice and vision input and pretty
+good text-to-speech output running Vista.  Linux has working vision input and
+so-so text-to-speech output (eSpeak).  Mac has neither voice nor vision input
+but has the best text-to-speech output (say).
 
 Dependencies
 ============
 
 Open Allure uses pyGame_ and BeautifulSoup_ and NLTK_ (Natural Language Toolkit).
 
-Voice recognition depends on the operating system or other software. For Windows, dragonfly_ 
-connects to the Windows Speech API. For Mac, dragonfly_ connects to `MacSpeech Dictate`_. For linux, 
+Voice recognition depends on the operating system or other software. For Windows, dragonfly_
+connects to the Windows Speech API. For Mac, dragonfly_ connects to `MacSpeech Dictate`_. For linux,
 we're still looking to connect a voice recognition backend -- please pitch in!
 
 .. _pyGame: http://www.pygame.org/
@@ -41,7 +52,12 @@ we're still looking to connect a voice recognition backend -- please pitch in!
 
 .. _MacSpeech Dictate: http://www.macspeech.com
 
+Configuration
+=============
 
+.. toctree::
+
+   txt/openallure
 
 Modules
 =======
@@ -51,10 +67,20 @@ Modules
 
    modules/openallure
    modules/qsequence
-   modules/video
    modules/gesture
    modules/text
    modules/voice
+   modules/video
+
+TXT Documentation
+=================
+
+.. toctree::
+
+   txt/CHANGES
+   txt/ethics_notice
+   txt/LICENSE
+   txt/README
 
 Indices and tables
 ==================

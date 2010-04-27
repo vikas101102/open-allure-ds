@@ -35,7 +35,6 @@ class VideoCapturePlayer( object ):
 
     def __init__(self, processFunction=None,
                        display        =None,
-                       show           =True,
                        photos         =None,**argd):
 
         logging.debug( "Initializing Video Capture Class" )
@@ -52,12 +51,8 @@ class VideoCapturePlayer( object ):
         #super(VideoCapturePlayer, self).__init__(**argd)
 
         if self.display is None:
-            if self.show is True:
-                # create a display surface. standard pygame stuff
-                self.display = pygame.display.set_mode( self.displaySize, 0 )
-            else:
-                pygame.display.init()
-                self.display = pygame.surface.Surface( self.displaySize )
+            pygame.display.init()
+            self.display = pygame.display.set_mode( self.displaySize, 0 )
 
 		#bring in photos
         self.photoSmile  = pygame.image.load( photos[0] ).convert()
@@ -103,7 +98,7 @@ class VideoCapturePlayer( object ):
         self.display.blit( self.photoListen, (650,10))
         pygame.display.flip()
 
-    def get_and_flip( self, show=True ):
+    def get_and_flip( self ):
         """
         Use webcam to take a snapshot, flip it right-to-left, subtract the background ( green screen ) and then display it.
         """
@@ -144,10 +139,6 @@ class VideoCapturePlayer( object ):
                 del ar_processedShotCopy
 
             self.processRuns += 1
-
-#        if show is True:
-            # blit it to the display surface.  simple!
-#            self.display.blit( self.snapshot, ( 0,0 ) )
 
         return self.processedShot
 
