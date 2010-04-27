@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Welcome to Open Allure’s documentation! &mdash; OpenAllure v0.1d13dev (alpha) documentation</title>
+    <title>Welcome to Open Allure’s documentation! &mdash; OpenAllure v0.1d14dev (alpha) documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '#',
-        VERSION:     '0.1d13dev (alpha)',
+        VERSION:     '0.1d14dev (alpha)',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,8 +19,8 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="OpenAllure v0.1d13dev (alpha) documentation" href="#" />
-    <link rel="next" title="openallure" href="modules/openallure.html" /> 
+    <link rel="top" title="OpenAllure v0.1d14dev (alpha) documentation" href="#" />
+    <link rel="next" title="openallure.cfg" href="txt/openallure.html" /> 
   </head>
   <body>
     <div class="related">
@@ -33,9 +33,9 @@
           <a href="modindex.html" title="Global Module Index"
              accesskey="M">modules</a> |</li>
         <li class="right" >
-          <a href="modules/openallure.html" title="openallure"
+          <a href="txt/openallure.html" title="openallure.cfg"
              accesskey="N">next</a> |</li>
-        <li><a href="#">OpenAllure v0.1d13dev (alpha) documentation</a> &raquo;</li> 
+        <li><a href="#">OpenAllure v0.1d14dev (alpha) documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -47,9 +47,19 @@
   <div class="section" id="welcome-to-open-allure-s-documentation">
 <h1>Welcome to Open Allure&#8217;s documentation!<a class="headerlink" href="#welcome-to-open-allure-s-documentation" title="Permalink to this headline">¶</a></h1>
 <p>Open Allure is a voice-and-vision enabled dialog system written in <a class="reference external" href="http://www.python.org/">Python</a>.</p>
-<p>Edit the openallure.cfg file to configure the location of the question/answer/response sequence.</p>
+<p>Edit the openallure.cfg file to configure the location of the initial
+question/answer/response sequence.</p>
 <p>Open Allure is part of the output of the <a class="reference external" href="http://openallureds.org">Open Allure project</a>.</p>
-<p><a class="reference external" href="http://bit.ly/openallure">A collection of short videos</a> about the Open Allure project are available and there is <a class="reference external" href="http://bit.ly/openalluregg">a Google group you can join</a> for updates and discussion.</p>
+<p><a class="reference external" href="http://bit.ly/openallure">A collection of short videos</a> about the Open Allure project are available and
+there is <a class="reference external" href="http://bit.ly/openalluregg">a Google group you can join</a> for updates and discussion.</p>
+</div>
+<div class="section" id="cross-platform-status">
+<h1>Cross-Platform Status<a class="headerlink" href="#cross-platform-status" title="Permalink to this headline">¶</a></h1>
+<p>Open Allure aims to run on Windows, Linux and Mac. The Windows platform
+currently tops the feature list with working voice and vision input and pretty
+good text-to-speech output running Vista.  Linux has working vision input and
+so-so text-to-speech output (eSpeak).  Mac has neither voice nor vision input
+but has the best text-to-speech output (say).</p>
 </div>
 <div class="section" id="dependencies">
 <h1>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h1>
@@ -58,15 +68,36 @@
 connects to the Windows Speech API. For Mac, <a class="reference external" href="http://code.google.com/p/dragonfly/">dragonfly</a> connects to <a class="reference external" href="http://www.macspeech.com">MacSpeech Dictate</a>. For linux,
 we&#8217;re still looking to connect a voice recognition backend &#8211; please pitch in!</p>
 </div>
+<div class="section" id="configuration">
+<h1>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h1>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="txt/openallure.html"><cite>openallure.cfg</cite></a></li>
+</ul>
+</div>
 <div class="section" id="modules">
 <h1>Modules<a class="headerlink" href="#modules" title="Permalink to this headline">¶</a></h1>
 <ul>
 <li class="toctree-l1"><a class="reference external" href="modules/openallure.html"><cite>openallure</cite></a></li>
 <li class="toctree-l1"><a class="reference external" href="modules/qsequence.html"><cite>qsequence</cite></a></li>
-<li class="toctree-l1"><a class="reference external" href="modules/video.html"><cite>video</cite></a></li>
 <li class="toctree-l1"><a class="reference external" href="modules/gesture.html"><cite>gesture</cite></a></li>
 <li class="toctree-l1"><a class="reference external" href="modules/text.html"><cite>text</cite></a></li>
 <li class="toctree-l1"><a class="reference external" href="modules/voice.html"><cite>voice</cite></a></li>
+<li class="toctree-l1"><a class="reference external" href="modules/video.html"><cite>video</cite></a></li>
+</ul>
+</div>
+<div class="section" id="txt-documentation">
+<h1>TXT Documentation<a class="headerlink" href="#txt-documentation" title="Permalink to this headline">¶</a></h1>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="txt/CHANGES.html"><cite>CHANGES.txt</cite></a></li>
+<li class="toctree-l1"><a class="reference external" href="txt/ethics_notice.html"><cite>ethics_notice.txt</cite></a></li>
+<li class="toctree-l1"><a class="reference external" href="txt/LICENSE.html"><cite>LICENSE.txt</cite></a></li>
+<li class="toctree-l1"><a class="reference external" href="txt/README.html"><cite>README.txt</cite></a></li>
+<li class="toctree-l1"><a class="reference external" href="txt/README.html#open-allure">Open Allure</a><ul>
+<li class="toctree-l2"><a class="reference external" href="txt/README.html#dependencies">Dependencies</a></li>
+<li class="toctree-l2"><a class="reference external" href="txt/README.html#license">License</a></li>
+<li class="toctree-l2"><a class="reference external" href="txt/README.html#contributors">Contributors</a></li>
+</ul>
+</li>
 </ul>
 </div>
 <div class="section" id="indices-and-tables">
@@ -87,16 +118,23 @@ we&#8217;re still looking to connect a voice recognition backend &#8211; please 
             <h3><a href="#">Table Of Contents</a></h3>
             <ul>
 <li><a class="reference external" href="#">Welcome to Open Allure&#8217;s documentation!</a></li>
+<li><a class="reference external" href="#cross-platform-status">Cross-Platform Status</a></li>
 <li><a class="reference external" href="#dependencies">Dependencies</a></li>
+<li><a class="reference external" href="#configuration">Configuration</a><ul>
+</ul>
+</li>
 <li><a class="reference external" href="#modules">Modules</a><ul>
+</ul>
+</li>
+<li><a class="reference external" href="#txt-documentation">TXT Documentation</a><ul>
 </ul>
 </li>
 <li><a class="reference external" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
 
             <h4>Next topic</h4>
-            <p class="topless"><a href="modules/openallure.html"
-                                  title="next chapter"><cite>openallure</cite></a></p>
+            <p class="topless"><a href="txt/openallure.html"
+                                  title="next chapter"><cite>openallure.cfg</cite></a></p>
           <div id="searchbox" style="display: none">
             <h3>Quick search</h3>
               <form class="search" action="search.html" method="get">
@@ -124,9 +162,9 @@ we&#8217;re still looking to connect a voice recognition backend &#8211; please 
           <a href="modindex.html" title="Global Module Index"
              >modules</a> |</li>
         <li class="right" >
-          <a href="modules/openallure.html" title="openallure"
+          <a href="txt/openallure.html" title="openallure.cfg"
              >next</a> |</li>
-        <li><a href="#">OpenAllure v0.1d13dev (alpha) documentation</a> &raquo;</li> 
+        <li><a href="#">OpenAllure v0.1d14dev (alpha) documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
