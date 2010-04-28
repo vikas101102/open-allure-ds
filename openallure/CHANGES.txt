@@ -1,3 +1,9 @@
+v0.1d15, 28 April 2010
+    Voice commands next and back added
+    Keyboard commands left arrow (back) and right arrow (next) added
+    Voice selection by last word and (correct number plus at least one matching word)
+    Window title includes Open Allure version number
+
 v0.1d14, 27 April 2010
     systemHasX configuration options changed to useX (and then only if possible).
 

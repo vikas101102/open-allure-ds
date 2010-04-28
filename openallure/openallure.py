@@ -12,7 +12,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d14dev'
+__version__='0.1d15dev'
 
 # Standard Python modules
 import ConfigParser
@@ -65,6 +65,7 @@ reflections = {
 
 class OpenAllure(object):
     def __init__(self):
+        self.__version__ = __version__
         self.voiceChoice = -1
         self.question = []
         self.ready = False
@@ -371,7 +372,7 @@ responses = (
 #
 # Test returning multiline response
     (r'(.*)',
-     ( "Sorry, I don't understand that. What now?\nQuit;;Thanks" ),"text")
+     ( "Sorry, I don't understand that. What now?\n[input];;" ),"text")
 )
 
 
@@ -406,7 +407,7 @@ def main():
 
     # read configuration options
     delayTime = int( config.get( 'Options', 'delayTime' ) )
-    allowNext = int( config.get( 'Options', 'allowNext' ) )
+    openallure.allowNext = int( config.get( 'Options', 'allowNext' ) )
 
     # initialize chatbot
     openallure_chatbot = Chat(responses, reflections)
@@ -421,7 +422,9 @@ def main():
         browser = windowsBrowser
 
     greenScreen = GreenScreen()
-    vcp         = VideoCapturePlayer( processFunction=greenScreen.process, photos=openallure.photos )
+    vcp         = VideoCapturePlayer( processFunction=greenScreen.process,
+                                      photos=openallure.photos,
+                                      version=openallure.__version__ )
     gesture     = Gesture()
     voice       = Voice()
 
@@ -430,7 +433,7 @@ def main():
 
     # start on first question of sequence
     # TODO: have parameter file track position in sequence at quit and resume there on restart
-    onQuestion = 0
+    openallure.onQuestion = 0
 
     # initialize mode flags
     # Has new question from sequence been prepared?
@@ -449,7 +452,7 @@ def main():
     # Do we have an answer? what number is it (with 0 being first answer)?
     answer = -1
     # What questions have been shown (list)?
-    questions = []
+    openallure.questions = []
     # What has been typed in so far
     openallure.currentString = ""
 
@@ -465,7 +468,7 @@ def main():
 
         if not openallure.ready:
             # prepare for question display
-            openallure.question = seq.sequence[ onQuestion ]
+            openallure.question = seq.sequence[ openallure.onQuestion ]
             choiceCount, questionText, justQuestionText = text.buildQuestionText( openallure.question )
 
             textRegions = text.preRender( questionText[ choiceCount ] )
@@ -562,6 +565,22 @@ def main():
                elif event.key == pygame.K_SPACE and not openallure.question[ 6 ][choiceCount - 1 ] == 1:
                     # Silence reading of question
                     openallure.stated = True
+               elif event.key == pygame.K_RIGHT and openallure.allowNext:
+                              # Choice is first non-zero entry in openallure.question[3]
+                              onChoice = 0
+                              for i in openallure.question[3]:
+                                  onChoice += 1
+                                  if not i == 0:
+                                      openallure.voiceChoice = onChoice
+                                      break
+                              del onChoice
+
+               elif event.key == pygame.K_LEFT:
+                              if len(openallure.questions) > 0:
+                                  openallure.onQuestion = openallure.questions.pop()
+                                  openallure.ready = False
+                              else:
+                                  openallure.onQuestion = 0
                elif event.key == pygame.K_RETURN:
                    if openallure.currentString:
                           nltkResponse = openallure_chatbot.respond( openallure.currentString )
@@ -606,7 +625,6 @@ def main():
                    screen.fill( backgroundColor, rect=textRect)
 
         if openallure.voiceChoice > 0:
-            print openallure.voiceChoice
             openallure.stated = 1
             choice = ( openallure.voiceChoice, 0 )
             # block non-choices
@@ -741,18 +759,20 @@ def main():
                 openallure.currentString = ''
 
             # check whether a link is associated with this answer and, if so, follow it
-            if openallure.question[ 5 ][ answer ]:
+            if len( openallure.question[ 5 ] ) and openallure.question[ 5 ][ answer ]:
                 os.system( browser + " " + openallure.question[ 5 ][ answer ] )
 
             #check that response exists for answer
-            if answer < len( openallure.question[ 2 ] ) and \
+            if len( openallure.question[ 2 ] ) and \
+               answer < len( openallure.question[ 2 ] ) and \
                 (isinstance( openallure.question[ 2 ][ answer ], str ) or \
                  isinstance( openallure.question[ 2 ][ answer ], unicode ) ):
                   #speak response to answer
                   voice.speak(openallure.question[ 2 ][ answer ].strip())
 
             #check that next sequence exists as integer for answer
-            if answer < len( openallure.question[ 3 ] ) and \
+            if len( openallure.question[ 3 ] ) and \
+               answer < len( openallure.question[ 3 ] ) and \
                  isinstance( openallure.question[ 3 ][ answer ], int ):
               #get new sequence or advance in sequence
               next = openallure.question[ 3 ][ answer ]
@@ -770,37 +790,42 @@ def main():
                       vcp.photoSmile = pygame.image.load( seq.sequence[0][7][0] ).convert()
                       vcp.photoTalk = pygame.image.load( seq.sequence[0][7][1] ).convert()
                       vcp.photoListen = pygame.image.load( seq.sequence[0][7][2] ).convert()
-                  onQuestion = 0
+                  openallure.onQuestion = 0
                   openallure.ready = False
               elif next == 99:
                   voice.speak( "Taking dictation" )
                   #TODO
               else:
-                  # Add last question to stack and move on
+                  # Add last question to stack (if not duplicate) and move on
                   if next > 0:
-                     questions.append( onQuestion )
-                     onQuestion = onQuestion + next
+                     if len( openallure.questions ) and \
+                        not openallure.questions[-1] == openallure.onQuestion:
+                         openallure.questions.append( openallure.onQuestion )
+                     else:
+                         openallure.questions.append( openallure.onQuestion )
+
+                     openallure.onQuestion = openallure.onQuestion + next
 
                   # Try to pop question off stack if moving back
                   elif next < 0:
                     for i in range( 1, 1 - next ):
-                           if len( questions ) > 0:
-                                        onQuestion = questions.pop()
+                           if len( openallure.questions ) > 0:
+                               openallure.onQuestion = openallure.questions.pop()
                            else:
-                                        onQuestion = 0
+                               openallure.onQuestion = 0
 
                   # Quit if advance goes beyond end of sequence
-                  if onQuestion >= len( seq.sequence ):
+                  if openallure.onQuestion >= len( seq.sequence ):
                       voice.speak( "You have reached the end. Goodbye." )
                       return
                   else:
                       openallure.ready  = False
 
-            else:
-               # invalid or final choice
-               print "Something is wrong with the question sequence.  Please check it:"
-               print seq.sequence
-               return
+##            else:
+##               # invalid or final choice
+##               print "Something is wrong with the question sequence.  Please check it:"
+##               print seq.sequence
+##               return
 
         if not openallure.stated:
             # work through statement of question
@@ -895,8 +920,17 @@ if useDragonfly:
                         #check against available answers - in lower case without punctuation
                         # and allow first part only (eg "Yes." in "Yes. I agree.")
                         # or first word
+                        # or last word
+                        # or [LINK] version of answer
                         answer = answer.lower().strip('.')
-                        if answer == i.lower().strip('.?!') or answer == i.lower().split('.')[0] or answer == i.lower().split()[0]:
+                        # length of i must be tested because it could be blank
+                        # after [input] is deleted
+                        if len(answer) and len(i) and \
+                           ( answer == i.lower().strip('.?!') or
+                             answer == i.lower().split('.')[0] or
+                             answer == i.lower().split()[0] or
+                             answer == i.lower().split()[-1] or
+                             "["+answer+"]" == i.lower() ):
                            openallure.voiceChoice = onAnswer
                            match = 1
                     if not match:
@@ -963,8 +997,8 @@ if useDragonfly:
                             if answer1 == i:
                                openallure.voiceChoice = onAnswer
                                match = 1
-                    if not match and allowNext:
-                        #check against control words xxx
+                    if not match and openallure.allowNext:
+                        #check against control words
                         for i in ["next","next question","skip to next question"]:
                            if answer == i:
                               skipResponse = 1
@@ -982,15 +1016,12 @@ if useDragonfly:
                         for i in ["back","prior","previous","back up","back one",
                                   "prior question","previous question"]:
                            if answer == i:
-                              _silence = 1
-                              on_text = 0
-                              onAnswer = 0
                               openallure.voiceChoice = -1
-                              if len(questions) > 0:
-                                  voice.speak("Returning to question " +
-                                               str(questions[-1]))
+                              if len(openallure.questions) > 0:
+                                  openallure.onQuestion = openallure.questions.pop()
+                                  openallure.ready = False
                               else:
-                                  on_question = 0
+                                  openallure.onQuestion = 0
                               match = 1
                     if not match:
                         for i in ["quit now","exit now","i give up"]:
@@ -999,9 +1030,39 @@ if useDragonfly:
                                match = 1
 
                     if not match:
-                        # try plugging into currentString
-                        openallure.currentString = answer
-                        openallure.question[ 1 ][ choiceCount - 1 ] = openallure.currentString
+                        # Voice recognition can make mistakes but still get
+                        # some words correct to make a match
+                        # Check if any answers have the correct NUMBER of words
+                        # and at least one matching word
+                        answerWordCount = len( node.words() )
+                        onAnswer = 0
+                        for i in openallure.question[1]:
+                            onAnswer += 1
+                            choiceWordCount = len( i.split() )
+                            if answerWordCount == choiceWordCount:
+                                choiceWords = i.lower().split()
+                                while choiceWordCount:
+                                    choiceWordCount -= 1
+                                    #print choiceWords[choiceWordCount], node.words()
+                                    if choiceWords[choiceWordCount] in node.words():
+                                        openallure.voiceChoice = onAnswer
+                                        match = 1
+                                        choiceWordCount = 0
+                            if match:
+                                break
+
+                    if match:
+                        openallure.currentString = ''
+
+                    if not match and not openallure.currentString:
+                        if openallure.question[ 1 ][ - 1 ] == u"[input]" or \
+                           openallure.question[ 1 ][ - 1 ] == u"":
+                            # try plugging into currentString
+                            openallure.currentString = answer
+                            openallure.question[ 1 ][ - 1 ] = openallure.currentString
+                            match = 1
+
+
 ##                        speak("Try again.")
     ##            else:
     ##                voice.speak("Thank you. Let's move on.")

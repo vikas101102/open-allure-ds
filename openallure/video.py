@@ -35,7 +35,8 @@ class VideoCapturePlayer( object ):
 
     def __init__(self, processFunction=None,
                        display        =None,
-                       photos         =None,**argd):
+                       photos         =None,
+                       version        =None,**argd):
 
         logging.debug( "Initializing Video Capture Class" )
 
@@ -52,6 +53,7 @@ class VideoCapturePlayer( object ):
 
         if self.display is None:
             pygame.display.init()
+            pygame.display.set_caption(u"Open Allure " + version)
             self.display = pygame.display.set_mode( self.displaySize, 0 )
 
 		#bring in photos
@@ -106,41 +108,43 @@ class VideoCapturePlayer( object ):
         # Capture an image
         self.snapshot = self.camera.get_image( self.snapshot )
 
-        # Flip array version of image around the y axis.
-        ar = pygame.PixelArray( self.snapshot )
-        ar[:] = ar[::-1,:]
-        self.snapshotThumbnail  = ar[::4,::4].make_surface()
-        del ar
+        if self.snapshot:
+            # Flip array version of image around the y axis.
+            ar = pygame.PixelArray( self.snapshot )
+            ar[:] = ar[::-1,:]
+            self.snapshotThumbnail  = ar[::4,::4].make_surface()
+            del ar
 
-        if self.processFunction:
-            self.processClock.tick()
-            if self.processRuns > 5 and self.processClock.get_fps() < 2:
-                # If function is really slow, take a few frames.
-                # Flush the camera buffer to get a new image...
-                for i in range( 5 ):
-                    # Capture an image
-                    self.snapshot = self.camera.get_image( self.snapshot )
+            if self.processFunction:
+                self.processClock.tick()
+                if self.processRuns > 5 and self.processClock.get_fps() < 2:
+                    # If function is really slow, take a few frames.
+                    # Flush the camera buffer to get a new image...
+                    for i in range( 5 ):
+                        # Capture an image
+                        self.snapshot = self.camera.get_image( self.snapshot )
 
-                # Flip array version of image around the y axis.
-                ar = pygame.PixelArray( self.snapshot )
-                ar[:] = ar[::-1,:]
-                # scaledown
-                self.snapshotThumbnail  = ar[::4,::4].make_surface()
-                del ar
+                    # Flip array version of image around the y axis.
+                    ar = pygame.PixelArray( self.snapshot )
+                    ar[:] = ar[::-1,:]
+                    # scaledown
+                    self.snapshotThumbnail  = ar[::4,::4].make_surface()
+                    del ar
 
-            #apply green screen process
-            self.processedShot = self.processFunction( self.snapshot )
+                #apply green screen process
+                self.processedShot = self.processFunction( self.snapshot )
 
-            if isinstance( self.processedShot,pygame.Surface ):
-                processedShotCopy = self.processedShot.copy()
-                ar_processedShotCopy = pygame.PixelArray( processedShotCopy )
-                # scaledown
-                self.processedShotThumbnail  = ar_processedShotCopy[::4,::4].make_surface()
-                del ar_processedShotCopy
+                if isinstance( self.processedShot,pygame.Surface ):
+                    processedShotCopy = self.processedShot.copy()
+                    ar_processedShotCopy = pygame.PixelArray( processedShotCopy )
+                    # scaledown
+                    self.processedShotThumbnail =\
+                      ar_processedShotCopy[::4,::4].make_surface()
+                    del ar_processedShotCopy
 
-            self.processRuns += 1
+                self.processRuns += 1
 
-        return self.processedShot
+            return self.processedShot
 
 class GreenScreen():
     """Process to capture average background image and subtract from snapshot image"""
