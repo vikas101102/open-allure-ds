@@ -319,6 +319,8 @@ Create list of string types::
                               destination, link, inputFlags, photos] )
 
         # catch sequence with a question with no answers and turn it into an input
+        if len(sequence) == 0:
+            sequence.append( [ [u"What now?"],[],[],[],[],[],[],[] ])
         if len(sequence[0][1]) == 0:
             sequence[0][1] = [u'[input]']
             sequence[0][3] = [0]

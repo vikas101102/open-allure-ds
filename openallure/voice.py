@@ -52,9 +52,9 @@ class Voice( object ):
            e = dragonfly.get_engine()
            e.speak( phrase.encode( 'utf-8' ) )
        elif self.useEspeak:
-           os.system( 'espeak -s150 "' + language + phrase.encode( 'utf-8' ) + '"' )
+           os.system( 'espeak -s150 "' + self.language + phrase.encode( 'utf-8' ) + '"' )
        elif self.useSay:
-           os.system( 'say "' + language + phrase.encode( 'utf-8' ) + '"' )
+           os.system( 'say "' + self.language + phrase.encode( 'utf-8' ) + '"' )
        else:
            print( phrase.encode( 'utf-8' ) )
            # Allow time for user to move hand down
