@@ -24,7 +24,7 @@ import string
 import sys
 
 # 3rd Party modules
-from nltk.corpus import wordnet
+# note: nltk is used by chat.py
 import pygame
 
 # Import from Open Allure DS modules
@@ -33,6 +33,7 @@ from qsequence import QSequence
 from text import OpenAllureText
 from video import VideoCapturePlayer, GreenScreen
 from voice import Voice
+from chat import Chat
 
 # Setup logging
 logging.basicConfig( level=logging.DEBUG )
@@ -46,22 +47,6 @@ WELCOME_TEXT = """
    Enjoy!
 """
 
-reflections = {
-  "am"     : "are",
-  "was"    : "were",
-  "i"      : "you",
-  "i'd"    : "you would",
-  "i've"   : "you have",
-  "i'll"   : "you will",
-  "my"     : "your",
-  "are"    : "am",
-  "you've" : "I have",
-  "you'll" : "I will",
-  "your"   : "my",
-  "yours"  : "mine",
-  "you"    : "me",
-  "me"     : "you"
-}
 
 class OpenAllure(object):
     def __init__(self):
@@ -81,299 +66,7 @@ class OpenAllure(object):
 
 openallure = OpenAllure()
 
-class Chat(object):
-    def __init__(self, tuples, reflections={}):
-        """
-        Initialize the chatbot.  tuples is a list of patterns and responses.  Each
-        pattern is a regular expression matching the user's statement or question,
-        e.g. r'I like (.*)'.  For each such pattern a list of possible responses
-        is given, e.g. ['Why do you like %1', 'Did you ever dislike %1'].  Material
-        which is matched by parenthesized sections of the patterns (e.g. .*) is mapped to
-        the numbered positions in the responses, e.g. %1.
 
-        @type tuples: C{list} of C{tuple}
-        @param tuples: The patterns and responses
-        @type reflections: C{dict}
-        @param reflections: A mapping between first and second person expressions
-        @rtype: C{None}
-        """
-
-        self._tuples = [(re.compile(x, re.IGNORECASE),y,z) for (x,y,z) in tuples]
-        self._reflections = reflections
-
-    # bug: only permits single word expressions to be mapped
-    def _substitute(self, inputString):
-        """
-        Substitute words in the string, according to the specified reflections,
-        e.g. "I'm" -> "you are"
-
-        @type inputString: C{string}
-        @param inputString: The string to be mapped
-        @rtype: C{string}
-        """
-
-        words = ""
-        for word in string.split(string.lower(inputString)):
-            if self._reflections.has_key(word):
-                word = self._reflections[word]
-            words += ' ' + word
-        return words
-
-    def _wildcards(self, response, match):
-        pos = string.find(response,'%')
-        while pos >= 0:
-            num = string.atoi(response[pos+1:pos+2])
-            response = response[:pos] + \
-                self._substitute(match.group(num)) + \
-                response[pos+2:]
-            pos = string.find(response,'%')
-        return response
-
-    def respond(self, inputString):
-        """
-        Generate a response to the user input.
-
-        @type inputString: C{string}
-        @param inputString: The string to be mapped
-        @rtype: C{string}
-        """
-
-        # check each pattern
-        for (pattern, response, responseType) in self._tuples:
-            match = pattern.match(inputString)
-
-            # did the pattern match?
-            if match:
-                if responseType == "quit":
-                    #TODO: Make this more polite
-                    os.sys.exit()
-
-                if responseType == "open":
-                    pos = string.find(response,'%')
-                    num = string.atoi(response[pos+1:pos+2])
-                    sequenceToOpen = match.group(num)
-
-                    resp = 'Confirm\nOpen ' + sequenceToOpen + \
-                           ';[' + sequenceToOpen + ']'
-
-                if responseType == "text":
-                    if isinstance(response,tuple):
-                        resp = random.choice(response)    # pick a random response
-                    else:
-                        resp = response
-                    resp = self._wildcards(resp, match) # process wildcards
-
-                if responseType == "wordLookup":
-                    pos = string.find(response,'%')
-                    num = string.atoi(response[pos+1:pos+2])
-                    wordToLookup = match.group(num)
-                    wordToLookup = wordToLookup.strip(',./?!;')
-                    #print( wordToLookup )
-                    wordToLookupSynsets = wordnet.synsets( wordToLookup )
-                    try:
-                       resp =wordToLookupSynsets[0].definition
-                    except IndexError:
-                        resp = '"'+ wordToLookup + '" was not found in the dictionary. Try again.'
-
-                if responseType == "math":
-                    operands = []
-                    pos = string.find(response,'%')
-                    while pos >= 0:
-                        num = string.atoi(response[pos+1:pos+2])
-                        operands.append(match.group(num))
-                        response = response[:pos] + \
-                            self._substitute(match.group(num)) + \
-                            response[pos+2:]
-                        pos = string.find(response,'%')
-                    operator = response.split()[3]
-                    errorMessage = ""
-                    if operator == "add":
-                       evalString = operands[0] + '+' + operands[1]
-                       try:
-                           calculatedResult = eval(evalString)
-                       except SyntaxError:
-                           calculatedResult = 0
-                           errorMessage = " (due to syntax error)"
-                       resp = "Adding " + " to ".join(operands) + " gives " + \
-                               str(calculatedResult) + errorMessage
-                    if operator == "subtract":
-                       evalString = operands[0] + '-' + operands[1]
-                       try:
-                           calculatedResult = eval(evalString)
-                       except SyntaxError:
-                           calculatedResult = 0
-                           errorMessage = " (due to syntax error)"
-                       resp = "Subtracting " + operands[1] + " from " + \
-                               operands[0] + " gives " + \
-                               str(calculatedResult) + errorMessage
-                    if operator == "multiply":
-                       evalString = operands[0] + '*' + operands[1]
-                       try:
-                           calculatedResult = eval(evalString)
-                       except SyntaxError:
-                           calculatedResult = 0
-                           errorMessage = " (due to syntax error)"
-                       resp = "Multiplying " + " by ".join(operands) + " gives " + \
-                               str(calculatedResult) + errorMessage
-                    if operator == "divide":
-                       evalString = operands[0] + '* 1.0 /' + operands[1]
-                       try:
-                           calculatedResult = eval(evalString)
-                       except SyntaxError:
-                           calculatedResult = 0
-                           errorMessage = " (due to syntax error)"
-                       resp = "Dividing " + " by ".join(operands) + " gives " + \
-                               str(calculatedResult) + errorMessage
-
-                if responseType == "wordMath":
-                    operands = []
-                    pos = string.find(response,'%')
-                    while pos >= 0:
-                        num = string.atoi(response[pos+1:pos+2])
-                        numberWord = match.group(num)
-                        if numberWord[0] in string.digits:
-                            number = eval( numberWord )
-                        else:
-                            number = ['zero','one','two','three','four','five','six','seven','eight','nine','ten',
-                                      'eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen',
-                                      'nineteen','twenty'].index(numberWord)
-                        operands.append(str(number))
-                        response = response[:pos] + \
-                            self._substitute(match.group(num)) + \
-                            response[pos+2:]
-                        pos = string.find(response,'%')
-                    operator = response.split()[3]
-                    errorMessage = ""
-                    if operator == "add":
-                       evalString = operands[0] + '+' + operands[1]
-                       try:
-                           calculatedResult = eval(evalString)
-                       except SyntaxError:
-                           calculatedResult = 0
-                           errorMessage = " (due to syntax error)"
-                       resp = "Adding " + " to ".join(operands) + " gives " + \
-                               str(calculatedResult) + errorMessage
-                    if operator == "subtract":
-                       evalString = operands[0] + '-' + operands[1]
-                       try:
-                           calculatedResult = eval(evalString)
-                       except SyntaxError:
-                           calculatedResult = 0
-                           errorMessage = " (due to syntax error)"
-                       resp = "Subtracting " + operands[1] + " from " + \
-                               operands[0] + " gives " + \
-                               str(calculatedResult) + errorMessage
-                    if operator == "multiply":
-                       evalString = operands[0] + '*' + operands[1]
-                       try:
-                           calculatedResult = eval(evalString)
-                       except SyntaxError:
-                           calculatedResult = 0
-                           errorMessage = " (due to syntax error)"
-                       resp = "Multiplying " + " by ".join(operands) + " gives " + \
-                               str(calculatedResult) + errorMessage
-                    if operator == "divide":
-                       evalString = operands[0] + '* 1.0 /' + operands[1]
-                       try:
-                           calculatedResult = eval(evalString)
-                       except SyntaxError:
-                           calculatedResult = 0
-                           errorMessage = " (due to syntax error)"
-                       resp = "Dividing " + " by ".join(operands) + " gives " + \
-                               str(calculatedResult) + errorMessage
-
-                # fix munged punctuation at the end
-                if resp[-2:] == '?.': resp = resp[:-2] + '.'
-                if resp[-2:] == '??': resp = resp[:-2] + '?'
-                return resp
-
-    # Hold a conversation with a chatbot
-    def converse(self, quit="quit"):
-        input = ""
-        while input != quit:
-            input = quit
-            try: input = raw_input(">")
-            except EOFError:
-                print( input )
-            if input:
-                while input[-1] in "!.": input = input[:-1]
-                print( self.respond(input) )
-
-
-# responses are matched top to bottom, so non-specific matches occur later
-# for each match, a list of possible responses is provided
-responses = (
-
-
-    (r'(demo|hi|hello)(.*)',
-    ( "Welcome.\nHere are some choices:\nDo simple math;;\nExplore a dictionary;;;\nLearn about Open Allure;[about.txt]\n[input];;;;\n\nOK.\nTry some two operand math\nlike ADD 2 + 2:\n[input];;\n\nLook up words\nby entering WHAT IS <word>:\n[input];;\n"),"text"),
-
-    (r'(.*)(turing|loebner)(.*)',
-    ( "I was hoping this would come up.\nLook at std-turing.aiml;[turing.txt]"),"text"),
-
-    (r'(open|start)\s*([a-zA-Z0-9\-\_\.\/\:]+)',
-    ( "Request to open new sequence%2"),"open"),
-
-    (r'(quit|exit)',
-    ( "Request to quit"),"quit"),
-##
-##    (r'(good|bad)',
-##    ( "I'm not%1","You're%1","So%1"),"text"),
-
-# Extract numbers from math expressions
-
-    # Addition
-    (r'[a-z]*\s*[a-z\']*\s*(\-?[0-9.]+)\s*\+\s*(\-?[0-9.]+)',
-    ( "You want to add%1 and%2"),"math"),
-    # Subtraction
-    (r'[a-z]*\s*[a-z\']*\s*(\-?[0-9.]+)\s*\-\s*(\-?[0-9.]+)',
-    ( "You want to subtract%1 minus%2"),"math"),
-    # Multiplication
-    (r'[a-z]*\s*[a-z\']*\s*(\-?[0-9.]+)\s*\*\s*(\-?[0-9.]+)',
-    ( "You want to multiply%1 by%2"),"math"),
-    # Division /
-    (r'[a-z]*\s*[a-z\']*\s*(\-?[0-9.]+)\s*\/\s*(\-?[0-9.]+)',
-    ( "You want to divide%1 by%2"),"math"),
-
-# Word math expressions
-
-    # Addition
-    (r'(what is|what\'s|find|calculate|add)\s+(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|[0-9.]+)\s+plus\s(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)',
-    ( "You want to add%2 and%3"),"wordMath"),
-
-    (r'add\s+(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)\s+(and|plus)\s(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)',
-    ( "You want to add%1 and%3"),"wordMath"),
-
-    # Subtraction
-    (r'(what is|what\'s|find|calculate|subtract)\s+(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)\s+minus\s(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)',
-    ( "You want to subtract%2 minus%3"),"wordMath"),
-
-    (r'subtract\s+(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)\s+from\s(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)',
-    ( "You want to subtract%2 minus%1"),"wordMath"),
-
-    # Multiplication
-    (r'(what is|what\'s|find|calculate|multiply)\s+(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)\s+(times|multiplied by)\s(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)',
-    ( "You want to multiply%2 by%4"),"wordMath"),
-
-    # Division /
-    (r'(what is|what\'s|find|calculate|divide)\s+(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)\s+(over|divided by|by)\s(zero|one|two|three|fourteen|four|five|sixteen|six|seventeen|seven|eighteen|eight|nineteen|nine|ten|eleven|twelve|thirteen|fifteen|twenty|[0-9.]+)',
-    ( "You want to divide%2 by%4"),"wordMath"),
-
-# Word lookup expressions
-
-    (r'(what does|what\'s)\s+(.*)\s+mean(.*)',
-    ( "You want to define%2"),"wordLookup"),
-
-    (r'(what is an|what is a|what is the|what is|search for|search|what\'s an|what\'s a|what\'s|find|define|defined)\s+(.*)',
-    ( "You want to define%2"),"wordLookup"),
-
-# fall through case -
-# when stumped, respond with generic zen wisdom
-#
-# Test returning multiline response
-    (r'(.*)',
-     ( "Sorry, I don't understand that. What now?\n[input];;" ),"text")
-)
 
 
 
@@ -464,7 +157,7 @@ def main():
 
     print WELCOME_TEXT
 
-    while 1:
+    while True:
 
         if not openallure.ready:
             # prepare for question display
