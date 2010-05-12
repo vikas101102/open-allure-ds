@@ -12,7 +12,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d15dev'
+__version__='0.1d16dev'
 
 # Standard Python modules
 import ConfigParser
@@ -66,9 +66,7 @@ class OpenAllure(object):
 
 openallure = OpenAllure()
 
-
-
-
+from responses import *
 
 def main():
     """Initialization and event loop"""
@@ -121,7 +119,7 @@ def main():
     gesture     = Gesture()
     voice       = Voice()
 
-    margins     = [ 20, 20, 620, 460 ]
+    margins     = eval( config.get( 'Font', 'margins' ) )
     text        = OpenAllureText( margins )
 
     # start on first question of sequence

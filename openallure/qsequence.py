@@ -12,6 +12,7 @@ QSequence( *filename* ) returns a question sequence object
 
 An input file is a plain text file with the format::
 
+   [ tag ]
    [ configuration overrides ]
    Question part1
    [ optional Question part2 ]
@@ -41,6 +42,7 @@ where <separator> can be::
    ;; or ;1 or ;+1  advance to next question
    ;-1              return to prior question ( in order exposed in sequence )
    ;;; or ;2 or ;+2 advance two questions
+   ;[tag]           advance to question marked with tag
    ;[filename]      advance to first question found in filename
    ;[url]           advance to first question found in text marked <pre> </pre> at URL (webpage)
 
@@ -81,6 +83,8 @@ List of lists::
    #                             so seq[ ][ 6 ][ 0 ] is the first  input, for example 0 (indicating no input on this answer)
    #                            and seq[ ][ 6 ][ 1 ] is the second link, for example 1 (indicating input allowed on this answer)
    #     Special case for photos    seq[0][ 7 ] is list of smile/talk/listen photo names
+   #     [ The tag strings are next,
+   #                             so seq[ ][ 8 ] is a unicode string tag for the question, for example u'skip to here'
 
 See `Open Allure wiki`_ for details and examples.
 
@@ -197,28 +201,35 @@ Create list of string types::
         link        = []
         inputFlags  = []
         photos      = []
+        tag         = u''
         photoSmile = photoTalk = photoListen = None
         while onString < len( strings ):
             if string_types[ onString ] == "Q":
-                # check for configuration overrides
+                # check for tags and configuration overrides (which use =)
                 if strings[ onString ].startswith('['):
-                    # strip [ and ] and then split on =
-                    bracketAt = strings[ onString ].find( ']' )
-                    configItem, configValue = \
-                       strings[ onString ][ 1 : bracketAt ].split( '=' )
-                    if configItem.strip() == 'smile':
-                        photoSmile = configValue.strip()
-                    elif configItem.strip() == 'talk':
-                        photoTalk = configValue.strip()
-                    elif configItem.strip() == 'listen':
-                        photoListen = configValue.strip()
-                    if isinstance( photoSmile, unicode ) and \
-                       isinstance( photoTalk, unicode ) and \
-                       isinstance( photoListen, unicode ):
-                        photos.append( photoSmile )
-                        photos.append( photoTalk )
-                        photos.append( photoListen )
-                        del photoSmile, photoTalk, photoListen
+                    if strings[ onString ].find( '=' ) == -1:
+                        # this is a tag
+                        bracketAt = strings[ onString ].find( ']' )
+                        tag = strings[ onString ][ 1 : bracketAt ] 
+                    else:
+                        # this is a configuration override 
+                        # strip [ and ] and then split on =
+                        bracketAt = strings[ onString ].find( ']' )
+                        configItem, configValue = \
+                           strings[ onString ][ 1 : bracketAt ].split( '=' )
+                        if configItem.strip() == 'smile':
+                            photoSmile = configValue.strip()
+                        elif configItem.strip() == 'talk':
+                            photoTalk = configValue.strip()
+                        elif configItem.strip() == 'listen':
+                            photoListen = configValue.strip()
+                        if isinstance( photoSmile, unicode ) and \
+                           isinstance( photoTalk, unicode ) and \
+                           isinstance( photoListen, unicode ):
+                            photos.append( photoSmile )
+                            photos.append( photoTalk )
+                            photos.append( photoListen )
+                            del photoSmile, photoTalk, photoListen
                 else:
                     question.append( strings[ onString ].rstrip() )
             elif string_types[ onString ] == "N":
@@ -226,7 +237,7 @@ Create list of string types::
                 if len( response ):
                     # add to sequence and reset
                     sequence.append( [question, answer, response, action,
-                                      destination, link, inputFlags, photos] )
+                                      destination, link, inputFlags, photos, tag] )
                     question    = []
                     answer      = []
                     response    = []
@@ -235,6 +246,7 @@ Create list of string types::
                     link        = []
                     inputFlags  = []
                     photos      = []
+                    tag         = u''
             else:
                 # use number to break string into answer and response
                 answerString = strings[ onString ][ :int( string_types[ onString ] ) ].rstrip()
@@ -242,27 +254,27 @@ Create list of string types::
                 # examine answerString to determine if it contains
                 # 1/ an [input] instruction
                 # 2/ a link in the wiki format [link label]
-                linkString = ""
+                linkString = u''
                 inputFlag = 0
                 if answerString.startswith(u'[input]'):
                     # no text will be displayed until the user types it,
                     # but the instruction can be passed through as the answer string
                     # to serve as a prompt
-                    label = u"[input]"
+                    label = u'[input]'
                     inputFlag = 1
                 elif answerString.startswith(u'[next]'):
                     # no text will be displayed until the user types it,
                     # but the instruction can be passed through as the answer string
                     # to serve as a prompt
-                    label = u"[next]"
+                    label = u'[next]'
                     inputFlag = 1
-                elif answerString.startswith('['):
-                    spaceAt = answerString.find(' ')
-                    closeBracketAt = answerString.find(']')
+                elif answerString.startswith(u'['):
+                    spaceAt = answerString.find(u' ')
+                    closeBracketAt = answerString.find(u']')
                     # The syntax only has a chance of being correct if the space comes before the closing bracket
                     if spaceAt > 0 and closeBracketAt > 0 and spaceAt < closeBracketAt:
                        linkString = answerString[ 1 : spaceAt]
-                       label = '[' + answerString[ spaceAt + 1 : ]
+                       label = u'[' + answerString[ spaceAt + 1 : ]
                     else:
                        print( u"Incorrect syntax in answer: %s " % answerString )
                 else:
@@ -278,28 +290,34 @@ Create list of string types::
                 # with additional ;'s or digits ( including + and - ) or brackets
                 # IF none found, leave action as 0
                 actionValue = 0
-                linkString = ''
-                while len( responseString ) and responseString.startswith(';'):
+                linkString = u''
+                while len( responseString ) and responseString.startswith(u';'):
                     actionValue += 1
                     responseString = responseString[ 1: ].lstrip()
-                digits = ''
+                digits = u''
                 while len( responseString ) and \
                          ( responseString[ 0 ].isdigit() or
-                           responseString[ 0 ] in ['+','-'] ):
+                           responseString[ 0 ] in [u'+',u'-'] ):
                     digits += responseString[ 0 ]
                     responseString = responseString[ 1: ].lstrip()
                 if len( digits ):
                     actionValue = int( digits )
-                if responseString.startswith('['):
-                    linkEnd = responseString.find(']')
-                    linkString    = responseString[1:linkEnd]
+                if responseString.startswith( u'[' ):
+                    linkEnd = responseString.find( u']' )
+                    linkString = responseString[ 1 : linkEnd ].strip()
                     responseString = responseString[ linkEnd + 1 : ].lstrip()
                     # now look at link and decide whether it is a page name
                     # that needs help to become a URL
-                    if not linkString.startswith("http"):
+                    # or a tag
+                    if not linkString.startswith(u'http'):
                         # do not put a path in front of a .txt file
-                        if not linkString.endswith('.txt'):
+                        if not linkString.endswith(u'.txt'):
                             linkString = self.path + linkString
+                            # to sort out whether this is a tag
+                            # we need a complete parsing of the question sequence
+                            # so this evaluation will take place in a second pass
+                            # which will convert LINKS to ACTIONS when we find a link that points
+                            # to a tag within the sequence
                         #print linkString
 
                 # If there is [input] in the answerString and no destination
@@ -316,16 +334,30 @@ Create list of string types::
         # append last question if not already signaled by N at end of inputs
         if len( question ):
             sequence.append( [question, answer, response, action,
-                              destination, link, inputFlags, photos] )
+                              destination, link, inputFlags, photos, tag] )
 
         # catch sequence with a question with no answers and turn it into an input
         if len(sequence) == 0:
-            sequence.append( [ [u"What now?"],[],[],[],[],[],[],[] ])
+            sequence.append( [ [u'What now?'],[],[],[],[],[],[],[],u'' ])
         if len(sequence[0][1]) == 0:
             sequence[0][1] = [u'[input]']
             sequence[0][3] = [0]
             sequence[0][4] = [u'nltkResponse.txt']
             sequence[0][6] = [1]
         # photos will not be changed if they are not found
+        
+        # Take second pass at sequence to convert LINKS to TAGS into ACTIONS
+        tags = [ question[ 8 ] for question in sequence ]
+        for qnum, question in enumerate( sequence ):
+            for lnum, link in enumerate( question[ 4 ] ):
+               if not link == u'' and link in tags:
+                   # remove link
+                   sequence[ qnum ][ 4 ][ lnum ] = u''
+                   # change action to RELATIVE position of question
+                   # that is, how much shift from current question, qnum
+                   # to tagged question
+                   sequence[ qnum ][ 3 ][ lnum ] = tags.index(link) - qnum
+
+
 
         return sequence

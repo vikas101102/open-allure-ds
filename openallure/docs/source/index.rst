@@ -8,10 +8,16 @@ Welcome to Open Allure's documentation!
 
 Open Allure is a voice-and-vision enabled dialog system written in Python_.
 
-Edit the openallure.cfg file to configure the location of the initial
-question/answer/response sequence.
-
 .. _Python: http://www.python.org/
+
+You might check_ to see if you are reading the most recent documentation--and using the most recent
+version of Open Allure for that matter.
+
+.. _check: http://packages.python.org/openallure/
+
+Edit the openallure.cfg file (see the annotated copy in this documentation) to configure the 
+location of the initial question/answer/response sequence and other settings as appropriate 
+for your system.
 
 Open Allure is part of the output of the `Open Allure project`_.
 
@@ -38,6 +44,8 @@ Dependencies
 
 Open Allure uses pyGame_ and BeautifulSoup_ and NLTK_ (Natural Language Toolkit).
 
+Windows systems use vidcap.py_ to help the pyGame camera module.
+
 Voice recognition depends on the operating system or other software. For Windows, dragonfly_
 connects to the Windows Speech API. For Mac, dragonfly_ connects to `MacSpeech Dictate`_. For linux,
 we're still looking to connect a voice recognition backend -- please pitch in!
@@ -46,7 +54,9 @@ we're still looking to connect a voice recognition backend -- please pitch in!
 
 .. _BeautifulSoup: http://www.crummy.com/software/BeautifulSoup/
 
-.. _NLTK: _http://www.nltk.org/download
+.. _NLTK: http://www.nltk.org/download
+
+.. _vidcap.py: http://videocapture.sourceforge.net/
 
 .. _dragonfly: http://code.google.com/p/dragonfly/
 
@@ -66,6 +76,8 @@ Modules
    :maxdepth: 2
 
    modules/openallure
+   modules/chat
+   modules/responses
    modules/qsequence
    modules/gesture
    modules/text
