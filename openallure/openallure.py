@@ -33,7 +33,7 @@ from qsequence import QSequence
 from text import OpenAllureText
 from video import VideoCapturePlayer, GreenScreen
 from voice import Voice
-from chat import Chat
+from chat import Chat, reflections, responses
 
 # Setup logging
 logging.basicConfig( level=logging.DEBUG )
@@ -66,7 +66,6 @@ class OpenAllure(object):
 
 openallure = OpenAllure()
 
-from responses import *
 
 def main():
     """Initialization and event loop"""
