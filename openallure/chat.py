@@ -2,6 +2,7 @@
 The Natural Language Processing component of open-allure-ds.
 Based on the Chat bot class from NLTK
 
+Modify the bottom of this file to run doc tests or to hold a conversation.
 
 TODO: Test the open functionality.
 TODO: Fix the natural language math parsing
@@ -9,7 +10,7 @@ TODO:   - make all test cases pass
 TODO:   - move the math parsing out of the generic responses tuple
 TODO:   - move the math processing out of the respond function
 '''
-import nltk
+
 from nltk.chat.util import random
 from nltk.chat import Chat as BaseChat
 from nltk.chat import reflections
@@ -40,35 +41,7 @@ class Chat(BaseChat):
 
         self._tuples = [(re.compile(x, re.IGNORECASE),y,z) for (x,y,z) in tuples]
         self._reflections = reflections
-    '''
-    # I have commented all this code out because it appears to be the EXACT
-    # same as nltk.chat.Chat, so its way easier to inherit from that.
-    # bug: only permits single word expressions to be mapped
-    def _substitute(self, inputString):
-        """
-        Substitute words in the string, according to the specified reflections,
-        e.g. "I'm" -> "you are"
 
-        @type inputString: C{string}
-        @param inputString: The string to be mapped
-        @rtype: C{string}
-        """
-
-        words = ""
-        for word in inputString.lower().split():
-            if word in self._reflections:
-                word = self._reflections[word]
-            words += ' ' + word
-        return words
-
-    def _wildcards(self, response, match):
-        pos = response.find('%')
-        while pos >= 0:
-            num = int(response[pos+1:pos+2])
-            response = response[:pos] + self._substitute(match.group(num)) + response[pos+2:]
-            pos = response.find('%')
-        return response
-    '''
     def respond(self, inputString):
         """
         Generate a response to the users input.
@@ -226,24 +199,14 @@ class Chat(BaseChat):
                 if resp[-2:] == '?.': resp = resp[:-2] + '.'
                 if resp[-2:] == '??': resp = resp[:-2] + '?'
                 return resp
-    '''
-    # Hold a conversation with a chatbot
-    def converse(self, quit="quit"):
-        input = ""
-        while input != quit:
-            input = quit
-            try: input = raw_input(">")
-            except EOFError:
-                print( input )
-            if input:
-                while input[-1] in "!.": input = input[:-1]
-                print( self.respond(input) )'''
 
-from responses import *
+
+from responses import responses
 
 # fall through cases -
 # Use some of Eliza's responses:
-responses = responses + tuple([(x, y, 'text') for (x,y) in nltk.chat.eliza.pairs[:-3]])
+from nltk.chat import eliza
+responses = responses + tuple([(x, y, 'text') for (x,y) in eliza.pairs[:-3]])
 
 # when stumped, respond with generic zen wisdom
 #responses = responses + tuple([(x, y, 'text') for (x,y) in nltk.chat.suntsu.pairs[2:]])
@@ -254,7 +217,7 @@ import unittest
 
 class TestChat( unittest.TestCase):
     def setUp(self):
-        self.chatter = Chat(responses, nltk.chat.reflections)
+        self.chatter = Chat(responses, reflections)
 
     def testQuitWorks( self ):
         '''Ask the chatbot to quit'''
@@ -275,7 +238,7 @@ class TestChat( unittest.TestCase):
 class TestChatMath( unittest.TestCase ):
 
     def setUp( self ):
-        self.chatter = Chat(responses, nltk.chat.reflections)
+        self.chatter = Chat(responses, reflections)
     
     def testAdditionWords1( self ):
         response = self.chatter.respond('add two and three')
@@ -318,9 +281,9 @@ class TestChatMath( unittest.TestCase ):
         self.assertTrue( res.endswith('20'), res)
         
 if __name__ == "__main__":
-    test = True
+    test = False
     if test:
         unittest.main()
     else:
-        chatter = Chat(responses, nltk.chat.reflections)
+        chatter = Chat(responses, reflections)
         chatter.converse()

@@ -1,21 +1,3 @@
-
-reflections = {
-  "am"     : "are",
-  "was"    : "were",
-  "i"      : "you",
-  "i'd"    : "you would",
-  "i've"   : "you have",
-  "i'll"   : "you will",
-  "my"     : "your",
-  "are"    : "am",
-  "you've" : "I have",
-  "you'll" : "I will",
-  "your"   : "my",
-  "yours"  : "mine",
-  "you"    : "me",
-  "me"     : "you"
-}
-
 # This serves as a set of default responses.
 # responses are matched top to bottom, so non-specific matches occur later
 # for each match, a list of possible responses is provided
