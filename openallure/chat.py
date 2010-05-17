@@ -4,11 +4,11 @@ Based on the Chat bot class from NLTK
 
 Modify the bottom of this file to run doc tests or to hold a conversation.
 
-TODO: Test the open functionality.
-TODO: Fix the natural language math parsing
-TODO:   - make all test cases pass
-TODO:   - move the math parsing out of the generic responses tuple
-TODO:   - move the math processing out of the respond function
+TODO::
+
+   Fix the natural language math parsing
+   - make all test cases pass
+   
 '''
 
 from nltk.chat.util import random
@@ -16,30 +16,33 @@ from nltk.chat import Chat as BaseChat
 from nltk.chat import reflections
 from nltk.corpus import wordnet
 
+from configobj import ConfigObj
+
+import logging
 import re
+
 class Chat(BaseChat):
     def __init__(self, tuples, reflections={}):
         """
         Initialize the chatbot.
         
-        tuples must contain an iterable of patterns, responses and types. 
+        tuples must contain an iterable of patterns, responses, types and rule names. 
         
         Each pattern is a regular expression matching the user's statement or question,
         e.g. r'I like (.*)'.  For each such pattern a list of possible responses
-        is given, e.g. ['Why do you like %1', 'Did you ever dislike %1'].  Material
+        may be given, e.g. ['Why do you like %1', 'Did you ever dislike %1'].  Material
         which is matched by parenthesized sections of the patterns (e.g. .*) is mapped to
         the numbered positions in the responses, e.g. %1.
         
-        TODO: Need to mention the types that have been introduced to the tuples
-        math, text etc..
+        See responses.cfg for documentation on the available types.
 
         @type tuples: C{list} of C{tuple}
-        @param tuples: The patterns and responses
+        @param tuples: The patterns and responses with types and rule names
         @type reflections: C{dict}
         @param reflections: A mapping between first and second person expressions
         """
 
-        self._tuples = [(re.compile(x, re.IGNORECASE),y,z) for (x,y,z) in tuples]
+        self._tuples = [(re.compile(x, re.IGNORECASE),y,z,ruleName) for (x,y,z,ruleName) in tuples]
         self._reflections = reflections
 
     def respond(self, inputString):
@@ -52,11 +55,14 @@ class Chat(BaseChat):
         """
 
         # check each pattern
-        for (pattern, response, responseType) in self._tuples:
+        for (pattern, response, responseType, ruleName) in self._tuples:
             match = pattern.match(inputString)
 
             # did the pattern match?
             if match:
+            
+                logging.info( "%s rule matched: %s" % ( responseType, ruleName ) )
+                
                 if responseType == "quit":
                     #TODO: Make this more polite
                     raise SystemExit
@@ -76,6 +82,10 @@ class Chat(BaseChat):
                         resp = response
                     resp = self._wildcards(resp, match) # process wildcards
 
+                if responseType == "link":
+                    # follow link to question tag (jump to question)
+                    resp = response
+                    
                 if responseType == "wordLookup":
                     pos = response.find('%')
                     num = int(response[pos+1:pos+2])
@@ -200,18 +210,27 @@ class Chat(BaseChat):
                 if resp[-2:] == '??': resp = resp[:-2] + '?'
                 return resp
 
-
-from responses import responses
+config = ConfigObj(r"responses.cfg")
+ruleTypes = config.sections
+rules = []
+for section in config.sections:
+    for subsection in config[section].sections:
+        rule = ( config[section][subsection]['re'],
+                 config[section][subsection]['reply'],
+                 section, subsection )
+        rules.append(rule)
+responses = tuple(rules)
+print responses
 
 # fall through cases -
 # Use some of Eliza's responses:
 from nltk.chat import eliza
-responses = responses + tuple([(x, y, 'text') for (x,y) in eliza.pairs[:-3]])
+responses = responses + tuple([(x, y, 'text', 'eliza') for (x,y) in eliza.pairs[:-3]])
 
 # when stumped, respond with generic zen wisdom
-#responses = responses + tuple([(x, y, 'text') for (x,y) in nltk.chat.suntsu.pairs[2:]])
+#responses = responses + tuple([(x, y, 'text', 'zen') for (x,y) in nltk.chat.suntsu.pairs[2:]])
 
-responses = responses + ((r'(.*)', ("Sorry, I don't understand that. What now?\n[input];;",), "text"),)
+responses = responses + ((r'(.*)', ("Sorry, I don't understand that. What now?\n[input];;",), "text", "no match what now"),)
 
 import unittest
 

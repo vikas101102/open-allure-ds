@@ -44,6 +44,8 @@ Dependencies
 
 Open Allure uses pyGame_ and BeautifulSoup_ and NLTK_ (Natural Language Toolkit).
 
+As of version 0.1d18, it also uses ConfigObj_ for configuration file management.
+
 Windows systems use vidcap.py_ to help the pyGame camera module.
 
 Voice recognition depends on the operating system or other software. For Windows, dragonfly_
@@ -55,6 +57,8 @@ we're still looking to connect a voice recognition backend -- please pitch in!
 .. _BeautifulSoup: http://www.crummy.com/software/BeautifulSoup/
 
 .. _NLTK: http://www.nltk.org/download
+
+.. _ConfigObj: http://www.voidspace.org.uk/python/configobj.html
 
 .. _vidcap.py: http://videocapture.sourceforge.net/
 
@@ -77,7 +81,6 @@ Modules
 
    modules/openallure
    modules/chat
-   modules/responses
    modules/qsequence
    modules/gesture
    modules/text

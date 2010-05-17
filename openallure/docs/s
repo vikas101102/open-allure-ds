@@ -1,6 +1,7 @@
 clear
 echo Build HTML documentation with Sphinx
 cp ../openallure.cfg .
+cp ../responses.cfg .
 if test ! -d source/txt; then 
   mkdir source/txt; 
 fi

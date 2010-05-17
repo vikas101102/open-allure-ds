@@ -1,6 +1,6 @@
 # Sphinx inventory version 1
 # Project: OpenAllure
-# Version: 0.1d16
+# Version: 0.1d18
 openallure mod modules/openallure.html
 text mod modules/text.html
 qsequence mod modules/qsequence.html

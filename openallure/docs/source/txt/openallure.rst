@@ -16,7 +16,11 @@ Modify this configuration file to suit your needs::
     # the question sequence tagged as preformatted text
     # (i.e. text between the tags <pre> and </pre>)
     #
-    url = sky.txt
+    url = new_rules.txt
+    #url = sq_from_sm.txt
+    #url = lecture.txt
+    #url = tags.txt
+    #url = sky.txt
     #url = jg.txt
     #url = cielo.txt
     #url = about.txt
@@ -34,14 +38,6 @@ Modify this configuration file to suit your needs::
     delayTime = 6000
     allowNext = 1
     
-    [Browser]
-    #
-    # windowsBrowser is the browser that will be used in Windows
-    # darwinBrowser is the browser that will be used in Mac
-    #
-    windowsBrowser = d:\\firefox\\firefox
-    darwinBrowser = open
-    
     [Colors]
     #
     # Copy the desired (Red, Green, Blue) color codes into the things to color below
@@ -57,7 +53,7 @@ Modify this configuration file to suit your needs::
     #
     background      = 255,255,255
     unreadText      = 0,255,0
-    readText        = 200,200,200
+    readText        = 0,0,0
     selectedText    = 255,0,0
     highlightedText = 255,255,0
     
@@ -67,7 +63,8 @@ Modify this configuration file to suit your needs::
     # heititc supports Chinese characters
     #
     font = heititc
-    size = 40
+    size = 30
+    margins = [ 20, 20, 600, 440 ]
     
     [Photos]
     #
@@ -95,7 +92,7 @@ Modify this configuration file to suit your needs::
     #
     useDragonfly = 0
     useEspeak = 0
-    useSay = 0
+    useSay = 1
     #language = -v french
     #language = -v english
     language =

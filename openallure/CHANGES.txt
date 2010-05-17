@@ -1,5 +1,15 @@
 Change history::
 
+  v0.1d18, 17 May 2010
+    Comments marked with # are now ignored in scripts
+    Answers ending with ... are silenced (for example, Continue ... )
+    Converted responses.py into responses.cfg
+    Added in-script rule parsing to qsequence.py with regular expression by example 
+      so scripts can now specify both FIXED and AD HOC responses. See example in new_rules.txt 
+    
+  v0.1d17, 13 May 2010
+    Replaced web browser selection in configuration with import webbrowser
+
   v0.1d16, 12 May 2010
     Added tags to script syntax so questions can be inserted in a sequence without renumbering
     Pulled chat.py and responses.py out of openallure.py
