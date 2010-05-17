@@ -12,7 +12,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d16dev'
+__version__='0.1d18dev'
 
 # Standard Python modules
 import ConfigParser
@@ -22,6 +22,7 @@ import random
 import re
 import string
 import sys
+import webbrowser
 
 # 3rd Party modules
 # note: nltk is used by chat.py
@@ -33,7 +34,7 @@ from qsequence import QSequence
 from text import OpenAllureText
 from video import VideoCapturePlayer, GreenScreen
 from voice import Voice
-from chat import Chat, reflections, responses
+from chat import Chat, reflections, responses, ruleTypes
 
 # Setup logging
 logging.basicConfig( level=logging.DEBUG )
@@ -43,6 +44,10 @@ WELCOME_TEXT = """
 
    F4 to recalibrate green screen.
    Escape to quit.
+
+   For debugging:
+   F6 displays the openallure.__dict__ and opens a Python console.
+   Press Ctrl + D to resume Open Allure or enter exit() to quit.
 
    Enjoy!
 """
@@ -55,6 +60,7 @@ class OpenAllure(object):
         self.question = []
         self.ready = False
         self.stated = False
+        self.statedq = -1
         self.currentString = ''
         #bring in photo file names
         config = ConfigParser.RawConfigParser()
@@ -62,7 +68,6 @@ class OpenAllure(object):
         self.photos = [ config.get( 'Photos', 'smile' ) ,
                         config.get( 'Photos', 'talk' ) ,
                         config.get( 'Photos', 'listen' ) ]
-
 
 openallure = OpenAllure()
 
@@ -90,7 +95,7 @@ def main():
     # initial url may override photos
     if seq.sequence[0][7]:
         logging.info( "Taking photo names from %s" % url )
-        openallure.photos = seq.sequence[0][7]
+        openallure.photos = seq.sequence[ 0 ][ 7 ]
 
     logging.info( "Question sequence Loaded with %s questions" % str( len( seq.sequence ) ) )
     #print seq.sequence
@@ -99,17 +104,12 @@ def main():
     delayTime = int( config.get( 'Options', 'delayTime' ) )
     openallure.allowNext = int( config.get( 'Options', 'allowNext' ) )
 
-    # initialize chatbot
-    openallure_chatbot = Chat(responses, reflections)
-    logging.info( "Chatbot initialized" )
-
-    # load browser command line strings and select appropriate one
-    darwinBrowser = config.get( 'Browser', 'darwinBrowser' )
-    windowsBrowser = config.get( 'Browser', 'windowsBrowser' )
-    if sys.platform == 'darwin':
-        browser = darwinBrowser
-    else:
-        browser = windowsBrowser
+    # initialize chatbots
+    # Built-in ( responses.cfg ) chatbot
+    openallure_chatbot = Chat( responses, reflections )
+    # Dynamic ( script-driven ) chatbot 
+    openallure.script_chatbot = Chat( seq.sequence[ 0 ][ 9 ], reflections )
+    logging.info( "Chatbots initialized" )
 
     greenScreen = GreenScreen()
     vcp         = VideoCapturePlayer( processFunction=greenScreen.process,
@@ -247,8 +247,11 @@ def main():
                     greenScreen.calibrated = False
                elif event.key == pygame.K_F6:
                     # reveal all the attributes of openallure
-                    print( openallure.__dict__ )
+                    print "\nCurrent values of openallure object variables:\n"
+                    for item in openallure.__dict__:
+                        print item + ":", openallure.__dict__[ item ]
                     # drop into interpreter for debugging
+                    print "\n   Press Ctrl+D to close console and resume. Enter exit() to exit.\n"
                     import code; code.interact(local=locals())
 
                # Allow space to silence reading of question unless there is an input (which might require a space)
@@ -273,17 +276,41 @@ def main():
                                   openallure.onQuestion = 0
                elif event.key == pygame.K_RETURN:
                    if openallure.currentString:
-                          nltkResponse = openallure_chatbot.respond( openallure.currentString )
-                          # print openallure.currentString
-                          # print nltkResponse
+                          # first try script_chatbot, then built-in ( responses.cfg )
+                          nltkResponse = ""
+                          nltkResponse = openallure.script_chatbot.respond( openallure.currentString )
+                          # print "Script Chatbot says", nltkResponse
+                          # if no newlines, look for tag
+                          if nltkResponse and nltkResponse.find('\n') == -1:
+                              if nltkResponse.startswith('['):
+                                 closeBracketAt = nltkResponse.find(']')
+                                 if not closeBracketAt == -1:
+                                     tags = [ question[ 8 ] for question in seq.sequence ]
+                                     tagSought = nltkResponse[ 1: closeBracketAt ].strip() 
+                                     if tagSought in tags:
+                                         tagAt = tags.index( tagSought )
+                                         if not tagAt == openallure.onQuestion:
+                                            # put current question on stack and jump to new question
+                                            if len( openallure.questions ) and \
+                                                not openallure.questions[-1] == openallure.onQuestion:
+                                               openallure.questions.append( openallure.onQuestion )
+                                            else:
+                                               openallure.questions.append( openallure.onQuestion )
+                                            openallure.onQuestion = tagAt
+                                            openallure.ready = False
+                          else:
+                              if nltkResponse == None:
+                                  nltkResponse = openallure_chatbot.respond( openallure.currentString )
+                              # print openallure.currentString
+                              # print nltkResponse
 
-                          # if nltkResponse is one line containing a semicolon, replace the semicolon with \n
-                          if nltkResponse.find('\n') == -1:
-                              nltkResponse = nltkResponse.replace(';','\n')
+                              # if nltkResponse is one line containing a semicolon, replace the semicolon with \n
+                              if nltkResponse.find('\n') == -1:
+                                  nltkResponse = nltkResponse.replace(';','\n')
 
-                          if nltkResponse:
-                              answer = choiceCount - 1
-                              choice = ( choiceCount, 0 )
+                              if nltkResponse:
+                                  answer = choiceCount - 1
+                                  choice = ( choiceCount, 0 )
                    else:
                        # This takes last response
                        answer = choiceCount - 1
@@ -450,7 +477,7 @@ def main():
 
             # check whether a link is associated with this answer and, if so, follow it
             if len( openallure.question[ 5 ] ) and openallure.question[ 5 ][ answer ]:
-                os.system( browser + " " + openallure.question[ 5 ][ answer ] )
+                webbrowser.open_new_tab( openallure.question[ 5 ][ answer ] )
 
             #check that response exists for answer
             if len( openallure.question[ 2 ] ) and \
@@ -487,22 +514,22 @@ def main():
                   #TODO
               else:
                   # Add last question to stack (if not duplicate) and move on
-                  if next > 0:
+                  if not next == 0:
                      if len( openallure.questions ) and \
                         not openallure.questions[-1] == openallure.onQuestion:
                          openallure.questions.append( openallure.onQuestion )
                      else:
                          openallure.questions.append( openallure.onQuestion )
 
-                     openallure.onQuestion = openallure.onQuestion + next
+                     openallure.onQuestion = max( 0, openallure.onQuestion + next )
 
                   # Try to pop question off stack if moving back
-                  elif next < 0:
-                    for i in range( 1, 1 - next ):
-                           if len( openallure.questions ) > 0:
-                               openallure.onQuestion = openallure.questions.pop()
-                           else:
-                               openallure.onQuestion = 0
+#                  elif next < 0:
+#                    for i in range( 1, 1 - next ):
+#                           if len( openallure.questions ) > 0:
+#                               openallure.onQuestion = openallure.questions.pop()
+#                           else:
+#                               openallure.onQuestion = 0
 
                   # Quit if advance goes beyond end of sequence
                   if openallure.onQuestion >= len( seq.sequence ):
@@ -517,6 +544,10 @@ def main():
 ##               print seq.sequence
 ##               return
 
+        # Check if on same question as last time stated.  If so, look to configuration whether to re-read
+        if openallure.statedq == openallure.onQuestion:
+            openallure.stated = True
+
         if not openallure.stated:
             # work through statement of question
             # speaking each part of the question and each of the answers
@@ -525,12 +556,15 @@ def main():
             # Stop when onAnswer pointer is beyond length of answer list
             if onAnswer > len(openallure.question[1]):
                 openallure.stated = True
+                openallure.statedq = openallure.onQuestion
+
             else:
                 # Speak each answer (but only after speaking the full question below)
                 if onAnswer > 0 and onAnswer < len( openallure.question[ 1 ] ) + 1 :
                     answerText = openallure.question[ 1 ][ onAnswer-1 ]
                     if not ( answerText.startswith( '[input]' ) or
-                             answerText.startswith( '[next]' ) ):
+                             answerText.startswith( '[next]' ) or
+                             answerText.endswith( '...' ) ):
                         # Check for answer with "A. "
                         if answerText[ 1:3 ] == '. ' :
                            voice.speak( answerText[ 3: ].strip() )
