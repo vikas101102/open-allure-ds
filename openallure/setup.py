@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='openallure',
-    version='0.1d14',
+    version='0.1d19',
     author='John Graves',
     author_email='john.graves@aut.ac.nz',
     packages=['openallure'],

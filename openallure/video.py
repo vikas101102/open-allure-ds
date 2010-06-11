@@ -84,9 +84,10 @@ class VideoCapturePlayer( object ):
         # bit depth to be the same as that of the display surface.
         self.snapshot = pygame.surface.Surface( self.size, 0, self.display )
 
-        # place holders for thumbnails
+        # place holders for thumbnails and shadow
         self.snapshotThumbnail = None
         self.processedShotThumbnail = None
+        self.processedShot = None
 
     def smile( self ):
         self.display.blit( self.photoSmile, (650,10))
@@ -222,7 +223,7 @@ class GreenScreen():
                                    snapshot,
                                    ( 0,0,0 ),
                                    [threshold_value]*3 ,
-                                   ( 255,255,255 ),
+                                   ( 100,100,100 ),
                                    1,
                                    self.background )
         # Median filter would be good here to remove salt + pepper noise...

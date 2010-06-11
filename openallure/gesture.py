@@ -40,7 +40,7 @@ class Gesture(object):
        **imageArray** is selected based on whether more than
        **threshold** number of pixels in an
        **n** x **n** matrix of pixels with
-       **spacing** (to cover more area while processing fewer pixels) have non-black values
+       **spacing** (to cover more area while processing fewer pixels) have black values
        """
        xUpperLeft = max( 0, xoffset - n * spacing )
        #print xUpperLeft

@@ -12,7 +12,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__='0.1d18dev'
+__version__='0.1d19dev'
 
 # Standard Python modules
 import ConfigParser
@@ -107,7 +107,7 @@ def main():
     # initialize chatbots
     # Built-in ( responses.cfg ) chatbot
     openallure_chatbot = Chat( responses, reflections )
-    # Dynamic ( script-driven ) chatbot 
+    # Dynamic ( script-driven ) chatbot
     openallure.script_chatbot = Chat( seq.sequence[ 0 ][ 9 ], reflections )
     logging.info( "Chatbots initialized" )
 
@@ -286,7 +286,7 @@ def main():
                                  closeBracketAt = nltkResponse.find(']')
                                  if not closeBracketAt == -1:
                                      tags = [ question[ 8 ] for question in seq.sequence ]
-                                     tagSought = nltkResponse[ 1: closeBracketAt ].strip() 
+                                     tagSought = nltkResponse[ 1: closeBracketAt ].strip()
                                      if tagSought in tags:
                                          tagAt = tags.index( tagSought )
                                          if not tagAt == openallure.onQuestion:
@@ -359,6 +359,7 @@ def main():
                                openallure.stated,
                                choice,
                                colorLevel,colorLevels)
+                #vcp.processedShot.set_colorkey((255,255,255))
                 pygame.display.flip()
 
 #        print openallure.voiceChoice
@@ -459,6 +460,14 @@ def main():
                            openallure.stated,
                            choice,
                            colorLevel,colorLevels)
+            # cast shadow
+            if isinstance( vcp.processedShot,pygame.Surface ) and \
+               greenScreen.calibrated:
+                vcp.processedShot.set_colorkey((0,0,0))
+                vcp.processedShot.set_alpha(100)
+                vcp.display.blit( vcp.processedShot ,
+                                  textRect )
+            pygame.display.flip()
 
         elif not choice == ( - 1, 0 ):
 
