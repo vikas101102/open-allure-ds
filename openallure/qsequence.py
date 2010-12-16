@@ -15,13 +15,13 @@ An input file is a plain text file with the format::
    [ tag ]
    [ configuration overrides ]
    Question part1
-   [ optional Question part2 ]
-   [ optional blank line ]
+   { optional Question part2 }
+   { optional blank line }
    Answer 1 <separator> Response 1
    Answer 2 <separator> Response 2
     etc ...
    up to 6 answers
-   [ blank line ]
+   { blank line }
    Next question ...
 
 where configuration overrides can be::
@@ -45,6 +45,78 @@ where <separator> can be::
    ;[tag]           advance to question marked with tag
    ;[filename]      advance to first question found in filename
    ;[url]           advance to first question found in text marked <pre> </pre> at URL (webpage)
+
+In addition, an input file can specify string matching rules of the form::
+
+   [type of rule]
+   [[name of rule]]
+   re=
+   example=
+   reply=
+
+where::
+
+   #     [Section: type of rule]
+   #        The type of rule determines which block of code in chat.py
+   #        will be used to process the parsed string.  All the rules of
+   #        a given type can be listed in a section.
+   #
+   #     [[Sub-section: name of rule]]
+   #         Each rule should have a unique name.  This name can be
+   #         posted to the log so it can be worked out which rule fired
+   #         and led to the observed behaviour of Open Allure.
+   #
+   #     example =
+   #         (optional)
+   #         NOTE: If left out, there must be a regular expression (below)
+   #         Example question from which Open Allure derives a regular expression.
+   #         Strings which must be matched are enclosed in brackets.
+   #         For instance,
+   #
+   #         example = "Who is alan [turing]?"
+   #
+   #         should be converted to the regular expression
+   #
+   #         re = '(.*)(turing)(.*)'
+   #
+   #         which would lead to matches on all sorts of inputs, including
+   #         "Tell me about Turing."
+   #         "What is the Turing Test?"
+   #         "Was Turing gay?"
+   #
+   #         This brings up the issue of rule ORDER.
+   #         More specific matches need to come first, so if you want
+   #         something special in response to
+   #         "What is the [Turing Test]?"
+   #         that rule must come BEFORE the response to
+   #         "Who is Alan [Turing]?"
+   #         or else the Turing Test rule will never fire.
+   #
+   #     re =
+   #         (optional)
+   #         NOTE: If an example (above) exists, this overrides it.
+   #         Regular expression used to match against input string
+   #         For instance,
+   #
+   #         re = '(.*)(turing|loebner)(.*)'
+   #
+   #         where the vertical bar indicates OR
+   #
+   #     reply =
+   #         Reply from Open Allure
+   #         Triple quoted strings allow for multi-line scripts here.
+   #
+   #         In other words, the reply can include an entire
+   #         question sequence, not merely a direct answer.
+   #
+   #         Open Allure stands out from other chatbots with this capability.
+   #         Scripts allow Open Allure to take some of the initiative and
+   #         guide the conversation in a particular direction or offer alternatives.
+   #
+
+See `Open Allure wiki Rule File Syntax`_ for details and examples.
+
+.. _Open Allure wiki Rule File Syntax: http://code.google.com/p/open-allure-ds/wiki/RuleFileSyntax
 
 
 **Output**
@@ -85,33 +157,41 @@ List of lists::
    #     Special case for photos    seq[0][ 7 ] is list of smile/talk/listen photo names
    #     [ The tag strings are next,
    #                             so seq[ ][ 8 ] is a unicode string tag for the question, for example u'skip to here'
+   #     Special case for rules     seq[0][ 9 ] is a tuple with any script-specific rules
 
-See `Open Allure wiki`_ for details and examples.
+See `Open Allure wiki Separate Content File Syntax`_ for details and examples.
 
-.. _Open Allure wiki: http://code.google.com/p/open-allure-ds/wiki/SeparateContentFileSyntax
+.. _Open Allure wiki Separate Content File Syntax: http://code.google.com/p/open-allure-ds/wiki/SeparateContentFileSyntax
 
 Copyright (c) 2010 John Graves
 
 MIT License: see LICENSE.txt
 """
 
-import ConfigParser
 import urllib
 import os
 from BeautifulSoup import BeautifulSoup, SoupStrainer          # For processing HTML
+from configobj import ConfigObj
 
 class QSequence( object ):
     """A Question Sequence contains (multiple) question blocks consisting of a question with answers/responses/actions"""
 
     def __init__( self, filename=u"openallure.txt", path='', nltkResponse=None ):
         """
-        Read either a local plain text file or text tagged <pre> </pre> from a webpage
+        Read either a local plain text file or text tagged <pre> </pre> from a webpage or body of an Etherpad
         """
+        config = ConfigObj(r"openallure.cfg")
+        self.defaultAnswer = config['Options']['defaultAnswer']
+        responsesConfig = ConfigObj(r"responses.cfg")
+        self.ruleTypes = responsesConfig.sections
+        self.cleanUnicodeTextStr = ''
+        self.inputs = []
+
         # attribute storing path to sequence (excludes name)
         self.path = path
 
         if filename.startswith(u"http://"):
-           # read text tagged with <pre> </pre> from website
+           # read text tagged with <pre> </pre> from website or body of an Etherpad
            try:
               urlOpen = urllib.urlopen( filename )
            except urlOpenError:
@@ -120,65 +200,130 @@ class QSequence( object ):
            # parse out text marked with <pre> </pre>
            links = SoupStrainer('pre')
            taggedPreText = [tag for tag in BeautifulSoup(urlOpen, parseOnlyThese=links)]
-#           print 'taggedPreText', taggedPreText
+ #          print 'taggedPreText', taggedPreText
 
-           # filter out <pre> and any other embedded tags
-           def isunicode(x): return isinstance(x,unicode)
-           def lstrip(x): return x.lstrip()
-#           def notEmpty(x):
-#              if len(x) > 0 : return True
-           cleanUnicodeText = [ map( lstrip, filter( isunicode, taggedPreText[ x ].contents ) )  for x in range( 0, len( taggedPreText ) ) ]
+           if taggedPreText == []:
+               # If no taggedPreText, try Etherpad body
+               urlOpen = urllib.urlopen( filename )
+               soup = BeautifulSoup( urlOpen )
+               self.cleanUnicodeTextStr = str(soup)[ str(soup).find('"initialAttributedText":{"text"')+33 :str(soup).find(',"attribs":')-1 ]
+               self.inputs = self.cleanUnicodeTextStr.split('\\n')
 
-           # get it all down to one text string
-           cleanUnicodeTextStr = "\n".join(["\n".join(list) for list in cleanUnicodeText])
+           else:
+               # filter out <pre> and any other embedded tags
+               def isunicode(x): return isinstance(x,unicode)
+               def lstrip(x): return x.lstrip()
+    #           def notEmpty(x):
+    #              if len(x) > 0 : return True
+               cleanUnicodeText = [ map( lstrip, filter( isunicode, taggedPreText[ x ].contents ) )  for x in range( 0, len( taggedPreText ) ) ]
 
-           if len(cleanUnicodeTextStr) == 0:
+               # get it all down to one text string
+               self.cleanUnicodeTextStr = "\n".join(["\n".join(list) for list in cleanUnicodeText])
+               self.inputs = self.cleanUnicodeTextStr.splitlines()
+
+           if len(self.cleanUnicodeTextStr) == 0:
 ##              print( "\n\n   No text marked with <pre> </pre> found at %s" % filename )
 ##              print( "   Check view source for &lt;pre&gt; which is currently not supported.\n\n" )
 ##              os.sys.exit()
-               inputs = [u"Hmmm. It seems " + url,u"does not have a script",
+               self.inputs = [u"Hmmm. It seems " + url,u"does not have a script",
                          u"marked with <pre> </pre>.",
                          u"What now?",
                          u"[input];;"]
            else:
-               # split back into lines (inputs)
-               inputs = cleanUnicodeTextStr.splitlines()
-
                # set path attribute to be everything up to through last slash in url
                slashAt = filename.rfind( '/' ) + 1
                self.path = filename[0:slashAt]
 
         elif filename.startswith("nltkResponse.txt"):
-            inputs = nltkResponse.split("\n")
+            self.inputs = nltkResponse.split("\n")
         else:
            # read file and decode with utf-8
            try:
                raw = open( filename ).readlines()
-               inputs = []
+               self.inputs = []
                for line in raw:
-                   inputs.append( unicode( line, 'utf-8' ) )
+                   self.inputs.append( unicode( line, 'utf-8' ) )
            except IOError:
-               inputs = [u"Well ... It seems " + filename,u"could not be opened.",
+               self.inputs = [u"Well ... It seems " + filename,u"could not be opened.",
                          u"What now?",
                          u"[input];;"]
 
         # parse into sequence
-        self.sequence = self.regroup( inputs, self.classify( inputs ) )
+        self.sequence = self.regroup( self.inputs, self.classify( self.inputs ) )
 
-    def classify( self,strings ):
+    def classify( self, strings ):
         """
 Create list of string types::
 
     Identify strings which contain new line only   ( type N )
+    #             or start with a hash # comment   ( type C )
     #             or which contain ; or ;; markers ( type indicated by offset of separator
     #                                                     between Answer ; Response )
+    #             or start with rule indicators    ( type R )
+    #                [ rule type ]
+    #                [[ rule name ]]
+    #                re= or re =
+    #                example= or example =
+    #                reply= or reply =
     #             or else mark as question         ( type Q )
 
         """
         string_types = []
+        inRule = False
+        inQuote = False
         for i in strings:
+          if inQuote:
+            # mark as type R until closing triple quotes are found
+            string_types.append( "R" )
+            tripleQuoteAt = i.find('"""')
+            if not tripleQuoteAt == -1:
+               inQuote = False
+               inRule = False
+          else:
             if i.strip() in ["","\n","\\n"]:
                 string_types.append( "N" )
+            elif i.startswith( "#" ):
+                string_types.append( "C" )
+
+            elif i.startswith( "re=" ) or i.startswith( "re =" ):
+                string_types.append( "R" )
+            elif i.startswith( "example=" ) or i.startswith( "example =" ):
+                string_types.append( "R" )
+            elif i.startswith( "reply=" ) or i.startswith( "reply =" ):
+                string_types.append( "R" )
+                # test for triple quotes on this line
+                tripleQuoteAt = i.find('"""')
+                if tripleQuoteAt == -1:
+                    # reply marks last line of rule
+                    inRule = False
+                else:
+                    # closing triple quotes will mark last line of rule
+                    inQuote = True
+                    # test for SECOND (closing) triple quotes on this line
+                    if not i[tripleQuoteAt+2:].find('"""') == -1:
+                        inQuote = False
+                        inRule = False
+            elif i.startswith( "[" ):
+                # This could be a rule type, rule name, question tag or answer-side link
+                if inRule:
+                    # It's a rule name
+                    string_types.append( "R" )
+                else:
+                    # Check content against list of rule types
+                    bracketAt = i.find( ']' )
+                    maybeRuleType = i[ 1 : bracketAt ].strip()
+                    if maybeRuleType in self.ruleTypes:
+                        # It's a rule type
+                        string_types.append( "R" )
+                        inRule = True
+                    else:
+                        # must be question tag or answer-side link
+                        slash_at = i.find( ";" )
+                        if slash_at > 0:
+                            string_types.append( str( slash_at ) )
+                        else:
+                            string_types.append( "Q" )
+
             else:
                slash_at = i.find( ";" )
                if slash_at > 0:
@@ -188,9 +333,10 @@ Create list of string types::
 #            print i, string_types[-1]
         return string_types
 
-    def regroup( self,strings,string_types ):
+    def regroup( self, strings, string_types ):
         """Use string_types to sort strings into
-        Questions, Answers, Responses and Subsequent Actions"""
+        Questions, Answers, Responses and Subsequent Actions
+        and Rules"""
         onString    = 0
         sequence    = []
         question    = []
@@ -202,6 +348,7 @@ Create list of string types::
         inputFlags  = []
         photos      = []
         tag         = u''
+        rules       = []
         photoSmile = photoTalk = photoListen = None
         while onString < len( strings ):
             if string_types[ onString ] == "Q":
@@ -210,9 +357,9 @@ Create list of string types::
                     if strings[ onString ].find( '=' ) == -1:
                         # this is a tag
                         bracketAt = strings[ onString ].find( ']' )
-                        tag = strings[ onString ][ 1 : bracketAt ] 
+                        tag = strings[ onString ][ 1 : bracketAt ]
                     else:
-                        # this is a configuration override 
+                        # this is a configuration override
                         # strip [ and ] and then split on =
                         bracketAt = strings[ onString ].find( ']' )
                         configItem, configValue = \
@@ -233,8 +380,28 @@ Create list of string types::
                 else:
                     question.append( strings[ onString ].rstrip() )
             elif string_types[ onString ] == "N":
+                # add a default response if no subsequent response is provided
+                # (also test whether next or final types are N)
+                nextOrFinalType = string_types[ min( onString + 1, len(string_types) - 1) ]
+                if len(question) and not len(answer) and \
+                not self.defaultAnswer == '' and \
+                nextOrFinalType == 'Q':
+                    if self.defaultAnswer == 'next':
+                        answer.append(u'[next]')
+                        response.append(u'')
+                        action.append(1)
+                        destination.append(u'')
+                        link.append(u'')
+                        inputFlags.append(0)
+                    elif self.defaultAnswer == 'input':
+                        answer.append(u'[input]')
+                        response.append(u'')
+                        action.append(1)
+                        destination.append(u'')
+                        link.append(u'')
+                        inputFlags.append(1)
                 # signal for end of question IF there are responses
-                if len( response ):
+                if len(response):
                     # add to sequence and reset
                     sequence.append( [question, answer, response, action,
                                       destination, link, inputFlags, photos, tag] )
@@ -247,6 +414,12 @@ Create list of string types::
                     inputFlags  = []
                     photos      = []
                     tag         = u''
+            elif string_types[ onString ] == "C":
+                # skip over comment strings
+                pass
+            elif string_types[ onString ] == "R":
+                # collect script-based rules
+                rules.append( strings[ onString ] )
             else:
                 # use number to break string into answer and response
                 answerString = strings[ onString ][ :int( string_types[ onString ] ) ].rstrip()
@@ -345,19 +518,60 @@ Create list of string types::
             sequence[0][4] = [u'nltkResponse.txt']
             sequence[0][6] = [1]
         # photos will not be changed if they are not found
-        
+
         # Take second pass at sequence to convert LINKS to TAGS into ACTIONS
         tags = [ question[ 8 ] for question in sequence ]
         for qnum, question in enumerate( sequence ):
             for lnum, link in enumerate( question[ 4 ] ):
-               if not link == u'' and link in tags:
+               if not link == u'' and link[link.rfind('/') + 1:] in tags:
                    # remove link
                    sequence[ qnum ][ 4 ][ lnum ] = u''
                    # change action to RELATIVE position of question
                    # that is, how much shift from current question, qnum
                    # to tagged question
-                   sequence[ qnum ][ 3 ][ lnum ] = tags.index(link) - qnum
+                   sequence[ qnum ][ 3 ][ lnum ] = tags.index(link[link.rfind('/') + 1:]) - qnum
 
-
-
+        # reinitialize script_chatbot with new rules
+#        print "Rules: ", rules
+        ruleStrings = [ str( unicodeStr ) for unicodeStr in rules ]
+        scriptRules = ConfigObj( infile = ruleStrings )
+#        print scriptRules
+        rules = []
+        for section in scriptRules.sections:
+            for subsection in scriptRules[section].sections:
+                # a regular expression overrides an example
+                if 're' in scriptRules[section][subsection]:
+                    if 'reply' in scriptRules[section][subsection]:
+                        reply = scriptRules[section][subsection]['reply']
+                    else:
+                        reply = '[' + subsection + ']'
+                    rule = ( scriptRules[section][subsection]['re'],
+                             reply,
+                             section, subsection )
+                elif 'example' in scriptRules[section][subsection]:
+                    # turn example into a regular expression
+                    example = scriptRules[section][subsection]['example']
+                    openBracketAt = example.find('[')
+                    closeBracketAt = example.find(']', openBracketAt + 1)
+                    secondOpenBracketAt = example.find('[', closeBracketAt + 1)
+                    secondCloseBracketAt = example.find(']', secondOpenBracketAt + 1)
+                    print openBracketAt, closeBracketAt, secondOpenBracketAt, secondCloseBracketAt
+                    if openBracketAt == -1:
+                        # if no brackets, use whole example as the regular expression
+                        re = example
+                    else:
+                        firstPartRE = example[ openBracketAt + 1 : closeBracketAt ].strip()
+                        re = '(' + firstPartRE + ')(.*)'
+                        if openBracketAt > 0:
+                            re = '(.*)' + re
+                        if secondOpenBracketAt > closeBracketAt:
+                            secondPartRE = example[ secondOpenBracketAt + 1 : secondCloseBracketAt ].strip()
+                            re = re + '(' + secondPartRE + ')(.*)'
+                    if 'reply' in scriptRules[section][subsection]:
+                        reply = scriptRules[section][subsection]['reply']
+                    else:
+                        reply = '[' + subsection + ']'
+                    rule = ( re, reply, section, subsection )
+                rules.append(rule)
+        sequence[ 0 ].append( tuple( rules ) )
         return sequence
