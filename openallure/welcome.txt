@@ -1,0 +1,82 @@
+# Open Allure Welcome Script 
+# Version 20101004 for OS X
+# (c) 2010 John Graves
+# http://openallureds.org
+
+This software allows you to talk using the computer's voice.
+
+Press 1 to hear more ;;
+or just type something to chat ;;
+[input] ;;
+
+Your computer is reading a script.
+You can write your own script to make computers say whatever you like.
+
+Press 1 to learn how ;;
+or press 2 for more general information ;[info]
+[input] ;;
+
+Use your text editor
+to open the file called start.txt
+
+Come back and press 1 when you are ready ;[edit]
+or press 2 if you need more help ;;
+[input] ;;
+
+What do you need help with?
+
+Finding the file called start.txt ;[find]
+or starting a text editor ;;
+[input] ;;
+
+OK.
+Here are some instructions for starting your text editor:
+Click the Spotlight magnifying glass icon in the upper right corner of your screen
+type TextEdit
+and press the Enter key.
+
+Come back and press 1 after TextEdit starts ;2
+or press 2 if you need more help ;;
+[input] ;;
+
+What do you need help with?
+
+1. Finding the Spotlight icon ;;
+2. The TextEdit text editor did not start ;;
+[input] ;;
+
+Some Apple computers may not have Spotlight or TextEdit.
+You can use any text editor capable of opening and saving a plain text file.
+
+Come back and press 1 after your starts ;2
+or press 2 if you need more help ;;
+[input] ;;
+
+[find]
+Give yourself credit for starting your text editor
+and returning here.
+You should find the file start.txt
+in the directory with Open Allure.
+Switch back to your editor and try to open it now.
+
+Come back and press 1 when you are successful ;;
+[input] ;;
+
+[edit]
+Read about the script format.
+Notice how you can create a dialog
+by writing a question or statement
+followed by one or more answers.
+
+Come back and press 1 when you are done reading ;;
+[input] ;;
+
+If you followed the directions,
+you should now have a modified copy
+of start.txt saved on your computer.
+Type
+open start.txt
+and press Enter:
+
+[input] ;;
+

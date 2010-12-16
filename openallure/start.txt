@@ -1,0 +1,67 @@
+# Open Allure
+# start.txt
+# (c) 2010 John Graves
+#
+# Everything you type into an Open Allure script
+# is something the computer might say
+# (depending on which answers are selected).
+#
+# The script format is a series of questions
+# with suggested answers
+# and (optional) responses to those answers:
+#
+#    Question 1
+#    Answer <separator> Response
+#
+#    Question 2
+#    Answer <separator> Response
+#
+#    ...
+#
+# The <separator> includes at least one semi-colon
+# which serves to
+# 1) separate an answer from the response to that answer
+# 2) determine the "correct" answer(s)
+# 3) tell where to find the question that comes next after that answer
+#
+# Questions and Answers are shown and spoken.
+# The optional Responses are just spoken.
+#
+# Here is a more complete format for one question:
+#
+#    # Comments (these are part of the script file, but are not seen or heard)
+#
+#    Question (or statement)
+#    Answer 1 ;  Response 1 (one semi-colon  for "wrong"   answer -- stay    on this question)
+#    Answer 2 ;; Response 2 (two semi-colons for "correct" answer -- proceed to next question)
+#    ...
+#    up to  6 Answer/Responses
+#
+#    <one or more blank lines between questions>
+#
+# Finally, to allow for input other than the suggested answers,
+# you can add an input prompt:
+#
+#    [input];;
+#
+# FOR EXAMPLE:
+
+How many people will you tell about this software?
+Zero ; Really? How about people you don't like? You could use this to your advantage.
+One ; Just one? Maybe you should make more friends.
+Lots ;; Great. Tell everyone. The fate of the world depends on you. Now here is your question.
+[input];;
+
+# Your turn now. You can modify this file.
+# When you are finished, save this file
+# then open it in Open Allure
+# with the command
+#
+#     open start.txt
+#
+# Write your own question with answers and responses below:
+
+
+
+
+
