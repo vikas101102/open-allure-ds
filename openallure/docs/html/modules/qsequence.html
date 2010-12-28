@@ -98,16 +98,16 @@ reply=</pre>
 <p>where:</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="c">#     [Section: type of rule]</span>
 <span class="c">#        The type of rule determines which block of code in chat.py</span>
-<span class="c">#        will be used to process the parsed string.  All the rules of </span>
+<span class="c">#        will be used to process the parsed string.  All the rules of</span>
 <span class="c">#        a given type can be listed in a section.</span>
-<span class="c"># </span>
+<span class="c">#</span>
 <span class="c">#     [[Sub-section: name of rule]]</span>
-<span class="c">#         Each rule should have a unique name.  This name can be </span>
+<span class="c">#         Each rule should have a unique name.  This name can be</span>
 <span class="c">#         posted to the log so it can be worked out which rule fired</span>
 <span class="c">#         and led to the observed behaviour of Open Allure.</span>
 <span class="c">#</span>
-<span class="c">#     example = </span>
-<span class="c">#         (optional) </span>
+<span class="c">#     example =</span>
+<span class="c">#         (optional)</span>
 <span class="c">#         NOTE: If left out, there must be a regular expression (below)</span>
 <span class="c">#         Example question from which Open Allure derives a regular expression.</span>
 <span class="c">#         Strings which must be matched are enclosed in brackets.</span>
@@ -132,8 +132,8 @@ reply=</pre>
 <span class="c">#         &quot;Who is Alan [Turing]?&quot;</span>
 <span class="c">#         or else the Turing Test rule will never fire.</span>
 <span class="c">#</span>
-<span class="c">#     re = </span>
-<span class="c">#         (optional) </span>
+<span class="c">#     re =</span>
+<span class="c">#         (optional)</span>
 <span class="c">#         NOTE: If an example (above) exists, this overrides it.</span>
 <span class="c">#         Regular expression used to match against input string</span>
 <span class="c">#         For instance,</span>
@@ -142,11 +142,11 @@ reply=</pre>
 <span class="c">#</span>
 <span class="c">#         where the vertical bar indicates OR</span>
 <span class="c">#</span>
-<span class="c">#     reply = </span>
+<span class="c">#     reply =</span>
 <span class="c">#         Reply from Open Allure</span>
 <span class="c">#         Triple quoted strings allow for multi-line scripts here.</span>
 <span class="c">#</span>
-<span class="c">#         In other words, the reply can include an entire </span>
+<span class="c">#         In other words, the reply can include an entire</span>
 <span class="c">#         question sequence, not merely a direct answer.</span>
 <span class="c">#</span>
 <span class="c">#         Open Allure stands out from other chatbots with this capability.</span>
@@ -213,9 +213,10 @@ reply=</pre>
 #             or start with rule indicators    ( type R )
 #                [ rule type ]
 #                [[ rule name ]]
-#                re= or re = 
+#                re= or re =
 #                example= or example =
 #                reply= or reply =
+#             or start with http://            ( type L )
 #             or else mark as question         ( type Q )</pre>
 </div>
 </dd></dl>
