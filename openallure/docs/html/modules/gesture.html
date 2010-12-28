@@ -48,47 +48,8 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="module-gesture">
-<h1><cite>gesture</cite><a class="headerlink" href="#module-gesture" title="Permalink to this headline">¶</a></h1>
-<p>gesture.py
-a component of openallure.py</p>
-<p>Derive a signal from a processed webcam image</p>
-<p>Copyright (c) 2010 John Graves</p>
-<p>MIT License: see LICENSE.txt</p>
-<dl class="class">
-<dt id="gesture.Gesture">
-<em class="property">class </em><tt class="descclassname">gesture.</tt><tt class="descname">Gesture</tt><a class="headerlink" href="#gesture.Gesture" title="Permalink to this definition">¶</a></dt>
-<dd><p>Return the uppermost choice based on checking boxes on either side of a webcam image.</p>
-<p><strong>Background</strong></p>
-<p>A webcam image processed with the green screen approach (background subtraction)
-may have white pixels which can be used to extract a signal from a gesture (hand movement).</p>
-<p>This implementation looks along rows of boxes, counting the non-black (white) pixels within each box.
-Any count over 5 (about finger width) is considered a valid selection.</p>
-<dl class="method">
-<dt id="gesture.Gesture.choiceSelected">
-<tt class="descname">choiceSelected</tt><big>(</big><em>image</em>, <em>textRegions</em>, <em>margins</em>, <em>boxWidth=35</em>, <em>boxPlacementList=(0</em>, <em>1</em>, <em>2</em>, <em>3</em>, <em>4</em>, <em>13</em>, <em>14</em>, <em>15</em>, <em>16</em>, <em>17)</em><big>)</big><a class="headerlink" href="#gesture.Gesture.choiceSelected" title="Permalink to this definition">¶</a></dt>
-<dd><p>Find which choice is selected in an
-<strong>image</strong> where
-<strong>textRegions</strong> contains a list of coordinates (upper left x y, lower right x y) of non-overlapping regions within the image.</p>
-<p>A row of boxes is checked along the lower edge of each region.</p>
-<p>Each box has width <strong>boxWidth</strong> and they can be placed using <strong>boxPlacementList</strong> in a manner that leaves a gap mid-image so head motion does not interfere with hand gestures.</p>
-<p>Function returns a (choice, boxCount) tuple. This allows for auto-recalibration when choice 0 is selected with too many boxes.</p>
-<p>If no choice is selected, a choice of -1 is returned.</p>
-<p>TODO: Use a better system which allows hand gestures to be recognized even with a moving face as the background.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="gesture.Gesture.isBoxSelected">
-<tt class="descname">isBoxSelected</tt><big>(</big><em>imageArray</em>, <em>imageCopyArray</em>, <em>xoffset</em>, <em>yoffset</em>, <em>threshold=10</em>, <em>n=11</em>, <em>spacing=2</em><big>)</big><a class="headerlink" href="#gesture.Gesture.isBoxSelected" title="Permalink to this definition">¶</a></dt>
-<dd>Determine whether a box located at (lower right) coordinate
-<strong>xoffset</strong>, <strong>yoffset</strong> in an
-<strong>imageArray</strong> is selected based on whether more than
-<strong>threshold</strong> number of pixels in an
-<strong>n</strong> x <strong>n</strong> matrix of pixels with
-<strong>spacing</strong> (to cover more area while processing fewer pixels) have non-black values</dd></dl>
-
-</dd></dl>
-
+  <div class="section" id="gesture">
+<h1><cite>gesture</cite><a class="headerlink" href="#gesture" title="Permalink to this headline">¶</a></h1>
 </div>
 
 

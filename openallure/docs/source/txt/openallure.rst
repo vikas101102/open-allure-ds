@@ -92,7 +92,7 @@ Modify this configuration file to suit your needs::
     #
     useDragonfly = 0
     useEspeak = 0
-    useSay = 1
+    useSay = 0
     #language = -v french
     #language = -v english
     language =

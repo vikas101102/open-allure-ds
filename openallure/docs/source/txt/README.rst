@@ -15,8 +15,8 @@ Dependencies
 
 These may vary depending on the platform
 
-dragonfly
-http://code.google.com/p/dragonfly/
+StaticSay
+http://krolik.net/post/Say-exe-a-simple-command-line-text-to-speech-program-for-Windows.aspx
 
 Pygame
 http://www.pygame.org/download.shtml
@@ -27,16 +27,9 @@ http://www.crummy.com/software/BeautifulSoup/download/3.x/BeautifulSoup-3.0.8.ta
 Version 3.0.8 was used during development of Open Allure
 (easy_install BeautifulSoup)
 
-ConfigObj
-http://www.voidspace.org.uk/python/configobj.html
-Version 4.7.2 was used during development of Open Allure
-
 NLTK
 http://www.nltk.org/download
 Steven Bird, <sb@csse.unimelb.edu.au>
-
-Windows systems use vidcap.py
-http://videocapture.sourceforge.net/
 
 License
 =======
@@ -44,6 +37,7 @@ License
 Copyright (c) 2010 John Graves
 
 MIT License.  See LICENSE.txt
+
 
 Contributors
 ============
