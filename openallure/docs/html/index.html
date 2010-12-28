@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Welcome to Open Allure’s documentation! &mdash; OpenAllure v0.1d18dev (alpha) documentation</title>
+    <title>Welcome to Open Allure’s documentation! &mdash; OpenAllure v0.1d29dev (alpha) documentation</title>
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '#',
-        VERSION:     '0.1d18dev (alpha)',
+        VERSION:     '0.1d29dev (alpha)',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="OpenAllure v0.1d18dev (alpha) documentation" href="#" />
+    <link rel="top" title="OpenAllure v0.1d29dev (alpha) documentation" href="#" />
     <link rel="next" title="openallure.cfg" href="txt/openallure.html" /> 
   </head>
   <body>
@@ -35,7 +35,7 @@
         <li class="right" >
           <a href="txt/openallure.html" title="openallure.cfg"
              accesskey="N">next</a> |</li>
-        <li><a href="#">OpenAllure v0.1d18dev (alpha) documentation</a> &raquo;</li> 
+        <li><a href="#">OpenAllure v0.1d29dev (alpha) documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -46,7 +46,7 @@
             
   <div class="section" id="welcome-to-open-allure-s-documentation">
 <h1>Welcome to Open Allure&#8217;s documentation!<a class="headerlink" href="#welcome-to-open-allure-s-documentation" title="Permalink to this headline">¶</a></h1>
-<p>Open Allure is a voice-and-vision enabled dialog system written in <a class="reference external" href="http://www.python.org/">Python</a>.</p>
+<p>Open Allure aims to be a voice-and-vision enabled dialog system written in <a class="reference external" href="http://www.python.org/">Python</a>.</p>
 <p>You might <a class="reference external" href="http://packages.python.org/openallure/">check</a> to see if you are reading the most recent documentation&#8211;and using the most recent
 version of Open Allure for that matter.</p>
 <p>Edit the openallure.cfg file (see the annotated copy in this documentation) to configure the
@@ -58,20 +58,13 @@ there is <a class="reference external" href="http://bit.ly/openalluregg">a Googl
 </div>
 <div class="section" id="cross-platform-status">
 <h1>Cross-Platform Status<a class="headerlink" href="#cross-platform-status" title="Permalink to this headline">¶</a></h1>
-<p>Open Allure aims to run on Windows, Linux and Mac. The Windows platform
-currently tops the feature list with working voice and vision input and pretty
-good text-to-speech output running Vista.  Linux has working vision input and
-so-so text-to-speech output (eSpeak).  Mac has neither voice nor vision input
-but has the best text-to-speech output (say).</p>
+<p>Open Allure aims to run on Mac, Windows, Linux and mobile phones (iPhone and Android).
+Mac and Windows distributions are available for version 0.1d29.</p>
 </div>
 <div class="section" id="dependencies">
 <h1>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this headline">¶</a></h1>
 <p>Open Allure uses <a class="reference external" href="http://www.pygame.org/">pyGame</a> and <a class="reference external" href="http://www.crummy.com/software/BeautifulSoup/">BeautifulSoup</a> and <a class="reference external" href="http://www.nltk.org/download">NLTK</a> (Natural Language Toolkit).</p>
 <p>As of version 0.1d18, it also uses <a class="reference external" href="http://www.voidspace.org.uk/python/configobj.html">ConfigObj</a> for configuration file management.</p>
-<p>Windows systems use <a class="reference external" href="http://videocapture.sourceforge.net/">vidcap.py</a> to help the pyGame camera module.</p>
-<p>Voice recognition depends on the operating system or other software. For Windows, <a class="reference external" href="http://code.google.com/p/dragonfly/">dragonfly</a>
-connects to the Windows Speech API. For Mac, <a class="reference external" href="http://code.google.com/p/dragonfly/">dragonfly</a> connects to <a class="reference external" href="http://www.macspeech.com">MacSpeech Dictate</a>. For linux,
-we&#8217;re still looking to connect a voice recognition backend &#8211; please pitch in!</p>
 </div>
 <div class="section" id="configuration">
 <h1>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h1>
@@ -85,10 +78,13 @@ we&#8217;re still looking to connect a voice recognition backend &#8211; please 
 <li class="toctree-l1"><a class="reference external" href="modules/openallure.html"><cite>openallure</cite></a></li>
 <li class="toctree-l1"><a class="reference external" href="modules/chat.html"><cite>chat</cite></a></li>
 <li class="toctree-l1"><a class="reference external" href="modules/qsequence.html"><cite>qsequence</cite></a></li>
-<li class="toctree-l1"><a class="reference external" href="modules/gesture.html"><cite>gesture</cite></a></li>
+<li class="toctree-l1"><a class="reference external" href="modules/oadb.html"><cite>oadb</cite></a></li>
+<li class="toctree-l1"><a class="reference external" href="modules/oagraph.html"><cite>oagraph</cite></a></li>
 <li class="toctree-l1"><a class="reference external" href="modules/text.html"><cite>text</cite></a></li>
+<li class="toctree-l1"><a class="reference external" href="modules/util.html"><cite>util</cite></a></li>
 <li class="toctree-l1"><a class="reference external" href="modules/voice.html"><cite>voice</cite></a></li>
-<li class="toctree-l1"><a class="reference external" href="modules/video.html"><cite>video</cite></a></li>
+<li class="toctree-l1"><a class="reference external" href="modules/setup.html"><cite>setup</cite></a></li>
+<li class="toctree-l1"><a class="reference external" href="modules/pygame2exe.html"><cite>pygame2exe</cite></a></li>
 </ul>
 </div>
 <div class="section" id="txt-documentation">
@@ -107,6 +103,9 @@ we&#8217;re still looking to connect a voice recognition backend &#8211; please 
 <li class="toctree-l2"><a class="reference external" href="txt/README.html#contributors">Contributors</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference external" href="txt/welcome.html"><cite>welcome.txt</cite></a></li>
+<li class="toctree-l1"><a class="reference external" href="txt/start.html"><cite>start.txt</cite></a></li>
+<li class="toctree-l1"><a class="reference external" href="txt/music.html"><cite>music.txt</cite></a></li>
 </ul>
 </div>
 <div class="section" id="indices-and-tables">
@@ -173,7 +172,7 @@ we&#8217;re still looking to connect a voice recognition backend &#8211; please 
         <li class="right" >
           <a href="txt/openallure.html" title="openallure.cfg"
              >next</a> |</li>
-        <li><a href="#">OpenAllure v0.1d18dev (alpha) documentation</a> &raquo;</li> 
+        <li><a href="#">OpenAllure v0.1d29dev (alpha) documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

@@ -3,6 +3,7 @@
 # (c) 2010 John Graves
 # http://openallureds.org
 
+
 This software allows you to talk using the computer's voice.
 [next] ;;
 
