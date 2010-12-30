@@ -10,9 +10,10 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-import pygame
 import sys
-import ConfigParser
+
+from configobj import ConfigObj
+import pygame
 pygame.font.init()
 
 class OpenAllureText(object):
@@ -23,19 +24,18 @@ class OpenAllureText(object):
         self.boundingRectangle = pygame.Rect( margins )
 
         # put colors on things
-        config = ConfigParser.RawConfigParser()
-        config.read( 'openallure.cfg' )
-        self.unreadColor    = eval( config.get( 'Colors', 'unreadText' ))
-        self.readColor      = eval( config.get( 'Colors', 'readText' ))
-        self.selectedColor  = eval( config.get( 'Colors', 'selectedText' ))
-        self.highlightColor = eval( config.get( 'Colors', 'highlightedText' ))
+        config = ConfigObj(r'openallure.cfg' )
+        self.unreadColor = eval(config['Colors']['unreadText'])
+        self.readColor = eval(config['Colors']['readText'])
+        self.selectedColor = eval(config['Colors']['selectedText'])
+        self.highlightColor = eval(config['Colors']['highlightedText'])
         self.fadeColor = (255, 255, 255)
 
-        self.fadeTime    = eval( config.get( 'Options', 'fadeTime' ))
+        self.fadeTime = eval(config['Options']['fadeTime'])
 
         # set font
-        self.fontName = config.get( 'Font', 'font' )
-        self.fontSize = eval( config.get( 'Font', 'size' ) )
+        self.fontName = config['Font']['font']
+        self.fontSize = eval(config['Font']['size'])
         if sys.platform == 'darwin':
             self.font = pygame.font.Font( '/Library/Fonts/Arial.ttf', self.fontSize )
         else:
@@ -95,7 +95,7 @@ Prepare text of question and answers for display and reading aloud::
             x = r.left
             for word in sentence.split( " " ):
                 i = font.render( word, 1, c )
-                iw, ih = i.get_width(), i.get_height()
+                iw = i.get_width()
                 if x + iw > r.right: x, y = r.left, y + sh
                 if s:
                     s.blit( i, ( x, y ) )
@@ -103,8 +103,8 @@ Prepare text of question and answers for display and reading aloud::
             y += sh
             # don't make a choice out of a blank line
             if not sentence == "":
-               choices.append((starting_x, starting_y, r.right, y))
-               starting_y = y + 1
+                choices.append((starting_x, starting_y, r.right, y))
+                starting_y = y + 1
         return choices
 
     def paintText( self, screen, justQuestionText, onText, questionText, onAnswer, highlight, stated, choice, colorLevel, colorLevels ):

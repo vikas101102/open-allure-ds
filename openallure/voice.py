@@ -2,94 +2,72 @@
 voice.py
 a component of openallure.py
 
-Collection of functions for rendering text-to-speech
+Function for rendering text-to-speech
 
 Copyright (c) 2010 John Graves
 
 MIT License: see LICENSE.txt
-
-TODO: Add standalone tests for text-to-speech modules.
 """
 
-import ConfigParser
+from configobj import ConfigObj
 import os
-import pygame
 import subprocess
-mixer = pygame.mixer
-time = pygame.time
+import sys
 
 class Voice( object ):
     """Text-to-speech Functionality ( optional )"""
     def __init__( self ):
-        """Initialize flag for available text-to-speech engine
-
-        TODO: Make this dynamic rather than hardcoded.
-        """
-        config = ConfigParser.RawConfigParser()
-        config.read( 'openallure.cfg' )
-        self.useEspeak = eval( config.get( 'Voice', 'useEspeak' ) )
-        self.useSay    = eval( config.get( 'Voice', 'useSay' ) )
-        self.usesaystatic    = eval( config.get( 'Voice', 'usesaystatic' ) )
-        self.language  = config.get( 'Voice', 'language' )
+        """Initialize flags for text-to-speech engines"""
+        self.useEspeak = 0
+        self.useSay = 0
+        self.useSayStatic = 0
+        config = ConfigObj(r"openallure.cfg")
+        if sys.platform == 'darwin':
+            self.useSay = eval( config['Voice']['useSay'] )
+        elif sys.platform == 'win32':
+            self.useSayStatic = eval( config['Voice']['useSayStatic' ] )
+        else:
+            self.useEspeak = eval( config['Voice']['useEspeak'] )
+        self.language = config['Voice']['language'] 
         if self.language:
             self.language = self.language + " "
         self.pid_status = 0
 
     def speak( self, phrase ):
-       """Say or print phrase using available text-to-speech engine or stdout"""
+        """Say or print phrase using text-to-speech engine or stdout"""
 
-       if self.useEspeak:
-           p = subprocess.Popen( ['espeak', " -s150 " + self.language + phrase.encode( 'utf-8' ) + '"' ] )
-       elif self.useSay:
-           if self.pid_status == 0:
-               self.pid_status = subprocess.Popen( ['say', '"' + self.language + phrase.encode( 'utf-8' ) + '"' ]).pid
-               # OK to continue execution, fading in text and getting input while computer talks
-           else:
-               # wait for prior speaking to finish
-               try:
-                   self.pid_status = os.waitpid(self.pid_status, 0)[1]
-               except:
-                   pass
-               self.pid_status = subprocess.Popen( ['say', '"' + self.language + phrase.encode( 'utf-8' ) + '"' ]).pid
-       elif self.usesaystatic:
-           # print("using saystatic with " + str(self.pid_status))
-           try:
-               retcode = subprocess.call(["SayStatic ", phrase.encode( 'utf-8' )], shell=True)
-##               if retcode < 0:
-##                   print("Child was terminated by signal", -retcode)
-##               else:
-##                   print("Child returned", retcode)
-           except OSError, e:
-               print("Execution failed:", e)
-##           if self.pid_status == 0:
-##               if phrase != '' and len(phrase) > 0:
-##                  self.pid_status = subprocess.Popen( ['saystatic', '"' + phrase.encode( 'utf-8' ) + '"' ]).pid
-##               # OK to continue execution, fading in text and getting input while computer talks
-##           else:
-##               # wait for prior speaking to finish
-##               print("trying to wait on " + str(self.pid_status))
-##               try:
-##                  self.pid_status = os.waitpid(self.pid_status, 0)[1]
-##               except OSError:
-##               try:
-##                   while self.pid_status:
-##                      print("waited for " + str(self.pid_status))
-##               except:
-##                   pass
-##                  if phrase != '' and len(phrase)>0 :
-##                      self.pid_status = subprocess.Popen( ['saystatic', '"' + phrase.encode( 'utf-8' ) + '"' ]).pid
+        if self.useEspeak:
+            subprocess.Popen( ['espeak', " -s150 " + self.language + \
+                               phrase.encode( 'utf-8' ) + '"' ] )
+        elif self.useSay:
+            if self.pid_status == 0:
+                self.pid_status = subprocess.Popen( ['say', \
+                '"' + self.language + phrase.encode( 'utf-8' ) + '"' ]).pid
+            else:
+                # wait for prior speaking to finish
+                try:
+                    self.pid_status = os.waitpid(self.pid_status, 0)[1]
+                except:
+                    pass
+                self.pid_status = subprocess.Popen( ['say', \
+                '"' + self.language + phrase.encode( 'utf-8' ) + '"' ]).pid
+                
+        elif self.useSayStatic:
+            try:
+                subprocess.call(["SayStatic ", \
+                                 phrase.encode( 'utf-8' )], shell=True)
+            except OSError, e:
+                print("Call to SayStatic failed:", e)
+                
+        else:
+            print( phrase.encode('utf-8'))
 
-       else:
-           print( phrase.encode( 'utf-8' ) )
-           # Allow time for user to move hand down
-           pygame.time.wait( 500 )
-
-def test_voice():
+def testVoice():
     '''
     Create a Voice instance and check that it works
     '''
     voice = Voice()
-    voice.speak("Finished")
+    voice.speak("This is a test")
 
 if __name__ == "__main__":
-    test_voice()
+    testVoice()
