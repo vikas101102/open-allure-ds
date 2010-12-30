@@ -12,31 +12,26 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__ = '0.1d29dev'
+__version__ = '0.1d30dev'
 
 # Standard Python modules
-import ConfigParser
 import os
-import re
-import string
-import subprocess
 import sys
 import time
 import webbrowser
 
 # 3rd Party modules
 # note: nltk is used by chat.py
+from configobj import ConfigObj
 import pygame
 from buzhug import Base
 
 # Import from Open Allure DS modules
 from qsequence import QSequence
-from oagraph import oagraph, oaMetaGraph, wrapWords
+#from oagraph import oagraph, oaMetaGraph, wrapWords
 from voice import Voice
 from text import OpenAllureText
 from chat import Chat, responses, reflections
-#from chat import reflections
-#from util import reflections
 
 
 WELCOME_TEXT = u"""
@@ -44,7 +39,6 @@ WELCOME_TEXT = u"""
 
    Escape to quit.
 """
-
 
 class OpenAllure(object):
     def __init__(self):
@@ -79,31 +73,30 @@ def main():
         pygame.scrap.init()
 
     # load initial question sequence from url specified in openallure.cfg file
-    config = ConfigParser.RawConfigParser()
-    config.read('openallure.cfg')
-    url = unicode(config.get('Source', 'url'))
+    config = ConfigObj(r'openallure.cfg')
+    url = unicode(config['Source']['url'])
     if len(sys.argv) > 1 and 0 != len(sys.argv[1]):
         url = unicode(sys.argv[1])
-    backgroundColor = eval(config.get('Colors', 'background'))
+    backgroundColor = eval(config['Colors']['background'])
     seq = QSequence(filename = url)
 
     # open database to track progress
 
-    oadb = config.get('Data', 'oadb')
+    oadb = config['Data']['oadb']
     try:
         openallure.db = Base(oadb).open()
-        record_id = openallure.db.insert(time = time.time(), \
+        openallure.db.insert(time = time.time(), \
         url = url, q = 0)
     except IOError:
         openallure.db = Base(oadb)
         openallure.db.create(('time',float), ('url',unicode), \
         ('q',int), ('a',int), ('cmd',unicode))
-        record_id = openallure.db.insert(time = time.time(), \
+        openallure.db.insert(time = time.time(), \
         url = url, q = 0)
 
     # read configuration options
-    delayTime = int(config.get('Options', 'delayTime'))
-    openallure.allowNext = int(config.get('Options', 'allowNext'))
+    delayTime = int(config['Options']['delayTime'])
+    openallure.allowNext = int(config['Options']['allowNext'])
 
     # initialize chatbot
     openallure_chatbot = Chat(responses, reflections)
@@ -111,8 +104,8 @@ def main():
     onChatHistory = -1
 
     # load browser command line strings and select appropriate one
-    darwinBrowser = config.get('Browser', 'darwinBrowser')
-    windowsBrowser = config.get('Browser', 'windowsBrowser')
+    darwinBrowser = config['Browser']['darwinBrowser']
+    windowsBrowser = config['Browser']['windowsBrowser']
     if sys.platform == 'darwin':
         browser = darwinBrowser
     else:
@@ -122,7 +115,7 @@ def main():
 
     voice = Voice()
 
-    margins = eval(config.get('Font', 'margins'))
+    margins = eval(config['Font']['margins'])
     text = OpenAllureText(margins)
 
     # start on first question of sequence
@@ -135,7 +128,7 @@ def main():
     openallure.ready = False
     # Has question been openallure.stated (read aloud)?
     openallure.stated = False
-    # Which question in sequence has been read alond (to avoid re-reading it)?
+    # Which question in sequence has been read aloud (to avoid re-reading it)?
     openallure.statedq = -1
     # What choice (if any) has been highlighted by gesture or keyboard?
     highlight = 0
@@ -150,11 +143,11 @@ def main():
 
     # Subprocesses
     graphViz = None
-    openallure.showResponses = eval(config.get('GraphViz', 'showResponses'))
-    openallure.showText = eval(config.get('GraphViz', 'showText'))
-    openallure.showLabels = eval(config.get('GraphViz', 'showLabels'))
-    graphVizPath = config.get('GraphViz', 'path')
-    #if eval(config.get('GraphViz', 'autoStart')):
+#    openallure.showResponses = eval(config['GraphViz']['showResponses'])
+#    openallure.showText = eval(config['GraphViz']['showText'])
+#    openallure.showLabels = eval(config['GraphViz']['showLabels'])
+#    graphVizPath = config['GraphViz']['path']
+    #if eval(config['GraphViz']['autoStart']):
     #    oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
     #    graphViz = subprocess.Popen([graphVizPath,'oagraph.dot'])
 
@@ -178,11 +171,11 @@ def main():
             choiceCount, \
             questionText, \
             justQuestionText = text.buildQuestionText(openallure.question)
-            if graphViz:
-                # Create .dot file for new sequence
-                graphViz.kill()
-                oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
-                graphViz = subprocess.Popen([graphVizPath, 'oagraph.dot'])
+#            if graphViz:
+#                # Create .dot file for new sequence
+#                graphViz.kill()
+#                oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
+#                graphViz = subprocess.Popen([graphVizPath, 'oagraph.dot'])
 
             textRegions = text.writewrap(None, text.font, text.boundingRectangle, text.unreadColor, questionText[-1])
 
@@ -234,8 +227,8 @@ def main():
             if event.type == pygame.QUIT   \
                or (event.type == pygame.KEYDOWN and    \
                    event.key == pygame.K_ESCAPE):
- #               if graphViz:
- #                   graphViz.kill()
+#               if graphViz:
+#                   graphViz.kill()
                 runFlag = False
 
             # Trap and quit on Ctrl + C
@@ -286,8 +279,7 @@ def main():
             # Trap Ctrl + + (plus) to increase font size
             elif (event.type == pygame.KEYDOWN and
                   event.key == pygame.K_EQUALS and
-                  pygame.key.get_mods() & (pygame.KMOD_CTRL |
-                  pygame.KMOD_CTRL)):
+                  pygame.key.get_mods() & pygame.KMOD_CTRL):
                 text.fontSize += 5
                 text.font = pygame.font.SysFont( text.fontName, \
                 text.fontSize )
@@ -295,10 +287,9 @@ def main():
             # Trap Ctrl + R to refresh from url without changing question number
             elif (event.type == pygame.KEYDOWN and
                   event.key == pygame.K_r and
-                  pygame.key.get_mods() & (pygame.KMOD_CTRL |
-                  pygame.KMOD_CTRL)):
-                  seq = QSequence(filename = url)
-                  openallure.ready = False
+                  pygame.key.get_mods() & pygame.KMOD_CTRL):
+                seq = QSequence(filename = url)
+                openallure.ready = False
 
             # Define toggle keys and capture string inputs
             elif event.type == pygame.KEYDOWN:
@@ -313,10 +304,10 @@ def main():
                             record_id = openallure.db.insert(time = time.time(), \
                             url = url, q = openallure.onQuestion, \
                             a = answer, cmd = openallure.question[4][answer])
-                            if graphViz:
-                                graphViz.kill()
-                                oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
-                                graphViz = subprocess.Popen([graphVizPath, 'oagraph.dot'])
+#                            if graphViz:
+#                                graphViz.kill()
+#                                oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
+#                                graphViz = subprocess.Popen([graphVizPath, 'oagraph.dot'])
                             choice = (answer + 1, 0)
                             colorLevel = 0
                             # Update screen to reflect choice
@@ -331,8 +322,6 @@ def main():
                         else:
                             answer = -1
 
-                elif event.key == pygame.K_F4:
-                    greenScreen.calibrated = False
                 elif event.key == pygame.K_F6:
                     # reveal all the attributes of openallure
                     print "\nCurrent values of openallure object variables:\n"
@@ -406,15 +395,15 @@ def main():
                                     record = openallure.db[id]
                                     if not record.url in (url, u'nltkResponse.txt'):
                                         seq = QSequence(filename = record.url, \
-                                                path = path, \
+                                                path = seq.path, \
                                                 nltkResponse = nltkResponse)
                                         url = record.url
                                         openallure.onQuestion = record.q
                                         openallure.ready = False
-                                        if graphViz:
-                                            # Fall through into graphing
-                                            nltkType = 'graph'
-                                            nltkName = 'show'
+#                                        if graphViz:
+#                                            # Fall through into graphing
+#                                            nltkType = 'graph'
+#                                            nltkName = 'show'
                                         break
                                 except:
                                     pass
@@ -457,55 +446,55 @@ def main():
                                             break
                                 os.system("open "+url)
 
-                        if nltkType == 'graph':
-                            # Commands which change graph display
-                            if nltkName == 'hideText':
-                                openallure.showText = False
-                            elif nltkName == 'showText':
-                                openallure.showText = True
-                            elif nltkName == 'showResp':
-                                openallure.showResponses = True
-                            elif nltkName == 'hideResp':
-                                openallure.showResponses = False
-                            elif nltkName == 'showLabels':
-                                openallure.showLabels = True
-                            elif nltkName == 'hideLabels':
-                                openallure.showLabels = False
-                            elif nltkName == 'hide':
-                                if graphViz:
-                                    graphViz.kill()
-                                graphViz = None
-                            elif nltkName == 'reset':
-                                records = [record for record in openallure.db]
-                                openallure.db.delete(records)
-                                openallure.db.cleanup()
-
-                            # Make .dot file and display graph
-                            if nltkName in ('show', \
-                            'hideText', 'showText', \
-                            'showResp', 'hideResp', \
-                            'meta', 'reset'):
-                                if nltkName == 'meta':
-                                    # Crete .dot meta file
-                                    oaMetaGraph(openallure.db)
-                                else:
-                                    # Create .dot file for one sequence in response to command
-                                    oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
-                                # Display graph
-                                if graphViz:
-                                    graphViz.kill()
-                                    oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
-                                graphViz = subprocess.Popen([graphVizPath, 'oagraph.dot'])
-                            if nltkName == 'list':
-                                for record in (record for record in openallure.db):
-                                    if record.cmd:
-                                        print(record.__id__, str(record.url), record.q, record.a, str(record.cmd))
-                                    elif not record.a == None:
-                                        print(record.__id__, str(record.url), record.q, record.a)
-                                    else:
-                                        print(record.__id__, str(record.url), record.q)
-                            nltkResponse = u''
-                            openallure.currentString = u''
+#                        if nltkType == 'graph':
+#                            # Commands which change graph display
+#                            if nltkName == 'hideText':
+#                                openallure.showText = False
+#                            elif nltkName == 'showText':
+#                                openallure.showText = True
+#                            elif nltkName == 'showResp':
+#                                openallure.showResponses = True
+#                            elif nltkName == 'hideResp':
+#                                openallure.showResponses = False
+#                            elif nltkName == 'showLabels':
+#                                openallure.showLabels = True
+#                            elif nltkName == 'hideLabels':
+#                                openallure.showLabels = False
+#                            elif nltkName == 'hide':
+#                                if graphViz:
+#                                    graphViz.kill()
+#                                graphViz = None
+#                            elif nltkName == 'reset':
+#                                records = [record for record in openallure.db]
+#                                openallure.db.delete(records)
+#                                openallure.db.cleanup()
+#
+#                            # Make .dot file and display graph
+#                            if nltkName in ('show', \
+#                            'hideText', 'showText', \
+#                            'showResp', 'hideResp', \
+#                            'meta', 'reset'):
+#                                if nltkName == 'meta':
+#                                    # Crete .dot meta file
+#                                    oaMetaGraph(openallure.db)
+#                                else:
+#                                    # Create .dot file for one sequence in response to command
+#                                    oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
+#                                # Display graph
+#                                if graphViz:
+#                                    graphViz.kill()
+#                                    oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
+#                                graphViz = subprocess.Popen([graphVizPath, 'oagraph.dot'])
+#                            if nltkName == 'list':
+#                                for record in (record for record in openallure.db):
+#                                    if record.cmd:
+#                                        print(record.__id__, str(record.url), record.q, record.a, str(record.cmd))
+#                                    elif not record.a == None:
+#                                        print(record.__id__, str(record.url), record.q, record.a)
+#                                    else:
+#                                        print(record.__id__, str(record.url), record.q)
+#                            nltkResponse = u''
+#                            openallure.currentString = u''
 
                         # if nltkResponse is one line containing a semicolon,
                         # replace the semicolon with \n
@@ -608,14 +597,33 @@ def main():
         if answer < 0 and openallure.ready:
 
             # Trap mouse click on text region
-            textRegions = text.writewrap(None, text.font, text.boundingRectangle, text.unreadColor, questionText[-1])
-            (mousex, mousey) = pygame.mouse.get_pos()
-            (lbutton, mbutton, rbutton) = pygame.mouse.get_pressed()
+            textRegions = text.writewrap(None, \
+                                         text.font, \
+                                         text.boundingRectangle, \
+                                         text.unreadColor, \
+                                         questionText[-1])
+            
+            # Get Y coordinate of mouse
+            #MOUSEX = 0
+            MOUSEY = 1
+            mousey = pygame.mouse.get_pos()[MOUSEY]
+            
+            # Get left mouse button click
+            LBUTTON = 0
+            #MBUTTON = 1
+            #RBUTTON = 2
+            lbutton = pygame.mouse.get_pressed()[LBUTTON]
+            
+            # Create list where each element indicates with 1 or 0
+            # whether Y coordinate is in the region 
             regions = [inRegion(region, mousey) for region in textRegions]
+            
+            # Find which region has a 1, if any
             if 1 in regions:
-               onRegion = regions.index(1)
+                onRegion = regions.index(1)
             else:
-               onRegion = 0
+                onRegion = 0
+                
             #print mousex, mousey, lbutton, regions, onRegion
             if onRegion > 0:
                 if lbutton:
@@ -624,11 +632,11 @@ def main():
                         record_id = openallure.db.insert(time = time.time(), \
                         url = url, q = openallure.onQuestion, \
                         a = answer)
-                        if graphViz and openallure.question[3][answer] == 0:
-                            # Create .dot file for one sequence in response to answer in place
-                            graphViz.kill()
-                            oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
-                            graphViz = subprocess.Popen([graphVizPath, 'oagraph.dot'])
+#                        if graphViz and openallure.question[3][answer] == 0:
+#                            # Create .dot file for one sequence in response to answer in place
+#                            graphViz.kill()
+#                            oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
+#                            graphViz = subprocess.Popen([graphVizPath, 'oagraph.dot'])
                         choice = (answer + 1, 0)
                         colorLevel = 0
                         # Update screen to reflect choice

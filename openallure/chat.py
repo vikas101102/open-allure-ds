@@ -10,19 +10,15 @@ TODO::
    - make all test cases pass
 
 '''
-#import nltk
-#from nltk.chat.util import random
 from util import Chat as BaseChat
-#from nltk.chat import reflections
-#from nltk.corpus import wordnet
 
 from configobj import ConfigObj
 import re
 import random
-'''
-import sys
-import os
-'''
+
+RESPONSE = 0
+TYPE = 1
+NAME = 2
 
 reflections = {
   "am"     : "are",
@@ -58,7 +54,8 @@ TODO: Need to mention the types that have been introduced to the tuples
 math, text etc..
 
 @type tuples: C{list} of C{tuple}
-@param tuples: The patterns and responses
+@param tuples: The patterns, responses, response types and rule names
+
 @type reflections: C{dict}
 @param reflections: A mapping between first and second person expressions
 """
@@ -136,7 +133,7 @@ math, text etc..
                         resp = random.choice(response)
                     else:
                         resp = response
-                    resp = self._wildcards(resp, match) # process wildcards
+                    resp = self._wildcards(resp, match) # process wild cards
 
                 elif responseType == "link":
                     # follow link to question tag (jump to question)
@@ -145,20 +142,7 @@ math, text etc..
                 elif responseType == "show":
                     if ruleName == 'source':
                         resp = response
-
-                elif responseType == "wordLookup":
-                    pos = response.find('%')
-                    num = int(response[pos + 1:pos + 2])
-                    wordToLookup = match.group(num)
-                    wordToLookup = wordToLookup.strip(',./?!;')
-                    #print( wordToLookup )
-                    wordToLookupSynsets = wordnet.synsets(wordToLookup)
-                    try:
-                        resp = wordToLookupSynsets[0].definition
-                    except IndexError:
-                        resp = '"' + wordToLookup + \
-                        '" was not found in the dictionary. Try again.'
-
+                        
                 elif responseType == "math":
                     operands = []
                     pos = response.find('%')
@@ -273,6 +257,9 @@ math, text etc..
                 if resp[-2:] == '??': resp = resp[:-2] + '?'
                 return resp, respType, respName
 
+# Read rules from separate configuration file.
+# This file contains the DEFAULT rules which can be supplemented
+# by rules included in the scripts.
 config = ConfigObj(r"responses.cfg")
 ruleTypes = config.sections
 rules = []
@@ -283,189 +270,171 @@ for section in config.sections:
                  section, subsection )
         rules.append(rule)
 responses = tuple(rules)
-#print responses
 
-# fall through cases -
-# Use some of Eliza's responses:
-#from nltk.chat import eliza
-#responses = responses + tuple([(x, y, 'text', 'eliza') for (x,y) in eliza.pairs[:-3]])
-
-# when stumped, respond with generic zen wisdom
-#responses = responses + tuple([(x, y, 'text') for (x,y) in \
-#nltk.chat.suntsu.pairs[2:]])
-
+# As a last resort, ask for input
 responses = responses + \
 ((r'(.*)', ("Sorry, I don't understand that. What now?\n[input];;",), "text", "what now"),)
 
 
 import unittest
 
-
 class TestChat(unittest.TestCase):
+    
     def setUp(self):
         self.chatter = Chat(responses, reflections)
 
     def testQuit(self):
-        response, type, name = self.chatter.respond('quit')
-        self.assertEqual(type,'quit')
-    def testQuit1(self):
-        response, type, name = self.chatter.respond('exit')
-        self.assertEqual(type,'quit')
+        self.assertEqual(self.chatter.respond('quit')[TYPE],'quit')
+    def testExit(self):
+        self.assertEqual(self.chatter.respond('exit')[TYPE],'quit')
 
-    def testOpen(self):
-        response, type, name = self.chatter.respond('open something')
-        self.assertEqual(type,'open')
-    def testOpen1(self):
-        response, type, name = self.chatter.respond('opening something')
-        self.assertEqual(name,'what now')
+    def testOpenType(self):
+        self.assertEqual(self.chatter.respond('open something')[TYPE],'open')
+    def testOpening(self):
+        # Test that words STARTING with "open" do not trigger rule
+        self.assertEqual( \
+        self.chatter.respond('opening something')[NAME],'what now')
 
     def testReturn(self):
-        response, type, name = self.chatter.respond('return')
-        self.assertEqual(type,'return')
-    def testReturn1(self):
-        response, type, name = self.chatter.respond('ret')
-        self.assertEqual(type,'return')
+        self.assertEqual(self.chatter.respond('return')[TYPE],'return')
+    def testRet(self):
+        self.assertEqual(self.chatter.respond('ret')[TYPE],'return')
+    def testReturning(self):
+        # Test that words STARTING with "return" do not trigger rule
+        self.assertEqual(self.chatter.respond('returning')[NAME],'what now')
 
     def testHi(self):
-        response, type, name = self.chatter.respond('hi')
-        self.assertTrue(response.startswith("Welcome"))
-'''
-    def testWordLookup(self):
-        response, type, name = self.chatter.respond('what is cheese?')
-        self.assertEqual(response, \
-        'a solid food prepared from the pressed curd of milk')
-
-    def testWordLookup2(self):
-        response, type, name = self.chatter.respond('what is learning')
-        self.assertEqual(response, \
-        'the cognitive process of acquiring skill or knowledge')
-'''
+        self.assertTrue( \
+        self.chatter.respond('hi')[RESPONSE].startswith("Welcome"))
+        
 class TestChatMath(unittest.TestCase):
 
     def setUp(self):
         self.chatter = Chat(responses, reflections)
 
-    def testAdditionWords1(self):
-        response, type, name = self.chatter.respond('add two and three')
-        self.assertTrue(response.endswith('5'))
+    def testAddTwoAndThree(self):
+        self.assertTrue( \
+        self.chatter.respond('add two and three')[RESPONSE].endswith('5'))
 
-    def testAdditionWords2(self):
-        response, type, name = self.chatter.respond('add two to three')
-        self.assertTrue(response.endswith('5'), \
-        'Response was: %s' % response)
+    def testAddTwoToThree(self):
+        self.assertTrue( \
+        self.chatter.respond('add two to three')[RESPONSE].endswith('5'))
 
-    def testAdditionNumbers(self):
-        response, type, name = self.chatter.respond('add 2 and 3')
-        self.assertTrue(response.endswith('5'), \
-        'Response was: %s' % response)
+    def testAdd2And3(self):
+        self.assertTrue( \
+        self.chatter.respond('add 2 and 3')[RESPONSE].endswith('5'))
 
-    def testSubtractionWords1(self):
-        response, type, name = self.chatter.respond('subtract 20 from 30')
-        self.assertTrue(response.endswith('10'), \
-        'Response was: %s' % response)
+    def testSubtraction20From30(self):
+        self.assertTrue( \
+        self.chatter.respond('subtract 20 from 30')[RESPONSE].endswith('10'))
 
-    def testSubtractionLargeNumbers(self):
-        response, type, name = \
-        self.chatter.respond('subtract 200 from 1000')
+    def testSubtract200From100(self):
+        response = self.chatter.respond('subtract 200 from 1000')[RESPONSE]
         self.assertTrue(response.endswith('800'), \
         'Response was: %s' % response)
 
     def testSubtractionSymbol(self):
-        response, type, name = self.chatter.respond('subtract twenty minus eight')
+        response = \
+        self.chatter.respond('subtract twenty minus eight')[RESPONSE]
         self.assertTrue(response.endswith('12'), \
         'Response was: %s' % response)
 
     def testSubtractionWords(self):
-        response, type, name = self.chatter.respond('subtract two from three')
+        response = \
+        self.chatter.respond('subtract two from three')[RESPONSE]
         self.assertTrue(response.endswith('1'), response)
 
     def testAdditionPlus(self):
-        response, type, name = self.chatter.respond('add two plus three')
+        response = \
+        self.chatter.respond('add two plus three')[RESPONSE]
         self.assertTrue(response.endswith('5'), response)
 
     def testAdditionTo(self):
-        response, type, name = self.chatter.respond('add two to three')
+        response = \
+        self.chatter.respond('add two to three')[RESPONSE]
         self.assertTrue(response.endswith('5'), response)
 
     def testAdditionAnd(self):
-        response, type, name = self.chatter.respond('add two and three')
+        response = \
+        self.chatter.respond('add two and three')[RESPONSE]
         self.assertTrue(response.endswith('5'), response)
 
     def testMultiply(self):
-        response, type, name = self.chatter.respond('multiply five and four')
+        response = \
+        self.chatter.respond('multiply five and four')[RESPONSE]
         self.assertTrue(response.endswith('20'), response)
 
     def testDivide(self):
-        response, type, name = self.chatter.respond('divide twelve by four')
+        response = \
+        self.chatter.respond('divide twelve by four')[RESPONSE]
         self.assertTrue(response.endswith('3.0'), response)
 
-    def testhideResp(self):
-        response, type, name = self.chatter.respond('hide resp')
-        self.assertTrue(name == 'hideResp', name)
-    def testhideText(self):
-        response, type, name = self.chatter.respond('hide text')
-        self.assertTrue(name == 'hideText', name)
+    def testHideResp(self):
+        self.assertTrue( \
+        self.chatter.respond('hide resp')[NAME] == 'hideResp')
 
-    def testhide(self):
-        response, type, name = self.chatter.respond('hide graph')
-        self.assertTrue(name == 'hide', name)
-    def testhide1(self):
-        response, type, name = self.chatter.respond('hide map')
-        self.assertTrue(name == 'hide', name)
+    def testHideGraph(self):
+        self.assertTrue( \
+        self.chatter.respond('hide graph')[NAME] == 'hide')
+        
+    def testHideMap(self):
+        self.assertTrue( \
+        self.chatter.respond('hide map')[NAME] == 'hide')
     def testlist(self):
-        response, type, name = self.chatter.respond('show rec')
-        self.assertTrue(name == 'list', name)
+        self.assertTrue( \
+        self.chatter.respond('show rec')[NAME] == 'list')
     def testlist1(self):
-        response, type, name = self.chatter.respond('show records')
-        self.assertTrue(name == 'list', name)
+        self.assertTrue( \
+        self.chatter.respond('show records')[NAME] == 'list')
     def testlist2(self):
-        response, type, name = self.chatter.respond('show list')
-        self.assertTrue(name == 'list', name)
+        self.assertTrue( \
+        self.chatter.respond('show list')[NAME] == 'list')
     def testlist3(self):
-        response, type, name = self.chatter.respond('list rec')
-        self.assertTrue(name == 'list', name)
+        self.assertTrue( \
+        self.chatter.respond('list rec')[NAME] == 'list')
     def testlist4(self):
-        response, type, name = self.chatter.respond('list records')
-        self.assertTrue(name == 'list', name)
+        self.assertTrue( \
+        self.chatter.respond('list records')[NAME] == 'list')
     def testmeta5(self):
-        response, type, name = self.chatter.respond('show meta')
-        self.assertTrue(name == 'meta', name)
+        self.assertTrue( \
+        self.chatter.respond('show meta')[NAME] == 'meta')
     def testmeta1(self):
-        response, type, name = self.chatter.respond('show meta graph')
-        self.assertTrue(name == 'meta', name)
+        self.assertTrue( \
+        self.chatter.respond('show meta graph')[NAME] == 'meta')
     def testmeta2(self):
-        response, type, name = self.chatter.respond('where am i overall')
-        self.assertTrue(name == 'meta', name)
+        self.assertTrue( \
+        self.chatter.respond('where am i overall')[NAME] == 'meta')
     def testreset(self):
-        response, type, name = self.chatter.respond('reset graph')
-        self.assertTrue(name == 'reset', name)
+        self.assertTrue( \
+        self.chatter.respond('reset graph')[NAME] == 'reset')
     def testreset2(self):
-        response, type, name = self.chatter.respond('graph reset')
-        self.assertTrue(name == 'reset', name)
+        self.assertTrue( \
+        self.chatter.respond('graph reset')[NAME] == 'reset')
     def testshow(self):
-        response, type, name = self.chatter.respond('show map')
-        self.assertTrue(name == 'show', name)
+        self.assertTrue( \
+        self.chatter.respond('show map')[NAME] == 'show')
     def testshow1(self):
-        response, type, name = self.chatter.respond('show graph')
-        self.assertTrue(name == 'show', name)
+        self.assertTrue( \
+        self.chatter.respond('show graph')[NAME] == 'show')
     def testshow2(self):
-        response, type, name = self.chatter.respond('where am i')
-        self.assertTrue(name == 'show', name)
+        self.assertTrue( \
+        self.chatter.respond('where am i')[NAME] == 'show')
     def testshowResp(self):
-        response, type, name = self.chatter.respond('show resp')
-        self.assertTrue(name == 'showResp', name)
+        self.assertTrue( \
+        self.chatter.respond('show resp')[NAME] == 'showResp')
     def testshowText(self):
-        response, type, name = self.chatter.respond('show text')
-        self.assertTrue(name == 'showText', name)
+        self.assertTrue( \
+        self.chatter.respond('show text')[NAME] == 'showText')
     def testhideText(self):
-        response, type, name = self.chatter.respond('hide text')
-        self.assertTrue(name == 'hideText', name)
+        self.assertTrue( \
+        self.chatter.respond('hide text')[NAME] == 'hideText')
     def testshowlabels(self):
-        response, type, name = self.chatter.respond('show labels')
-        self.assertTrue(name == 'showLabels', name)
+        self.assertTrue( \
+        self.chatter.respond('show labels')[NAME] == 'showLabels')
     def testhidelabels(self):
-        response, type, name = self.chatter.respond('hide labels')
-        self.assertTrue(name == 'hideLabels', name)
+        self.assertTrue( \
+        self.chatter.respond('hide labels')[NAME] == 'hideLabels')
+
 
 if __name__ == "__main__":
     #test = False
@@ -473,5 +442,5 @@ if __name__ == "__main__":
     if test:
         unittest.main()
     else:
-        chatter = Chat(responses, nltk.chat.reflections)
+        chatter = Chat(responses,reflections)
         chatter.converse()

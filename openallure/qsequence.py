@@ -168,7 +168,7 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-import urllib
+import urllib2
 import os
 import sys
 from BeautifulSoup import BeautifulSoup, SoupStrainer          # For processing HTML
@@ -192,64 +192,72 @@ class QSequence( object ):
         self.path = path
 
         if filename.startswith(u"http://"):
-           # read text tagged with <pre> </pre> from website or body of an Etherpad
-           try:
-              urlOpen = urllib.urlopen( filename )
-           except urlOpenError:
-              print( u"Could not open %s" % filename )
+            # read text tagged with <pre> </pre> from website or body of an Etherpad
+            try:
+                urlOpen = urllib2.urlopen( filename )
+            except:
+                print( u"Could not open %s" % filename )
 
-           # parse out text marked with <pre> </pre>
-           links = SoupStrainer('pre')
-           taggedPreText = [tag for tag in BeautifulSoup(urlOpen, parseOnlyThese=links)]
- #          print 'taggedPreText', taggedPreText
+            # parse out text marked with <pre> </pre>
+#            links = SoupStrainer('pre')
+#            taggedPreText = [tag for tag in BeautifulSoup(urlOpen, parseOnlyThese=links)]
+#          print 'taggedPreText', taggedPreText
 
-           if taggedPreText == []:
-               # If no taggedPreText, try Etherpad body
-               urlOpen = urllib.urlopen( filename )
-               soup = BeautifulSoup( urlOpen )
-               self.cleanUnicodeTextStr = str(soup)[ str(soup).find('"initialAttributedText":{"text"')+33 :str(soup).find(',"attribs":')-1 ]
-               self.inputs = self.cleanUnicodeTextStr.split('\\n')
+            soup = BeautifulSoup(urlOpen)
+            taggedPre = soup.pre
+            if not str(taggedPre) == 'None':
+                self.inputs = ''.join(soup.pre.findAll(text=True)).splitlines()
+            else:
+                # If no taggedPreText, try postbody (NING)
+                postbody = soup.find("div", { "class" : "postbody" })
+                if not str(postbody) == 'None':
+                    self.inputs = '\n'.join(postbody.findAll(text=True)).splitlines()
+                else:
+                    # If no taggedPreText, try Etherpad body
+                    self.cleanUnicodeTextStr = str(soup)[ str(soup).find('"initialAttributedText":{"text"')+33 :str(soup).find(',"attribs":')-1 ]
+                    self.inputs = self.cleanUnicodeTextStr.split('\\n')
 
-           else:
-               # filter out <pre> and any other embedded tags
-               def isunicode(x): return isinstance(x,unicode)
-               def lstrip(x): return x.lstrip()
-    #           def notEmpty(x):
-    #              if len(x) > 0 : return True
-               cleanUnicodeText = [ map( lstrip, filter( isunicode, taggedPreText[ x ].contents ) )  for x in range( 0, len( taggedPreText ) ) ]
+            #else:
+                # filter out <pre> and any other embedded tags
+#                def isunicode(x): return isinstance(x,unicode)
+#                def lstrip(x): return x.lstrip()
+#    #            def notEmpty(x):
+#    #               if len(x) > 0 : return True
+#                cleanUnicodeText = [ map( lstrip, filter( isunicode, taggedPreText[ x ].contents ) )  for x in range( 0, len( taggedPreText ) ) ]
+#
+#                # get it all down to one text string
+#                self.cleanUnicodeTextStr = "\n".join(["\n".join(list) for list in cleanUnicodeText])
+#                self.inputs = self.cleanUnicodeTextStr.splitlines()
+#               # self.inputs = taggedPreText
 
-               # get it all down to one text string
-               self.cleanUnicodeTextStr = "\n".join(["\n".join(list) for list in cleanUnicodeText])
-               self.inputs = self.cleanUnicodeTextStr.splitlines()
-
-           if len(self.cleanUnicodeTextStr) == 0:
-##              print( "\n\n   No text marked with <pre> </pre> found at %s" % filename )
-##              print( "   Check view source for &lt;pre&gt; which is currently not supported.\n\n" )
-##              os.sys.exit()
-               self.inputs = [u"Hmmm. It seems " + url,u"does not have a script",
-                         u"marked with <pre> </pre>.",
-                         u"What now?",
-                         u"[input];;"]
-           else:
-               # set path attribute to be everything up to through last slash in url
-               slashAt = filename.rfind( '/' ) + 1
-               self.path = filename[0:slashAt]
+            if len(self.inputs) == 0:
+##               print( "\n\n   No text marked with <pre> </pre> found at %s" % filename )
+##               print( "   Check view source for &lt;pre&gt; which is currently not supported.\n\n" )
+##               os.sys.exit()
+                self.inputs = [u"Hmmm. It seems " + filename, u"does not have a script",
+                           u"marked with <pre> </pre>.",
+                           u"What now?",
+                           u"[input];;"]
+            else:
+                # set path attribute to be everything up to through last slash in url
+                slashAt = filename.rfind( '/' ) + 1
+                self.path = filename[0:slashAt]
 
         elif filename.startswith("nltkResponse.txt"):
             self.inputs = nltkResponse.split("\n")
         else:
-           if filename.startswith('~/'):
-               filename = os.environ['HOME'] + filename[1:]
-           # read file and decode with utf-8
-           try:
-               raw = open( filename ).readlines()
-               self.inputs = []
-               for line in raw:
-                   self.inputs.append( unicode( line, 'utf-8' ) )
-           except IOError:
-               self.inputs = [u"Well ... It seems " + filename,u"could not be opened.",
-                         u"What now?",
-                         u"[input];;"]
+            if filename.startswith('~/'):
+                filename = os.environ['HOME'] + filename[1:]
+            # read file and decode with utf-8
+            try:
+                raw = open( filename ).readlines()
+                self.inputs = []
+                for line in raw:
+                    self.inputs.append( unicode( line, 'utf-8' ) )
+            except IOError:
+                self.inputs = [u"Well ... It seems " + filename,u"could not be opened.",
+                           u"What now?",
+                           u"[input];;"]
 
         # parse into sequence
         self.sequence = self.regroup( self.inputs, self.classify( self.inputs ) )
@@ -278,84 +286,85 @@ Create list of string types::
         inQuote = False
         priorQString = ""
         for i in strings:
-          if inQuote:
-            # mark as type R until closing triple quotes are found
-            string_types.append( "R" )
-            tripleQuoteAt = i.find('"""')
-            if not tripleQuoteAt == -1:
-               inQuote = False
-               inRule = False
-          else:
-            if i.strip() in ["","\n","\\n"]:
-                string_types.append( "N" )
-                priorQString = ""
-            elif i.startswith( "#" ):
-                string_types.append( "C" )
-
-            elif i.startswith( "re=" ) or i.startswith( "re =" ):
+            if inQuote:
+                # mark as type R until closing triple quotes are found
                 string_types.append( "R" )
-            elif i.startswith( "example=" ) or i.startswith( "example =" ):
-                string_types.append( "R" )
-            elif i.startswith( "reply=" ) or i.startswith( "reply =" ):
-                string_types.append( "R" )
-                # test for triple quotes on this line
                 tripleQuoteAt = i.find('"""')
-                if tripleQuoteAt == -1:
-                    # reply marks last line of rule
+                if not tripleQuoteAt == -1:
+                    inQuote = False
                     inRule = False
-                else:
-                    # closing triple quotes will mark last line of rule
-                    inQuote = True
-                    # test for SECOND (closing) triple quotes on this line
-                    if not i[tripleQuoteAt+2:].find('"""') == -1:
-                        inQuote = False
-                        inRule = False
-            elif i.startswith( "http://" ):
-                slash_at = i.find( ";" )
-                if slash_at > 0:
-                   string_types.append( str( slash_at ) )
-                else:
-                   # An answer-side link with no square bracket
-                   string_types.append( "L" )
-
-            elif i.startswith( "[" ):
-                # This could be a rule type, rule name, question tag or answer-side link
-                if inRule:
-                    # It's a rule name
-                    string_types.append( "R" )
-                else:
-                    # Check content against list of rule types
-                    bracketAt = i.find( ']' )
-                    maybeRuleType = i[ 1 : bracketAt ].strip()
-                    if maybeRuleType in self.ruleTypes:
-                        # It's a rule type
-                        string_types.append( "R" )
-                        inRule = True
-                    else:
-                        # must be question tag or answer-side link
-                        slash_at = i.find( ";" )
-                        if slash_at > 0:
-                            string_types.append( str( slash_at ) )
-                        else:
-                            string_types.append( "Q" )
-
             else:
-               slash_at = i.find( ";" )
-               if slash_at > 0:
-                   string_types.append( str( slash_at ) )
-               else:
-                   if len(i) > 0:
-                       if priorQString.strip().endswith('?'):
-                           # next things are answers even if not marked with ;
-                           string_types.append( len( i ) )
-                       else:
-                           string_types.append( "Q" )
-                           priorQString = i
-                   else:
-                       string_types.append( "Q" )
-                       priorQString = i
+                if i.strip() in ["","\n","\\n"]:
+                    string_types.append( "N" )
+                    priorQString = ""
+                elif i.startswith( "#" ):
+                    string_types.append( "C" )
 
-#            print i, string_types[-1]
+                elif i.startswith( "re=" ) or i.startswith( "re =" ):
+                    string_types.append( "R" )
+                elif i.startswith( "example=" ) or i.startswith( "example =" ):
+                    string_types.append( "R" )
+                elif i.startswith( "reply=" ) or i.startswith( "reply =" ):
+                    string_types.append( "R" )
+                    # test for triple quotes on this line
+                    tripleQuoteAt = i.find('"""')
+                    if tripleQuoteAt == -1:
+                        # reply marks last line of rule
+                        inRule = False
+                    else:
+                        # closing triple quotes will mark last line of rule
+                        inQuote = True
+                        # test for SECOND (closing) triple quotes on this line
+                        if not i[tripleQuoteAt+2:].find('"""') == -1:
+                            inQuote = False
+                            inRule = False
+                elif i.startswith( "http://" ):
+                    slash_at = i.find( ";" )
+                    if slash_at > 0:
+                        string_types.append( str( slash_at ) )
+                    else:
+                        # An answer-side link with no square bracket
+                        string_types.append( "L" )
+
+                elif i.startswith( "[" ):
+                    # This could be a rule type, rule name, question tag or answer-side link
+                    if inRule:
+                        # It's a rule name
+                        string_types.append( "R" )
+                    else:
+                        # Check content against list of rule types
+                        bracketAt = i.find( ']' )
+                        maybeRuleType = i[ 1 : bracketAt ].strip()
+                        if maybeRuleType in self.ruleTypes:
+                            # It's a rule type
+                            string_types.append( "R" )
+                            inRule = True
+                        else:
+                            # must be question tag or answer-side link
+                            slash_at = i.find( ";" )
+                            if slash_at > 0:
+                                string_types.append( str( slash_at ) )
+                            else:
+                                string_types.append( "Q" )
+
+                else:
+                    slash_at = i.find(";")
+                    if slash_at > 0:
+                        string_types.append(str(slash_at))
+                    else:
+                        if len(i) > 0:
+                            if priorQString.strip().endswith('?'):
+                                # next things are answers even if not marked with ;
+                                string_types.append(len(i))
+                            else:
+                                string_types.append("Q")
+                                priorQString = i
+                        else:
+                            string_types.append("Q")
+                            priorQString = i
+
+
+#                print i, string_types[-1]
         return string_types
 
     def regroup( self, strings, string_types ):
@@ -404,7 +413,7 @@ Create list of string types::
                             del photoSmile, photoTalk, photoListen
                 # check if next string is a link
                 # if so, this Q is really an A and will consume both lines
-                elif string_types[ onString + 1 ] == "L":
+                elif onString < len(string_types) - 1 and string_types[ onString + 1 ] == "L":
                     answer.append( '[' + strings[ onString ].strip() + ']' )
                     response.append(u'')
                     action.append(1)
@@ -485,19 +494,19 @@ Create list of string types::
                     closeBracketAt = answerString.find(u']')
                     # The syntax only has a chance of being correct if the space comes before the closing bracket
                     if spaceAt > 0 and closeBracketAt > 0 and spaceAt < closeBracketAt:
-                       linkString = answerString[ 1 : spaceAt]
-                       label = u'[' + answerString[ spaceAt + 1 : ]
+                        linkString = answerString[ 1 : spaceAt]
+                        label = u'[' + answerString[ spaceAt + 1 : ]
                     else:
-                       print( u"Incorrect syntax in answer: %s " % answerString )
+                        print( u"Incorrect syntax in answer: %s " % answerString )
                 elif answerString.startswith(u'http://'):
                     spaceAt = answerString.find(u' ')
                     # The syntax only has a chance of being correct if the space comes before the closing bracket
                     if spaceAt > 0:
-                       linkString = answerString[ : spaceAt]
-                       label = u'[' + answerString[ spaceAt + 1 : ] + u']'
+                        linkString = answerString[ : spaceAt]
+                        label = u'[' + answerString[ spaceAt + 1 : ] + u']'
                     else:
-                       linkString = answerString
-                       label = u'[' + answerString + u']'
+                        linkString = answerString
+                        label = u'[' + answerString + u']'
                 else:
                     label = answerString
                 link.append( linkString )
@@ -583,13 +592,13 @@ Create list of string types::
         tags = [ question[ 8 ] for question in sequence ]
         for qnum, question in enumerate( sequence ):
             for lnum, link in enumerate( question[ 4 ] ):
-               if not link == u'' and link[link.rfind('/') + 1:] in tags:
-                   # remove link
-                   sequence[ qnum ][ 4 ][ lnum ] = u''
-                   # change action to RELATIVE position of question
-                   # that is, how much shift from current question, qnum
-                   # to tagged question
-                   sequence[ qnum ][ 3 ][ lnum ] = tags.index(link[link.rfind('/') + 1:]) - qnum
+                if not link == u'' and link[link.rfind('/') + 1:] in tags:
+                    # remove link
+                    sequence[ qnum ][ 4 ][ lnum ] = u''
+                    # change action to RELATIVE position of question
+                    # that is, how much shift from current question, qnum
+                    # to tagged question
+                    sequence[ qnum ][ 3 ][ lnum ] = tags.index(link[link.rfind('/') + 1:]) - qnum
 
         # reinitialize script_chatbot with new rules
 #        print "Rules: ", rules
