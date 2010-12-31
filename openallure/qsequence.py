@@ -163,22 +163,37 @@ See `Open Allure wiki Separate Content File Syntax`_ for details and examples.
 
 .. _Open Allure wiki Separate Content File Syntax: http://code.google.com/p/open-allure-ds/wiki/SeparateContentFileSyntax
 
-Copyright (c) 2010 John Graves
+Copyright (c) 2011 John Graves
 
 MIT License: see LICENSE.txt
 """
 
-import urllib2
+QUESTION = 0
+ANSWER = 1
+RESPONSE = 2
+ACTION = 3
+DESTINATION = 4
+LINK = 5
+INPUTFLAG = 6
+#PHOTOS = 7
+TAG = 8
+RULE = 9
+
+import gettext
 import os
 import sys
-import gettext
-gettext.install(domain='openallure', localedir='.', unicode=True)
-mytrans = gettext.translation(u"openallure", 
-                              '.', languages=['pt'], fallback=True)
-mytrans.install(unicode=True) # must set explicitly here for mac
+import urllib2
 
 from BeautifulSoup import BeautifulSoup          # For processing HTML
 from configobj import ConfigObj
+
+gettext.install(domain='openallure', localedir='.', unicode=True)
+config = ConfigObj('openallure.cfg')
+language = config['Options']['language']
+if len(language) > 0 and language != 'en':
+    mytrans = gettext.translation(u"openallure", 
+                                  '.', languages=[language], fallback=True)
+    mytrans.install(unicode=True) # must set explicitly here for mac
 
 class QSequence( object ):
     """A Question Sequence contains (multiple) question blocks consisting of a question with answers/responses/actions"""
@@ -220,7 +235,9 @@ class QSequence( object ):
                     self.inputs = '\n'.join(postbody.findAll(text=True)).splitlines()
                 else:
                     # If no taggedPreText, try Etherpad body
-                    self.cleanUnicodeTextStr = str(soup)[ str(soup).find('"initialAttributedText":{"text"')+33 :str(soup).find(',"attribs":')-1 ]
+                    self.cleanUnicodeTextStr = \
+                    str(soup)[ str(soup).find('"initialAttributedText":{"text"')+33 : \
+                               str(soup).find(',"attribs":')-1 ]
                     self.inputs = self.cleanUnicodeTextStr.split('\\n')
 
             #else:
@@ -239,7 +256,7 @@ class QSequence( object ):
             if len(self.inputs) == 0:
 ##               print( "\n\n   No text marked with <pre> </pre> found at %s" % filename )
 ##               print( "   Check view source for &lt;pre&gt; which is currently not supported.\n\n" )
-##               os.sys.exit()
+##               raise SystemExit
                 self.inputs = [u"Hmmm. It seems " + filename, u"does not have a script",
                            u"marked with <pre> </pre>.",
                            u"What now?",
@@ -505,6 +522,8 @@ Create list of string types::
                         label = u'[' + answerString[ spaceAt + 1 : ]
                     else:
                         print( u"Incorrect syntax in answer: %s " % answerString )
+                        print( u"This is probably due to your language setting (%s)" % language)
+                        raise SystemExit
                 elif answerString.startswith(u'http://'):
                     spaceAt = answerString.find(u' ')
                     # The syntax only has a chance of being correct if the space comes before the closing bracket
@@ -588,24 +607,24 @@ Create list of string types::
         # catch sequence with a question with no answers and turn it into an input
         if len(sequence) == 0:
             sequence.append( [ [_(u'What now?')],[],[],[],[],[],[],[],u'' ])
-        if len(sequence[0][1]) == 0:
-            sequence[0][1] = [u'[input]']
-            sequence[0][3] = [0]
-            sequence[0][4] = [u'nltkResponse.txt']
-            sequence[0][6] = [1]
+        if len(sequence[0][QUESTION]) == 0:
+            sequence[0][QUESTION] = [u'[input]']
+            sequence[0][ACTION] = [0]
+            sequence[0][DESTINATION] = [u'nltkResponse.txt']
+            sequence[0][INPUTFLAG] = [1]
         # photos will not be changed if they are not found
 
         # Take second pass at sequence to convert LINKS to TAGS into ACTIONS
-        tags = [ question[ 8 ] for question in sequence ]
+        tags = [ question[TAG] for question in sequence ]
         for qnum, question in enumerate( sequence ):
-            for lnum, link in enumerate( question[ 4 ] ):
-                if not link == u'' and link[link.rfind('/') + 1:] in tags:
+            for lnum, link in enumerate( question[DESTINATION] ):
+                if not link == u'' and link[link.rfind('/') + 1:].lower() in tags:
                     # remove link
-                    sequence[ qnum ][ 4 ][ lnum ] = u''
+                    sequence[ qnum ][DESTINATION][ lnum ] = u''
                     # change action to RELATIVE position of question
                     # that is, how much shift from current question, qnum
                     # to tagged question
-                    sequence[ qnum ][ 3 ][ lnum ] = tags.index(link[link.rfind('/') + 1:]) - qnum
+                    sequence[ qnum ][ACTION][ lnum ] = tags.index(link[link.rfind('/') + 1:].lower()) - qnum
 
         # reinitialize script_chatbot with new rules
 #        print "Rules: ", rules
@@ -654,7 +673,17 @@ Create list of string types::
 
 
 if __name__ == "__main__":
-    seq = QSequence( sys.argv[1] )
+    if len(sys.argv) > 1 and 0 != len(sys.argv[1]):
+        seq = QSequence( sys.argv[1] )
+    else:
+        seq = QSequence('welcome.txt')
     for question in seq.sequence:
-        for item in question:
-            print item
+        print 'QUESTION    ',question[0]
+        print 'ANSWER      ',question[1]
+        print 'RESPONSE    ',question[2]
+        print 'ACTION      ',question[3]
+        print 'DESTINATION ',question[4]
+        print 'LINK        ',question[5]
+        print 'INPUTFLAG   ',question[6]
+        print 'PHOTOS      ',question[7]
+        print 'TAG         ',question[8]

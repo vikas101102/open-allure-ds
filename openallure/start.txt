@@ -1,6 +1,6 @@
 # Getting started with Open Allure
 # start.txt
-# (c) 2010 John Graves
+# (c) 2011 John Graves
 #
 # Everything you type into an Open Allure script
 # is something the computer might say
