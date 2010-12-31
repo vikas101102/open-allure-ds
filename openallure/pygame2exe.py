@@ -6,7 +6,7 @@
 # Author:      John
 #
 # Created:     28/12/2010
-# Copyright:   (c) John 2010
+# Copyright:   (c) John 2011
 # License:     MIT License
 #-------------------------------------------------------------------------------
 
@@ -59,7 +59,7 @@ class BuildExe:
         self.project_url = "about:none"
 
         #Version of program
-        self.project_version = "0.1d31dev"
+        self.project_version = "0.1d32dev"
 
         #License of the program
         self.license = "openallure License"
@@ -67,7 +67,7 @@ class BuildExe:
         #Auhor of program
         self.author_name = "John Graves"
         self.author_email = "john.graves@aut.ac.nz"
-        self.copyright = "Copyright (c) 2010 John Graves"
+        self.copyright = "Copyright (c) 2011 John Graves"
 
         #Description
         self.project_description = "Open Allure"

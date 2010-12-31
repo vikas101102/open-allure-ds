@@ -4,7 +4,7 @@ a component of openallure.py
 
 Function for rendering text-to-speech
 
-Copyright (c) 2010 John Graves
+Copyright (c) 2011 John Graves
 
 MIT License: see LICENSE.txt
 """

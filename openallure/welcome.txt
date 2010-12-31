@@ -1,6 +1,6 @@
 # Open Allure Welcome Script
 # Version 20101004 for Windows
-# (c) 2010 John Graves
+# (c) 2011 John Graves
 # http://openallureds.org
 
 

@@ -30,7 +30,7 @@ Steven Bird, <sb@csse.unimelb.edu.au>
 License
 =======
 
-Copyright (c) 2010 John Graves
+Copyright (c) 2011 John Graves
 
 MIT License.  See LICENSE.txt
 

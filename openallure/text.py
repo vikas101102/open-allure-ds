@@ -5,7 +5,7 @@ a component of openallure.py
 
 Collection of functions for rendering text
 
-Copyright (c) 2010 John Graves
+Copyright (c) 2011 John Graves
 
 MIT License: see LICENSE.txt
 """

@@ -1,5 +1,9 @@
 Change history::
 
+  v0.1d32, 31 January 2011
+    Fixed bugs with mouse events. Lowercase tags. 
+    Enhanced qsequence and oadb reports
+
   v0.1d31, 31 December 2010
     Added gettext for internationalization
     Responses also have a translated version. For example, responses_pt.cfg for Portuguese.
