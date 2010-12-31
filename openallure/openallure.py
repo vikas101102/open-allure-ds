@@ -12,13 +12,14 @@ Copyright (c) 2010 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__ = '0.1d30dev'
+__version__ = '0.1d31dev'
 
 # Standard Python modules
 import os
 import sys
 import time
 import webbrowser
+import gettext
 
 # 3rd Party modules
 # note: nltk is used by chat.py
@@ -72,8 +73,18 @@ def main():
     if sys.platform != 'darwin':
         pygame.scrap.init()
 
-    # load initial question sequence from url specified in openallure.cfg file
     config = ConfigObj(r'openallure.cfg')
+    
+    # determine what language to use
+    
+    gettext.install(domain='openallure', localedir='.', unicode=True)
+    language = config['Options']['language']
+    if len(language) > 0 and language != 'en':
+        mytrans = gettext.translation(u"openallure", 
+                                      '.', languages=[language], fallback=True)
+        mytrans.install(unicode=True) # must set explicitly here for mac
+
+    # load initial question sequence from url specified in openallure.cfg file
     url = unicode(config['Source']['url'])
     if len(sys.argv) > 1 and 0 != len(sys.argv[1]):
         url = unicode(sys.argv[1])
@@ -242,12 +253,12 @@ def main():
                   event.key == pygame.K_i and
                   pygame.key.get_mods() & pygame.KMOD_CTRL):
                 # TODO: This kills the entire current sequence. Build a way to back up to it.
-                seq.inputs = [u"Input",
-                         u"[input];;"]
+                seq.inputs = [_(u"Input"),
+                         _(u"[input];;")]
                 seq.sequence = seq.regroup(seq.inputs, \
                 seq.classify(seq.inputs))
                 openallure.onQuestion = 0
-                url = u'[input]'
+                url = _(u'[input]')
                 record_id = openallure.db.insert(time = time.time(), \
                 url = url, q = 0)
                 openallure.ready = False
@@ -384,8 +395,8 @@ def main():
                         # Act on commands
                         if nltkType == 'quit':
                             #TODO: Make this more polite
-                            if graphViz:
-                                graphViz.kill()
+#                            if graphViz:
+#                                graphViz.kill()
                             raise SystemExit
 
                         if nltkType == 'return':
@@ -424,10 +435,10 @@ def main():
                             url = unicode(url), q = 0)
                             openallure.onQuestion = 0
                             openallure.ready = False
-                            if graphViz:
-                                # Fall through into graphing
-                                nltkType = 'graph'
-                                nltkName = 'show'
+#                            if graphViz:
+#                                # Fall through into graphing
+#                                nltkType = 'graph'
+#                                nltkName = 'show'
                             nltkResponse = u''
                             openallure.currentString = u''
 
@@ -547,7 +558,7 @@ def main():
         if openallure.ready and \
            openallure.stated == True and \
            not openallure.currentString and \
-           openallure.question[1][choiceCount - 1] == u'[next]' and \
+           openallure.question[1][choiceCount - 1] == _(u'[next]') and \
            pygame.time.get_ticks() - delayStartTime > delayTime:
             # This takes last response
             answer = choiceCount - 1
@@ -574,8 +585,8 @@ def main():
                 #(but only after speaking the full question below)
                 if onAnswer > 0 and onAnswer < len(openallure.question[1]) + 1:
                     answerText = openallure.question[1][onAnswer - 1]
-                    if not (answerText.startswith('[input]') or
-                             answerText.startswith('[next]') or
+                    if not (answerText.startswith(_('[input]')) or
+                             answerText.startswith(_('[next]')) or
                              answerText.endswith( '...]' ) or
                              answerText.endswith( '...' )):
                         if len(answerText) > 0:
@@ -703,9 +714,9 @@ def main():
                 if len(nltkResponse) == 0:
                     choice = (-1, 0)
                     answer = -1
-                    voice.speak("Try again")
+                    voice.speak(_("Try again"))
                 else:
-                    voice.speak(u"You entered " + openallure.currentString)
+                    voice.speak(_(u"You entered ") + openallure.currentString)
                 # Reset string
                 openallure.currentString = u''
 
@@ -734,7 +745,7 @@ def main():
                 #get new sequence or advance in sequence
                 next = openallure.question[3][answer]
                 if not openallure.question[4][answer] == '' and \
-                not openallure.question[1][answer] == u'[next]':
+                not openallure.question[1][answer] == _(u'[next]'):
                     # speak("New source of questions")
                     # Reset stated question pointer for new sequence
                     openallure.statedq = -1
@@ -772,7 +783,7 @@ def main():
 
                     # Quit if advance goes beyond end of sequence
                     if openallure.onQuestion >= len(seq.sequence):
-                        voice.speak("You have reached the end. Goodbye.")
+                        voice.speak(_("You have reached the end. Goodbye."))
                         return
                     else:
                         openallure.ready = False

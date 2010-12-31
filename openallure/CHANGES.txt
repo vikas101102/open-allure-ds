@@ -1,5 +1,13 @@
 Change history::
 
+  v0.1d31, 31 December 2010
+    Added gettext for internationalization
+    Responses also have a translated version. For example, responses_pt.cfg for Portuguese.
+    
+  v0.1d30, 31 December 2010
+    Platform specific text-to-speech engine selection
+    QSequence parses text file, NING, Wikia, Etherpad and Google wiki
+    
   v0.1d29, 28 December 2010
     Ctrl+V for paste now also works in Windows
     Clean (no semi-colon) scripts

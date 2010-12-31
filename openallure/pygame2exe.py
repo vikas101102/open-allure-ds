@@ -32,9 +32,9 @@ except ImportError, message:
 
 origIsSystemDLL = py2exe.build_exe.isSystemDLL
 def isSystemDLL(pathname):
-       if os.path.basename(pathname).lower() in ["sdl_ttf.dll"]:
-               return 0
-       return origIsSystemDLL(pathname)
+    if os.path.basename(pathname).lower() in ["sdl_ttf.dll"]:
+        return 0
+    return origIsSystemDLL(pathname)
 py2exe.build_exe.isSystemDLL = isSystemDLL
 
 class pygame2exe(py2exe.build_exe.py2exe): #This hack make sure that pygame default font is copied: no need to modify code for specifying default font
@@ -59,7 +59,7 @@ class BuildExe:
         self.project_url = "about:none"
 
         #Version of program
-        self.project_version = "0.1d27dev"
+        self.project_version = "0.1d31dev"
 
         #License of the program
         self.license = "openallure License"
@@ -70,7 +70,7 @@ class BuildExe:
         self.copyright = "Copyright (c) 2010 John Graves"
 
         #Description
-        self.project_description = "openallure Description"
+        self.project_description = "Open Allure"
 
         #Icon file (None will use pygame default icon)
         self.icon_file = None
@@ -135,9 +135,9 @@ class BuildExe:
             self.icon_file = os.path.join(path, 'pygame.ico')
 
         #List all data files to add
-        extra_datas = ['openallure.cfg','responses.cfg','welcome.txt',"SayStatic.exe",
+        extra_datas = ['openallure.cfg','responses.cfg','responses_pt.cfg','welcome.txt','bem-vindo.txt',"SayStatic.exe",
         "freesansbold.ttf",'CHANGES.txt','ethics_notice.txt','README.txt','LICENSE.txt',
-        'music.txt','start.txt']
+        'music.txt','start.txt',('pt/LC_MESSAGES',['pt/LC_MESSAGES/openallure.mo'])]
         for data in self.extra_datas:
             if os.path.isdir(data):
                 extra_datas.extend(self.find_data_files(data, '*'))

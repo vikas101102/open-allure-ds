@@ -35,6 +35,9 @@ class Voice( object ):
 
     def speak( self, phrase ):
         """Say or print phrase using text-to-speech engine or stdout"""
+        phrase = phrase.strip()
+        if len(phrase) == 0:
+            return
 
         if self.useEspeak:
             subprocess.Popen( ['espeak', " -s150 " + self.language + \
