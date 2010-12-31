@@ -13,6 +13,7 @@ TODO::
 from util import Chat as BaseChat
 
 from configobj import ConfigObj
+import gettext
 import re
 import random
 
@@ -124,8 +125,8 @@ math, text etc..
                     num = int(response[pos + 1:pos + 2])
                     sequenceToOpen = match.group(num)
 
-                    resp = u'Confirm\nOpen ' + sequenceToOpen + \
-                           ';[' + sequenceToOpen + ']\n[input];;'
+                    resp = _(u'Confirm') + '\n' + _(u'Open ') + sequenceToOpen + \
+                           ';[' + sequenceToOpen + ']\n' + _(u'[input];;')
 
                 elif responseType == "text":
                     if isinstance(response, tuple):
@@ -259,8 +260,21 @@ math, text etc..
 
 # Read rules from separate configuration file.
 # This file contains the DEFAULT rules which can be supplemented
-# by rules included in the scripts.
-config = ConfigObj(r"responses.cfg")
+# by rules included in the scripts.   
+gettext.install(domain='openallure', localedir='.', unicode=True)
+ 
+config = ConfigObj(r"openallure.cfg")
+language = config['Options']['language']
+if len(language) > 0 and language != 'en':
+    mytrans = gettext.translation(u"openallure", 
+                                  '.', languages=[language], fallback=True)
+    mytrans.install(unicode=True) # must set explicitly here for mac
+    # Add underscore for use in file name of responses.cfg
+    responsesFile = "responses_" + language + ".cfg"
+else:
+    responsesFile = "responses.cfg"
+    
+config = ConfigObj(responsesFile)
 ruleTypes = config.sections
 rules = []
 for section in config.sections:
@@ -273,7 +287,7 @@ responses = tuple(rules)
 
 # As a last resort, ask for input
 responses = responses + \
-((r'(.*)', ("Sorry, I don't understand that. What now?\n[input];;",), "text", "what now"),)
+((r'(.*)', (_("Sorry, I don't understand that. What now?") + '\n' + _("[input];;"),), "text", "what now"),)
 
 
 import unittest
@@ -437,8 +451,8 @@ class TestChatMath(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    #test = False
-    test = True
+    test = False
+    #test = True
     if test:
         unittest.main()
     else:

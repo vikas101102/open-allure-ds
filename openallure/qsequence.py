@@ -171,7 +171,13 @@ MIT License: see LICENSE.txt
 import urllib2
 import os
 import sys
-from BeautifulSoup import BeautifulSoup, SoupStrainer          # For processing HTML
+import gettext
+gettext.install(domain='openallure', localedir='.', unicode=True)
+mytrans = gettext.translation(u"openallure", 
+                              '.', languages=['pt'], fallback=True)
+mytrans.install(unicode=True) # must set explicitly here for mac
+
+from BeautifulSoup import BeautifulSoup          # For processing HTML
 from configobj import ConfigObj
 
 class QSequence( object ):
@@ -392,6 +398,7 @@ Create list of string types::
                         # this is a tag
                         bracketAt = strings[ onString ].find( ']' )
                         tag = strings[ onString ][ 1 : bracketAt ]
+                        tag = tag.lower()
                     else:
                         # this is a configuration override
                         # strip [ and ] and then split on =
@@ -430,14 +437,14 @@ Create list of string types::
                 not self.defaultAnswer == '' and \
                 nextOrFinalType == 'Q':
                     if self.defaultAnswer == 'next':
-                        answer.append(u'[next]')
+                        answer.append(_(u'[next]'))
                         response.append(u'')
                         action.append(1)
                         destination.append(u'')
                         link.append(u'')
                         inputFlags.append(0)
                     elif self.defaultAnswer == 'input':
-                        answer.append(u'[input]')
+                        answer.append(_(u'[input]'))
                         response.append(u'')
                         action.append(1)
                         destination.append(u'')
@@ -477,17 +484,17 @@ Create list of string types::
                 # 2/ a link in the wiki format [link label]
                 linkString = u''
                 inputFlag = 0
-                if answerString.startswith(u'[input]'):
+                if answerString.startswith(_(u'[input]')):
                     # no text will be displayed until the user types it,
                     # but the instruction can be passed through as the answer string
                     # to serve as a prompt
-                    label = u'[input]'
+                    label = _(u'[input]')
                     inputFlag = 1
-                elif answerString.startswith(u'[next]'):
+                elif answerString.startswith(_(u'[next]')):
                     # no text will be displayed until the user types it,
                     # but the instruction can be passed through as the answer string
                     # to serve as a prompt
-                    label = u'[next]'
+                    label = _(u'[next]')
                     inputFlag = 1
                 elif answerString.startswith(u'['):
                     spaceAt = answerString.find(u' ')
@@ -580,7 +587,7 @@ Create list of string types::
 
         # catch sequence with a question with no answers and turn it into an input
         if len(sequence) == 0:
-            sequence.append( [ [u'What now?'],[],[],[],[],[],[],[],u'' ])
+            sequence.append( [ [_(u'What now?')],[],[],[],[],[],[],[],u'' ])
         if len(sequence[0][1]) == 0:
             sequence[0][1] = [u'[input]']
             sequence[0][3] = [0]
