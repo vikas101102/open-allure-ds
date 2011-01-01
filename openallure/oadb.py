@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+# -*- coding: iso-8859-1 -*-
 from buzhug import Base
 import time
 

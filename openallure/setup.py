@@ -8,8 +8,18 @@ Usage:
 from setuptools import setup
 
 APP = ['openallure.py']
-DATA_FILES = ['openallure.cfg','responses.cfg','responses_pt.cfg','welcome.txt','bem-vindo.txt',
-'CHANGES.txt','ethics_notice.txt','LICENSE.txt','music.txt','README.txt','start.txt',('pt/LC_MESSAGES',['pt/LC_MESSAGES/openallure.mo'])]
+DATA_FILES = ['CHANGES.txt','ethics_notice.txt','README.txt','LICENSE.txt',
+        'openallure.cfg',
+        'music.txt','start.txt',
+        ('locale/en/LC_MESSAGES',['locale/en/LC_MESSAGES/openallure.mo']),
+        'welcome.txt',
+        'responses.cfg',
+        ('locale/it/LC_MESSAGES',['locale/it/LC_MESSAGES/openallure.mo']),
+        'benvenuti.txt',
+        'responses_it.cfg',
+        ('locale/pt/LC_MESSAGES',['locale/pt/LC_MESSAGES/openallure.mo']),
+        'bem-vindo.txt',
+        'responses_pt.cfg']
 OPTIONS = {'argv_emulation': True}
 
 setup(

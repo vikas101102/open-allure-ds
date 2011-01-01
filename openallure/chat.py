@@ -65,7 +65,7 @@ math, text etc..
         for (x, y, z, ruleName) in tuples]
         self._reflections = reflections
 
-    def respond(self, inputString):
+    def respond(self, inputString, scriptRules):
         """
         Generate a response to the users input.
 
@@ -73,6 +73,12 @@ math, text etc..
         @param inputString: The string to be mapped
         @rtype: C{string}
         """
+        if scriptRules != None:
+            scriptRuleTuples = [(re.compile(x, re.IGNORECASE), y, z ,ruleName) \
+                                 for (x, y, z, ruleName) in scriptRules]
+            # Put the script rules at the front
+            scriptRuleTuples.extend(self._tuples)
+            self._tuples = scriptRuleTuples
 
         # check each pattern
         respType = u''
@@ -88,36 +94,36 @@ math, text etc..
 
                 if responseType == "graph":
                     if ruleName == 'list':
-                        resp = u'Confirm\nList Records\n[input];;'
+                        resp = u'Confirm\nList Records\n[input];'
                     elif ruleName == 'meta':
-                        resp = u'Confirm\nShow Meta Graph\n[input];;'
+                        resp = u'Confirm\nShow Meta Graph\n[input];'
                     elif ruleName == 'reset':
-                        resp = u'Confirm\nReset Graph\n[input];;'
+                        resp = u'Confirm\nReset Graph\n[input];'
                     elif ruleName == 'hide':
-                        resp = u'Confirm\Hide Graph\n[input];;'
+                        resp = u'Confirm\Hide Graph\n[input];'
                     elif ruleName == 'show':
-                        resp = u'Confirm\nShow Graph\n[input];;'
+                        resp = u'Confirm\nShow Graph\n[input];'
                     elif ruleName == 'hideText':
-                        resp = u'Confirm\Hide Graph Text\n[input];;'
+                        resp = u'Confirm\Hide Graph Text\n[input];'
                     elif ruleName == 'showText':
-                        resp = u'Confirm\nShow Graph Text\n[input];;'
+                        resp = u'Confirm\nShow Graph Text\n[input];'
                     elif ruleName == 'hideLabels':
-                        resp = u'Confirm\Hide Graph Labels\n[input];;'
+                        resp = u'Confirm\Hide Graph Labels\n[input];'
                     elif ruleName == 'showLabels':
-                        resp = u'Confirm\nShow Graph Labels\n[input];;'
+                        resp = u'Confirm\nShow Graph Labels\n[input];'
                     elif ruleName == 'hideResp':
-                        resp = u'Confirm\Hide Graph Responses\n[input];;'
+                        resp = u'Confirm\Hide Graph Responses\n[input];'
                     elif ruleName == 'showResp':
-                        resp = u'Confirm\nShow Graph Responses\n[input];;'
+                        resp = u'Confirm\nShow Graph Responses\n[input];'
 
                 elif responseType == "quit":
                     # System exit handled in openallure.py
-                    resp = u'Confirm\nQuit\n[input];;'
+                    resp = u'Confirm\nQuit\n[input];'
                     pass
 
                 elif responseType == "return":
                     # Return handled in openallure.py
-                    resp = u'Confirm\nReturn\n[input];;'
+                    resp = u'Confirm\nReturn\n[input];'
                     pass
 
                 elif responseType == "open":
@@ -126,7 +132,7 @@ math, text etc..
                     sequenceToOpen = match.group(num)
 
                     resp = _(u'Confirm') + '\n' + _(u'Open ') + sequenceToOpen + \
-                           ';[' + sequenceToOpen + ']\n' + _(u'[input];;')
+                           ';[' + sequenceToOpen + ']\n' + _(u'[input];')
 
                 elif responseType == "text":
                     if isinstance(response, tuple):
@@ -253,21 +259,25 @@ math, text etc..
                         resp = "Dividing " + " by ".join(operands) + \
                         " gives " + str(calculatedResult) + errorMessage
 
-                # fix munged punctuation at the end
-                if resp[-2:] == '?.': resp = resp[:-2] + '.'
-                if resp[-2:] == '??': resp = resp[:-2] + '?'
+                else:
+                    print "Other response type: %s" % respType
+                    raise SystemExit
                 return resp, respType, respName
 
 # Read rules from separate configuration file.
 # This file contains the DEFAULT rules which can be supplemented
 # by rules included in the scripts.   
-gettext.install(domain='openallure', localedir='.', unicode=True)
+gettext.install(domain='openallure', localedir='locale', unicode=True)
  
-config = ConfigObj(r"openallure.cfg")
-language = config['Options']['language']
+config = ConfigObj("openallure.cfg")    
+try:
+    language = config['Options']['language']
+except KeyError:
+    language = 'en'
 if len(language) > 0 and language != 'en':
     mytrans = gettext.translation(u"openallure", 
-                                  '.', languages=[language], fallback=True)
+                                  localedir='locale', 
+                                  languages=[language], fallback=True)
     mytrans.install(unicode=True) # must set explicitly here for mac
     # Add underscore for use in file name of responses.cfg
     responsesFile = "responses_" + language + ".cfg"
@@ -287,7 +297,7 @@ responses = tuple(rules)
 
 # As a last resort, ask for input
 responses = responses + \
-((r'(.*)', (_("Sorry, I don't understand that. What now?") + '\n' + _("[input];;"),), "text", "what now"),)
+((r'(.*)', (_("Sorry, I don't understand that. What now?") + '\n' + _("[input];"),), "text", "what now"),)
 
 
 import unittest
