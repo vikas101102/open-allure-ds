@@ -196,18 +196,18 @@ class QSequence( object ):
         Read either a local plain text file or text tagged <pre> </pre> from a webpage or body of an Etherpad
         """
         config = ConfigObj("openallure.cfg")
-        
+
         # configure language for this question sequence
         # start with default from openallure.cfg (may be overridden by script)
         gettext.install(domain='openallure', localedir='locale',unicode=True)
-        self.language = 'en'  
+        self.language = 'en'
         try:
             self.language = config['Options']['language']
         except KeyError:
-            pass        
+            pass
         if len(self.language) > 0 and self.language != 'en':
-            mytrans = gettext.translation(u"openallure", 
-                                          localedir='locale', 
+            mytrans = gettext.translation(u"openallure",
+                                          localedir='locale',
                                           languages=[self.language], fallback=True)
             mytrans.install(unicode=True) # must set explicitly here for Mac
         self.defaultAnswer = config['Options']['defaultAnswer']
@@ -260,6 +260,7 @@ class QSequence( object ):
 
         elif filename.startswith("nltkResponse.txt"):
             self.inputs = nltkResponse.split("\n")
+
         else:
             if filename.startswith('~/'):
                 filename = os.environ['HOME'] + filename[1:]
@@ -425,7 +426,7 @@ Create list of string types::
                             photoTalk = configValue.strip()
                         elif configItem == 'listen':
                             photoListen = configValue.strip()
-                        
+
                         if isinstance( photoSmile, unicode ) and \
                            isinstance( photoTalk, unicode ) and \
                            isinstance( photoListen, unicode ):
@@ -433,16 +434,16 @@ Create list of string types::
                             photos.append( photoTalk )
                             photos.append( photoListen )
                             del photoSmile, photoTalk, photoListen
-                            
+
                         if configItem == 'language':
                             self.language = configValue
                             if len(self.language) > 0:
-                                mytrans = gettext.translation(u"openallure", 
-                                                              localedir='locale', 
+                                mytrans = gettext.translation(u"openallure",
+                                                              localedir='locale',
                                                               languages=[self.language], fallback=True)
                                 mytrans.install(unicode=True) # must set explicitly here for mac
                                 #print _('Language is %s') % self.language
-                                
+
                 # check if next string is a link
                 # if so, this Q is really an A and will consume both lines
                 elif onString < len(string_types) - 1 and string_types[ onString + 1 ] == "L":
@@ -467,7 +468,7 @@ Create list of string types::
                         action.append(1)
                         destination.append(u'')
                         link.append(u'')
-                        inputFlags.append(0)
+                        inputFlags.append(1)
                     elif self.defaultAnswer == 'input':
                         answer.append(_(u'[input]'))
                         response.append(u'')
@@ -531,7 +532,7 @@ Create list of string types::
                     else:
                         # If a space is not found between the brackets AND
                         # the string did not match the translated values of [input] or [next]
-                        # then we are probably trying to make Open Allure work in the wrong language 
+                        # then we are probably trying to make Open Allure work in the wrong language
                         # TODO: Get user interaction here, not just console
                         print( u"Incorrect syntax in answer: %s " % answerString )
                         print( u"This is probably due to your language setting (%s)" % self.language)
@@ -616,9 +617,11 @@ Create list of string types::
             sequence.append( [question, answer, response, action,
                               destination, link, inputFlags, photos, tag] )
 
-        # catch sequence with a question with no answers and turn it into an input
+        # catch sequence with a question with no answers
+        # and turn it into an input
         if len(sequence) == 0:
-            sequence.append( [ [_(u'What now?')],[],[],[],[],[],[],[],u'' ])
+            sequence.append( [ [_(u'What now?')],[_(u'[input]')],[u''],[0], \
+                               [u''],[u''],[1],[],u'' ])
         if len(sequence[0][QUESTION]) == 0:
             sequence[0][QUESTION] = [_(u'[input]')]
             sequence[0][ACTION] = [0]

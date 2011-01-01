@@ -92,7 +92,11 @@ math, text etc..
                 respType = responseType
                 respName = ruleName
 
-                if responseType == "graph":
+                if responseType == "goto":
+                    # find question with goto tag = ruleName
+                    resp = u'Confirm\nGo to tag ' + ruleName + '\n[input];'
+
+                elif responseType == "graph":
                     if ruleName == 'list':
                         resp = u'Confirm\nList Records\n[input];'
                     elif ruleName == 'meta':
@@ -149,7 +153,7 @@ math, text etc..
                 elif responseType == "show":
                     if ruleName == 'source':
                         resp = response
-                        
+
                 elif responseType == "math":
                     operands = []
                     pos = response.find('%')
@@ -266,24 +270,24 @@ math, text etc..
 
 # Read rules from separate configuration file.
 # This file contains the DEFAULT rules which can be supplemented
-# by rules included in the scripts.   
+# by rules included in the scripts.
 gettext.install(domain='openallure', localedir='locale', unicode=True)
- 
-config = ConfigObj("openallure.cfg")    
+
+config = ConfigObj("openallure.cfg")
 try:
     language = config['Options']['language']
 except KeyError:
     language = 'en'
 if len(language) > 0 and language != 'en':
-    mytrans = gettext.translation(u"openallure", 
-                                  localedir='locale', 
+    mytrans = gettext.translation(u"openallure",
+                                  localedir='locale',
                                   languages=[language], fallback=True)
     mytrans.install(unicode=True) # must set explicitly here for mac
     # Add underscore for use in file name of responses.cfg
     responsesFile = "responses_" + language + ".cfg"
 else:
     responsesFile = "responses.cfg"
-    
+
 config = ConfigObj(responsesFile)
 ruleTypes = config.sections
 rules = []
@@ -303,7 +307,7 @@ responses = responses + \
 import unittest
 
 class TestChat(unittest.TestCase):
-    
+
     def setUp(self):
         self.chatter = Chat(responses, reflections)
 
@@ -330,7 +334,7 @@ class TestChat(unittest.TestCase):
     def testHi(self):
         self.assertTrue( \
         self.chatter.respond('hi')[RESPONSE].startswith("Welcome"))
-        
+
 class TestChatMath(unittest.TestCase):
 
     def setUp(self):
@@ -400,7 +404,7 @@ class TestChatMath(unittest.TestCase):
     def testHideGraph(self):
         self.assertTrue( \
         self.chatter.respond('hide graph')[NAME] == 'hide')
-        
+
     def testHideMap(self):
         self.assertTrue( \
         self.chatter.respond('hide map')[NAME] == 'hide')

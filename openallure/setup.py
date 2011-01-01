@@ -10,7 +10,7 @@ from setuptools import setup
 APP = ['openallure.py']
 DATA_FILES = ['CHANGES.txt','ethics_notice.txt','README.txt','LICENSE.txt',
         'openallure.cfg',
-        'music.txt','start.txt',
+        'music.txt','start.txt','silent_start.txt',
         ('locale/en/LC_MESSAGES',['locale/en/LC_MESSAGES/openallure.mo']),
         'welcome.txt',
         'responses.cfg',
