@@ -34,23 +34,6 @@ from voice import Voice
 from text import OpenAllureText
 from chat import Chat, responses, reflections
 
-WELCOME_TEXT = u"""
-   Welcome to the Open Allure Dialog System.
-
-   Keys:
-       Escape quits
-       Ctrl+I force input
-       Ctrl+R refresh
-       Ctrl+V paste
-       F6 debug
-   
-   Commands:
-       exit
-       open <filename or url>
-       quit
-       show source (Mac only)
-"""
-
 QUESTION = 0
 ANSWER = 1
 RESPONSE = 2
@@ -58,6 +41,9 @@ ACTION = 3
 DESTINATION = 4
 LINK = 5
 INPUTFLAG = 6
+#PHOTOS = 7
+TAG = 8
+RULE = 9
 
 class OpenAllure(object):
     def __init__(self):
@@ -69,6 +55,7 @@ class OpenAllure(object):
         self.statedq = -1
         self.voiceChoice = -1
         self.lastQuestionAnswered = 0
+        self.systemVoice = ''
 
 openallure = OpenAllure()
 
@@ -94,21 +81,35 @@ def main():
 
     config = ConfigObj('openallure.cfg')
     
-    # determine what language to use
-    
-    gettext.install(domain='openallure', localedir='.', unicode=True)
-    language = config['Options']['language']
+    # determine what language to use for string translations
+    # this can be overridden in scripts
+    gettext.install(domain='openallure', localedir='locale', unicode=True)
+    try:
+        language = config['Options']['language']
+    except KeyError:
+        language = 'en'
     if len(language) > 0 and language != 'en':
         mytrans = gettext.translation(u"openallure", 
-                                      '.', languages=[language], fallback=True)
-        mytrans.install(unicode=True) # must set explicitly here for mac
-
+                                      localedir='locale', 
+                                      languages=[language], fallback=True)
+        mytrans.install(unicode=True) # must set explicitly here for Mac
+    # language also determines which default systemVoice to use (Mac only)
+    openallure.systemVoice = ''
+    try:
+        openallure.systemVoice = config['Voice'][language]
+    except KeyError:
+        pass
+        
     # load initial question sequence from url specified in openallure.cfg file
     url = unicode(config['Source']['url'])
     if len(sys.argv) > 1 and 0 != len(sys.argv[1]):
         url = unicode(sys.argv[1])
     backgroundColor = eval(config['Colors']['background'])
     seq = QSequence(filename = url)
+    try:
+        openallure.systemVoice = config['Voice'][seq.language]
+    except KeyError:
+        pass
 
     # open database to track progress
 
@@ -128,14 +129,7 @@ def main():
     openallure_chatbot = Chat(responses, reflections)
     chatHistory = []
     onChatHistory = -1
-
-    # load browser command line strings and select appropriate one
-    darwinBrowser = config['Browser']['darwinBrowser']
-    windowsBrowser = config['Browser']['windowsBrowser']
-    if sys.platform == 'darwin':
-        browser = darwinBrowser
-    else:
-        browser = windowsBrowser
+        
     # track when Open Allure has gained mouse focus
     openallure.gain = 1
 
@@ -168,7 +162,7 @@ def main():
     openallure.currentString = u""
 
     # Subprocesses
-    graphViz = None
+#    graphViz = None
 #    openallure.showResponses = eval(config['GraphViz']['showResponses'])
 #    openallure.showText = eval(config['GraphViz']['showText'])
 #    openallure.showLabels = eval(config['GraphViz']['showLabels'])
@@ -177,12 +171,29 @@ def main():
     #    oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
     #    graphViz = subprocess.Popen([graphVizPath,'oagraph.dot'])
 
-    browserLink = None
-
     # Greetings
     #voice.speak('Hello')
 
-    print WELCOME_TEXT
+    WELCOME_TEXT = ["",
+    _(u"       Welcome to the Open Allure Dialog System."),
+    "",          
+    _(u"       Keys:"),
+    _(u"           Escape quits"),
+    _(u"           Ctrl+I force input"),
+    _(u"           Ctrl+R refresh"),
+    _(u"           Ctrl+V paste"),
+    "",      
+    _(u"       Commands:"),
+    _(u"           exit"),
+    _(u"           open <filename or url>"),
+    _(u"           quit"),
+    _(u"           return (resumes at last question)"),
+    _(u"           show source (Mac only)"),
+    ""]
+
+    for line in WELCOME_TEXT:
+        print line
+        
     runFlag = True;
     while runFlag:
 
@@ -214,7 +225,6 @@ def main():
             answer = -1
             choice = (- 1, 0)
             colorLevel = colorLevels = 12
-            eliminate = []
             highlight = 0
 
             # initialize typed input
@@ -240,7 +250,7 @@ def main():
                 
             # arrival record for new question
             record_id = openallure.db.insert(time = time.time(), \
-            url = url, q = openallure.onQuestion)
+            url = unicode(url), q = openallure.onQuestion)
 
         # make sure currentString has been added to questionText
         if openallure.currentString:
@@ -274,14 +284,14 @@ def main():
                   pygame.key.get_mods() & pygame.KMOD_CTRL):
                 # TODO: This kills the entire current sequence. Build a way to back up to it.
                 seq.inputs = [_(u"Input"),
-                         _(u"[input];;")]
+                         _(u"[input];")]
                 seq.sequence = seq.regroup(seq.inputs, \
-                seq.classify(seq.inputs))
+                               seq.classify(seq.inputs))
                 openallure.onQuestion = 0
                 url = _(u'[input]')
                 # record call to input
                 record_id = openallure.db.insert(time = time.time(), \
-                url = url, q = 0)
+                            url = unicode(url), q = 0)
                 openallure.ready = False
 
             # Trap and paste clipboard on Ctrl + V for Mac
@@ -321,6 +331,10 @@ def main():
                   event.key == pygame.K_r and
                   pygame.key.get_mods() & pygame.KMOD_CTRL):
                 seq = QSequence(filename = url)
+                try:
+                    openallure.systemVoice = config['Voice'][seq.language]
+                except KeyError:
+                    pass
                 openallure.ready = False
 
             # Define toggle keys and capture string inputs
@@ -334,8 +348,8 @@ def main():
                         if answer < choiceCount:
                             # Record choice along with destination, if any
                             record_id = openallure.db.insert(time = time.time(), \
-                            url = url, q = openallure.onQuestion, \
-                            a = answer, cmd = openallure.question[DESTINATION][answer])
+                            url = unicode(url), q = openallure.onQuestion, \
+                            a = answer, cmd = unicode(openallure.question[DESTINATION][answer]))
 #                            if graphViz:
 #                                graphViz.kill()
 #                                oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
@@ -390,7 +404,7 @@ def main():
                         openallure.onQuestion = 0
 
                 elif event.key == pygame.K_UP:
-                    if len(chatHistory) > 0 and onChatHistory > -1:
+                    if len(chatHistory) > 0 and onChatHistory > 0:
                         onChatHistory -= 1
                         openallure.currentString = chatHistory[onChatHistory]
                 elif event.key == pygame.K_DOWN:
@@ -406,12 +420,18 @@ def main():
                         onChatHistory = len(chatHistory)
                         # record input string
                         record_id = openallure.db.insert(time = time.time(), \
-                        url = unicode(url), q = openallure.onQuestion, \
-                        a = answer, cmd = openallure.currentString)
+                                    url = unicode(url), q = openallure.onQuestion, \
+                                    a = answer, cmd = openallure.currentString)
+                        # Check for rules from script at end of question 0
+                        if len(seq.sequence[0]) > 9:
+                            scriptRules = seq.sequence[0][RULE]
+                        else:
+                            scriptRules = None
                         nltkResponse, \
                         nltkType, \
                         nltkName = \
-                        openallure_chatbot.respond(openallure.currentString)
+                        openallure_chatbot.respond(openallure.currentString, \
+                                                   scriptRules)
 
                         # Act on commands
                         if nltkType == 'quit':
@@ -425,10 +445,14 @@ def main():
                             for id in range(record_id - 1,-1,-1):
                                 try:
                                     record = openallure.db[id]
-                                    if not record.url in (url, u'nltkResponse.txt'):
+                                    if not record.url in (url, u'nltkResponse.txt', _(u'[input]')):
                                         seq = QSequence(filename = record.url, \
                                                 path = seq.path, \
                                                 nltkResponse = nltkResponse)
+                                        try:
+                                            openallure.systemVoice = config['Voice'][seq.language]
+                                        except KeyError:
+                                            pass
                                         url = record.url
                                         openallure.onQuestion = record.q
                                         openallure.ready = False
@@ -452,6 +476,10 @@ def main():
                             seq = QSequence(filename = url,
                                             path = path,
                                             nltkResponse = nltkResponse)
+                            try:
+                                openallure.systemVoice = config['Voice'][seq.language]
+                            except KeyError:
+                                pass
                             openallure.onQuestion = 0
                             openallure.ready = False
 #                            if graphViz:
@@ -467,64 +495,12 @@ def main():
                                 # Find first non-[input] sequence in db, walking back
                                 for id in range(record_id - 1,-1,-1):
                                     record = openallure.db[id]
-                                    print record
                                     if record.url.find('.txt') > 0 or \
                                        record.url.find('http:') == 0 :
                                         if not record.url == 'nltkResponse.txt':
                                             url = record.url
-                                            print url
                                             break
                                 os.system("open "+url)
-
-#                        if nltkType == 'graph':
-#                            # Commands which change graph display
-#                            if nltkName == 'hideText':
-#                                openallure.showText = False
-#                            elif nltkName == 'showText':
-#                                openallure.showText = True
-#                            elif nltkName == 'showResp':
-#                                openallure.showResponses = True
-#                            elif nltkName == 'hideResp':
-#                                openallure.showResponses = False
-#                            elif nltkName == 'showLabels':
-#                                openallure.showLabels = True
-#                            elif nltkName == 'hideLabels':
-#                                openallure.showLabels = False
-#                            elif nltkName == 'hide':
-#                                if graphViz:
-#                                    graphViz.kill()
-#                                graphViz = None
-#                            elif nltkName == 'reset':
-#                                records = [record for record in openallure.db]
-#                                openallure.db.delete(records)
-#                                openallure.db.cleanup()
-#
-#                            # Make .dot file and display graph
-#                            if nltkName in ('show', \
-#                            'hideText', 'showText', \
-#                            'showResp', 'hideResp', \
-#                            'meta', 'reset'):
-#                                if nltkName == 'meta':
-#                                    # Crete .dot meta file
-#                                    oaMetaGraph(openallure.db)
-#                                else:
-#                                    # Create .dot file for one sequence in response to command
-#                                    oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
-#                                # Display graph
-#                                if graphViz:
-#                                    graphViz.kill()
-#                                    oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
-#                                graphViz = subprocess.Popen([graphVizPath, 'oagraph.dot'])
-#                            if nltkName == 'list':
-#                                for record in (record for record in openallure.db):
-#                                    if record.cmd:
-#                                        print(record.__id__, str(record.url), record.q, record.a, str(record.cmd))
-#                                    elif not record.a == None:
-#                                        print(record.__id__, str(record.url), record.q, record.a)
-#                                    else:
-#                                        print(record.__id__, str(record.url), record.q)
-#                            nltkResponse = u''
-#                            openallure.currentString = u''
 
                         # if nltkResponse is one line containing a semicolon,
                         # replace the semicolon with \n
@@ -538,6 +514,7 @@ def main():
                         # This takes last response
                         answer = choiceCount - 1
                         choice = (choiceCount, 0)
+                        
                 elif event.key == pygame.K_BACKSPACE and \
                 openallure.question[INPUTFLAG][choiceCount - 1] == 1:
                     openallure.currentString = openallure.currentString[0:-1]
@@ -547,9 +524,10 @@ def main():
                     questionText[choiceCount - 1] + \
                     u"\n" + openallure.currentString
                     screen.fill(backgroundColor, rect=textRect)
+                    
                 elif event.key <= 127 and \
-                openallure.question[INPUTFLAG][choiceCount - 1] == 1:
-                    # print event.key
+                openallure.question[INPUTFLAG][-1] == 1:
+                    # p rint event.key
                     mods = pygame.key.get_mods()
                     if mods & pygame.KMOD_SHIFT:
                         if event.key in range(47, 60):
@@ -563,21 +541,23 @@ def main():
                         elif event.key == 96:
                             openallure.currentString += u"~"
                         else:
-                            openallure.currentString += unicode(chr(event.key).upper())
+                            openallure.currentString += \
+                                unicode(chr(event.key).upper())
                     else:
                         openallure.currentString += unicode(chr(event.key))
                     openallure.question[ANSWER][choiceCount - 1] = \
-                    openallure.currentString
+                        openallure.currentString
+                    # Add currentString to text being displayed
                     questionText[choiceCount] = \
-                    questionText[choiceCount - 1] + \
-                    u"\n" + openallure.currentString
+                        questionText[choiceCount - 1] + \
+                        u"\n" + openallure.currentString
                     screen.fill(backgroundColor, rect=textRect)
 
         # check for automatic page turn
         if openallure.ready and \
            openallure.stated == True and \
            not openallure.currentString and \
-           openallure.question[ANSWER][choiceCount - 1] == _(u'[next]') and \
+           openallure.question[ANSWER][-1] == _(u'[next]') and \
            pygame.time.get_ticks() - delayStartTime > delayTime:
             # This takes last response
             answer = choiceCount - 1
@@ -611,9 +591,9 @@ def main():
                         if len(answerText) > 0:
                             # Check for answer with "A. "
                             if answerText[1:3] == '. ':
-                                voice.speak(answerText[3:].strip())
+                                voice.speak(answerText[3:].strip(),openallure.systemVoice)
                             else:
-                                voice.speak(answerText.strip())
+                                voice.speak(answerText.strip(),openallure.systemVoice)
                         del answerText
 
                 # Speak each part of the question using onText pointer
@@ -622,7 +602,7 @@ def main():
                     if not (openallure.question[QUESTION][onText].endswith( '...' )):
                         if len(openallure.question[QUESTION][onText]) > 0:
                             # speak the current part of the question
-                            voice.speak(openallure.question[QUESTION][onText])
+                            voice.speak(openallure.question[QUESTION][onText],openallure.systemVoice)
 
         if answer < 0 and openallure.ready:
 
@@ -642,15 +622,14 @@ def main():
                 onRegion = regions.index(1)
             else:
                 onRegion = 0
-                
-            #print mouseButtonDownEventY, mouseButtonDownEvent, regions, onRegion, answer
+
             if onRegion > 0:
                 if mouseButtonDownEvent:
                     answer = onRegion - 1
                     if answer < choiceCount:
                         # record selection of answer
                         record_id = openallure.db.insert(time = time.time(), \
-                        url = url, q = openallure.onQuestion, \
+                        url = unicode(url), q = openallure.onQuestion, \
                         a = answer)
 #                        if graphViz and openallure.question[ACTION][answer] == 0:
 #                            # Create .dot file for one sequence in response to answer in place
@@ -690,7 +669,6 @@ def main():
             # block non-choices
             if choice[0] < 0 or choice[0] > len(questionText) - 1:
                 choice = (-1, 0)
-            #print choice, highlight
 
             screen.fill(backgroundColor, rect=textRect)
             text.paintText(screen,
@@ -723,9 +701,9 @@ def main():
                 if len(nltkResponse) == 0:
                     choice = (-1, 0)
                     answer = -1
-                    voice.speak(_("Try again"))
+                    voice.speak(_("Try again"),openallure.systemVoice)
                 else:
-                    voice.speak(_(u"You entered ") + openallure.currentString)
+                    voice.speak(_(u"You entered ") + openallure.currentString,openallure.systemVoice)
                 # Reset string
                 openallure.currentString = u''
 
@@ -746,7 +724,7 @@ def main():
                 (isinstance(openallure.question[RESPONSE][answer], str) or \
                 isinstance(openallure.question[RESPONSE][answer], unicode)):
                     #speak response to answer
-                    voice.speak(openallure.question[RESPONSE][answer].strip())
+                    voice.speak(openallure.question[RESPONSE][answer].strip(),openallure.systemVoice)
 
             #check that next sequence exists as integer for answer
             if len(openallure.question[ACTION]) and \
@@ -754,17 +732,20 @@ def main():
             isinstance(openallure.question[ACTION][answer], int):
                 #get new sequence or advance in sequence
                 action = openallure.question[ACTION][answer]
-                if not openallure.question[DESTINATION][answer] == '' and \
+                if len(openallure.question[DESTINATION][answer]) > 0 and \
                 not openallure.question[ANSWER][answer] == _(u'[next]'):
                     # speak("New source of questions")
                     # Reset stated question pointer for new sequence
                     openallure.statedq = -1
                     path = seq.path
-                    #print "path is ", path
                     url = openallure.question[DESTINATION][answer]
                     seq = QSequence(filename = url,
                                     path = path,
                                     nltkResponse = nltkResponse)
+                    try:
+                        openallure.systemVoice = config['Voice'][seq.language]
+                    except KeyError:
+                        pass
                     openallure.onQuestion = 0
                     openallure.questions = []
                 else:
@@ -772,49 +753,16 @@ def main():
                     if action > 0:
                         openallure.questions.append(openallure.onQuestion)
                         openallure.onQuestion = openallure.onQuestion + action
-
-                    # Try to pop question off stack if moving back one
-#                    elif action == -1:
-#                        for i in range(1, 1 - action):
-#                            if len(openallure.questions) > 0:
-#                                openallure.onQuestion = \
-#                                openallure.questions.pop()
-#                            else:
-#                                openallure.onQuestion = 0
                                 
                     elif action < 0:
                         openallure.onQuestion = max( 0, openallure.onQuestion + action )
 
                     # Quit if advance goes beyond end of sequence
                     if openallure.onQuestion >= len(seq.sequence):
-                        voice.speak(_("You have reached the end. Goodbye."))
+                        voice.speak(_("You have reached the end. Goodbye."),openallure.systemVoice)
                         return
                   
                 openallure.ready = False  
-                
-
-##            else:
-##               # invalid or final choice
-##               print "Something is wrong with the question sequence."
-##               print seq.sequence
-##               return
-##
-### initialize speech recognition before entering main()
-##config = ConfigParser.RawConfigParser()
-##config.read('openallure.cfg')
-##useDragonfly = eval(config.get('Voice', 'useDragonfly'))
-##useEspeak = eval(config.get('Voice', 'useEspeak'))
-##
-##def speak(phrase):
-##    #print phrase
-##    if useDragonfly:
-##        e = dragonfly.get_engine()
-##        e.speak(phrase)
-##    if useEspeak:
-##        os.system('espeak -s150 "' + phrase + '"')
-##    if not (useDragonfly or useEspeak):
-##        print phrase
-##        pygame.time.wait(500)
 
 if __name__ == '__main__':
     main()

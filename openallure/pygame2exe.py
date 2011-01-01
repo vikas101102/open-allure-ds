@@ -135,9 +135,20 @@ class BuildExe:
             self.icon_file = os.path.join(path, 'pygame.ico')
 
         #List all data files to add
-        extra_datas = ['openallure.cfg','responses.cfg','responses_pt.cfg','welcome.txt','bem-vindo.txt',"SayStatic.exe",
-        "freesansbold.ttf",'CHANGES.txt','ethics_notice.txt','README.txt','LICENSE.txt',
-        'music.txt','start.txt',('pt/LC_MESSAGES',['pt/LC_MESSAGES/openallure.mo'])]
+        extra_datas = ['CHANGES.txt','ethics_notice.txt','README.txt','LICENSE.txt',
+        'openallure.cfg',
+        "SayStatic.exe",
+        "freesansbold.ttf",
+        'music.txt','start.txt',
+        ('locale/en/LC_MESSAGES',['locale/en/LC_MESSAGES/openallure.mo']),
+        'welcome.txt',
+        'responses.cfg',
+        ('locale/it/LC_MESSAGES',['locale/it/LC_MESSAGES/openallure.mo']),
+        'benvenuti.txt',
+        'responses.cfg',
+        ('locale/pt/LC_MESSAGES',['locale/pt/LC_MESSAGES/openallure.mo']),
+        'bem-vindo.txt',
+        'responses_pt.cfg']
         for data in self.extra_datas:
             if os.path.isdir(data):
                 extra_datas.extend(self.find_data_files(data, '*'))

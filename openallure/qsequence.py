@@ -187,13 +187,6 @@ import urllib2
 from BeautifulSoup import BeautifulSoup          # For processing HTML
 from configobj import ConfigObj
 
-gettext.install(domain='openallure', localedir='.', unicode=True)
-config = ConfigObj('openallure.cfg')
-language = config['Options']['language']
-if len(language) > 0 and language != 'en':
-    mytrans = gettext.translation(u"openallure", 
-                                  '.', languages=[language], fallback=True)
-    mytrans.install(unicode=True) # must set explicitly here for mac
 
 class QSequence( object ):
     """A Question Sequence contains (multiple) question blocks consisting of a question with answers/responses/actions"""
@@ -202,9 +195,23 @@ class QSequence( object ):
         """
         Read either a local plain text file or text tagged <pre> </pre> from a webpage or body of an Etherpad
         """
-        config = ConfigObj(r"openallure.cfg")
+        config = ConfigObj("openallure.cfg")
+        
+        # configure language for this question sequence
+        # start with default from openallure.cfg (may be overridden by script)
+        gettext.install(domain='openallure', localedir='locale',unicode=True)
+        self.language = 'en'  
+        try:
+            self.language = config['Options']['language']
+        except KeyError:
+            pass        
+        if len(self.language) > 0 and self.language != 'en':
+            mytrans = gettext.translation(u"openallure", 
+                                          localedir='locale', 
+                                          languages=[self.language], fallback=True)
+            mytrans.install(unicode=True) # must set explicitly here for Mac
         self.defaultAnswer = config['Options']['defaultAnswer']
-        responsesConfig = ConfigObj(r"responses.cfg")
+        responsesConfig = ConfigObj("responses.cfg")
         self.ruleTypes = responsesConfig.sections
         self.cleanUnicodeTextStr = ''
         self.inputs = []
@@ -240,27 +247,12 @@ class QSequence( object ):
                                str(soup).find(',"attribs":')-1 ]
                     self.inputs = self.cleanUnicodeTextStr.split('\\n')
 
-            #else:
-                # filter out <pre> and any other embedded tags
-#                def isunicode(x): return isinstance(x,unicode)
-#                def lstrip(x): return x.lstrip()
-#    #            def notEmpty(x):
-#    #               if len(x) > 0 : return True
-#                cleanUnicodeText = [ map( lstrip, filter( isunicode, taggedPreText[ x ].contents ) )  for x in range( 0, len( taggedPreText ) ) ]
-#
-#                # get it all down to one text string
-#                self.cleanUnicodeTextStr = "\n".join(["\n".join(list) for list in cleanUnicodeText])
-#                self.inputs = self.cleanUnicodeTextStr.splitlines()
-#               # self.inputs = taggedPreText
 
             if len(self.inputs) == 0:
-##               print( "\n\n   No text marked with <pre> </pre> found at %s" % filename )
-##               print( "   Check view source for &lt;pre&gt; which is currently not supported.\n\n" )
-##               raise SystemExit
-                self.inputs = [u"Hmmm. It seems " + filename, u"does not have a script",
-                           u"marked with <pre> </pre>.",
-                           u"What now?",
-                           u"[input];;"]
+                self.inputs = [_(u"Hmmm. It seems ") + filename, _(u"does not have a script"),
+                           _(u"marked with <pre> </pre>."),
+                           _(u"What now?"),
+                           _(u"[input];;")]
             else:
                 # set path attribute to be everything up to through last slash in url
                 slashAt = filename.rfind( '/' ) + 1
@@ -278,9 +270,9 @@ class QSequence( object ):
                 for line in raw:
                     self.inputs.append( unicode( line, 'utf-8' ) )
             except IOError:
-                self.inputs = [u"Well ... It seems " + filename,u"could not be opened.",
-                           u"What now?",
-                           u"[input];;"]
+                self.inputs = [_(u"Well ... It seems ") + filename, _(u"could not be opened."),
+                           _(u"What now?"),
+                           _(u"[input];;")]
 
         # parse into sequence
         self.sequence = self.regroup( self.inputs, self.classify( self.inputs ) )
@@ -354,6 +346,9 @@ Create list of string types::
                     if inRule:
                         # It's a rule name
                         string_types.append( "R" )
+                    elif i.startswith("[["):
+                        # It's a second rule name
+                        string_types.append( "R" )
                     else:
                         # Check content against list of rule types
                         bracketAt = i.find( ']' )
@@ -386,8 +381,8 @@ Create list of string types::
                             string_types.append("Q")
                             priorQString = i
 
-
-#                print i, string_types[-1]
+#        for index, string in enumerate(strings):
+#            print string_types[index], string
         return string_types
 
     def regroup( self, strings, string_types ):
@@ -422,12 +417,15 @@ Create list of string types::
                         bracketAt = strings[ onString ].find( ']' )
                         configItem, configValue = \
                            strings[ onString ][ 1 : bracketAt ].split( '=' )
-                        if configItem.strip() == 'smile':
+                        configItem = configItem.strip().lower()
+                        configValue = configValue.strip().lower()
+                        if configItem == 'smile':
                             photoSmile = configValue.strip()
-                        elif configItem.strip() == 'talk':
+                        elif configItem == 'talk':
                             photoTalk = configValue.strip()
-                        elif configItem.strip() == 'listen':
+                        elif configItem == 'listen':
                             photoListen = configValue.strip()
+                        
                         if isinstance( photoSmile, unicode ) and \
                            isinstance( photoTalk, unicode ) and \
                            isinstance( photoListen, unicode ):
@@ -435,6 +433,16 @@ Create list of string types::
                             photos.append( photoTalk )
                             photos.append( photoListen )
                             del photoSmile, photoTalk, photoListen
+                            
+                        if configItem == 'language':
+                            self.language = configValue
+                            if len(self.language) > 0:
+                                mytrans = gettext.translation(u"openallure", 
+                                                              localedir='locale', 
+                                                              languages=[self.language], fallback=True)
+                                mytrans.install(unicode=True) # must set explicitly here for mac
+                                #print _('Language is %s') % self.language
+                                
                 # check if next string is a link
                 # if so, this Q is really an A and will consume both lines
                 elif onString < len(string_types) - 1 and string_types[ onString + 1 ] == "L":
@@ -463,8 +471,8 @@ Create list of string types::
                     elif self.defaultAnswer == 'input':
                         answer.append(_(u'[input]'))
                         response.append(u'')
-                        action.append(1)
-                        destination.append(u'')
+                        action.append(0)
+                        destination.append(u'nltkResponse.txt')
                         link.append(u'')
                         inputFlags.append(1)
                 # signal for end of question IF there are responses
@@ -521,8 +529,12 @@ Create list of string types::
                         linkString = answerString[ 1 : spaceAt]
                         label = u'[' + answerString[ spaceAt + 1 : ]
                     else:
+                        # If a space is not found between the brackets AND
+                        # the string did not match the translated values of [input] or [next]
+                        # then we are probably trying to make Open Allure work in the wrong language 
+                        # TODO: Get user interaction here, not just console
                         print( u"Incorrect syntax in answer: %s " % answerString )
-                        print( u"This is probably due to your language setting (%s)" % language)
+                        print( u"This is probably due to your language setting (%s)" % self.language)
                         raise SystemExit
                 elif answerString.startswith(u'http://'):
                     spaceAt = answerString.find(u' ')
@@ -595,10 +607,10 @@ Create list of string types::
             if len(question) == 0:
                 question.append(u'')
             if len(question) and not len(answer):
-                answer.append(u'[input]')
+                answer.append(_(u'[input]'))
                 response.append(u'')
-                action.append(1)
-                destination.append(u'')
+                action.append(0)
+                destination.append(u'nltkResponse.txt')
                 link.append(u'')
                 inputFlags.append(1)
             sequence.append( [question, answer, response, action,
@@ -608,7 +620,7 @@ Create list of string types::
         if len(sequence) == 0:
             sequence.append( [ [_(u'What now?')],[],[],[],[],[],[],[],u'' ])
         if len(sequence[0][QUESTION]) == 0:
-            sequence[0][QUESTION] = [u'[input]']
+            sequence[0][QUESTION] = [_(u'[input]')]
             sequence[0][ACTION] = [0]
             sequence[0][DESTINATION] = [u'nltkResponse.txt']
             sequence[0][INPUTFLAG] = [1]
@@ -626,11 +638,9 @@ Create list of string types::
                     # to tagged question
                     sequence[ qnum ][ACTION][ lnum ] = tags.index(link[link.rfind('/') + 1:].lower()) - qnum
 
-        # reinitialize script_chatbot with new rules
-#        print "Rules: ", rules
+        # Parse just the lines classified as rules
         ruleStrings = [ str( unicodeStr ) for unicodeStr in rules ]
         scriptRules = ConfigObj( infile = ruleStrings )
-#        print scriptRules
         rules = []
         for section in scriptRules.sections:
             for subsection in scriptRules[section].sections:
@@ -650,7 +660,6 @@ Create list of string types::
                     closeBracketAt = example.find(']', openBracketAt + 1)
                     secondOpenBracketAt = example.find('[', closeBracketAt + 1)
                     secondCloseBracketAt = example.find(']', secondOpenBracketAt + 1)
-                    print openBracketAt, closeBracketAt, secondOpenBracketAt, secondCloseBracketAt
                     if openBracketAt == -1:
                         # if no brackets, use whole example as the regular expression
                         re = example
@@ -687,3 +696,5 @@ if __name__ == "__main__":
         print 'INPUTFLAG   ',question[6]
         print 'PHOTOS      ',question[7]
         print 'TAG         ',question[8]
+        if len(question) > 9:
+            print 'RULES       ',question[9]

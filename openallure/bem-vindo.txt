@@ -3,6 +3,7 @@
 # (c) 2010 John Graves
 # http://openallureds.org
 
+[language=pt]
 Este software permite que você fale com a voz do computador.
 [próximo];;
 
