@@ -80,7 +80,7 @@ def main():
         pygame.scrap.init()
 
     config = ConfigObj('openallure.cfg')
-    
+
     # determine what language to use for string translations
     # this can be overridden in scripts
     gettext.install(domain='openallure', localedir='locale', unicode=True)
@@ -89,8 +89,8 @@ def main():
     except KeyError:
         language = 'en'
     if len(language) > 0 and language != 'en':
-        mytrans = gettext.translation(u"openallure", 
-                                      localedir='locale', 
+        mytrans = gettext.translation(u"openallure",
+                                      localedir='locale',
                                       languages=[language], fallback=True)
         mytrans.install(unicode=True) # must set explicitly here for Mac
     # language also determines which default systemVoice to use (Mac only)
@@ -99,7 +99,7 @@ def main():
         openallure.systemVoice = config['Voice'][language]
     except KeyError:
         pass
-        
+
     # load initial question sequence from url specified in openallure.cfg file
     url = unicode(config['Source']['url'])
     if len(sys.argv) > 1 and 0 != len(sys.argv[1]):
@@ -129,7 +129,7 @@ def main():
     openallure_chatbot = Chat(responses, reflections)
     chatHistory = []
     onChatHistory = -1
-        
+
     # track when Open Allure has gained mouse focus
     openallure.gain = 1
 
@@ -176,13 +176,13 @@ def main():
 
     WELCOME_TEXT = ["",
     _(u"       Welcome to the Open Allure Dialog System."),
-    "",          
+    "",
     _(u"       Keys:"),
     _(u"           Escape quits"),
     _(u"           Ctrl+I force input"),
     _(u"           Ctrl+R refresh"),
     _(u"           Ctrl+V paste"),
-    "",      
+    "",
     _(u"       Commands:"),
     _(u"           exit"),
     _(u"           open <filename or url>"),
@@ -193,7 +193,7 @@ def main():
 
     for line in WELCOME_TEXT:
         print line
-        
+
     runFlag = True;
     while runFlag:
 
@@ -247,7 +247,7 @@ def main():
 
             # start with gain
             openallure.gain = 1
-                
+
             # arrival record for new question
             record_id = openallure.db.insert(time = time.time(), \
             url = unicode(url), q = openallure.onQuestion)
@@ -282,7 +282,8 @@ def main():
             elif (event.type == pygame.KEYDOWN and
                   event.key == pygame.K_i and
                   pygame.key.get_mods() & pygame.KMOD_CTRL):
-                # TODO: This kills the entire current sequence. Build a way to back up to it.
+                # Note: This kills the entire current sequence.
+                # The return command gives a way to back to it.
                 seq.inputs = [_(u"Input"),
                          _(u"[input];")]
                 seq.sequence = seq.regroup(seq.inputs, \
@@ -330,6 +331,16 @@ def main():
             elif (event.type == pygame.KEYDOWN and
                   event.key == pygame.K_r and
                   pygame.key.get_mods() & pygame.KMOD_CTRL):
+                # if url is nltkRespose.txt, look back for something else
+                # worth refreshing
+                if url == u'nltkResponse.txt':
+                    for id in range(record_id - 1,-1,-1):
+                        record = openallure.db[id]
+                        if not record.url in (url, \
+                                              u'nltkResponse.txt', \
+                                              _(u'[input]')):
+                            url = record.url
+                            break
                 seq = QSequence(filename = url)
                 try:
                     openallure.systemVoice = config['Voice'][seq.language]
@@ -434,6 +445,20 @@ def main():
                                                    scriptRules)
 
                         # Act on commands
+                        if nltkType == 'goto' or \
+                          (nltkType == 'text' and nltkName == 'what now'):
+                            # find question with goto tag = ruleName or
+                            # currentString (if it didn't match anything else)
+                            tags = [ question[TAG] for question in seq.sequence ]
+                            if nltkName in tags:
+                                openallure.onQuestion = tags.index(nltkName)
+                                openallure.ready = False
+                            if nltkName== 'what now' and \
+                               openallure.currentString.lower() in tags:
+                                openallure.onQuestion = \
+                                    tags.index(openallure.currentString)
+                                openallure.ready = False
+
                         if nltkType == 'quit':
                             #TODO: Make this more polite
 #                            if graphViz:
@@ -514,7 +539,7 @@ def main():
                         # This takes last response
                         answer = choiceCount - 1
                         choice = (choiceCount, 0)
-                        
+
                 elif event.key == pygame.K_BACKSPACE and \
                 openallure.question[INPUTFLAG][choiceCount - 1] == 1:
                     openallure.currentString = openallure.currentString[0:-1]
@@ -524,7 +549,7 @@ def main():
                     questionText[choiceCount - 1] + \
                     u"\n" + openallure.currentString
                     screen.fill(backgroundColor, rect=textRect)
-                    
+
                 elif event.key <= 127 and \
                 openallure.question[INPUTFLAG][-1] == 1:
                     # p rint event.key
@@ -612,11 +637,11 @@ def main():
                                          text.boundingRectangle, \
                                          text.unreadColor, \
                                          questionText[-1])
-            
+
             # Create list where each element indicates with 1 or 0
-            # whether Y coordinate is in the region 
+            # whether Y coordinate is in the region
             regions = [inRegion(region, mouseButtonDownEventY) for region in textRegions]
-            
+
             # Find which region has a 1, if any
             if 1 in regions:
                 onRegion = regions.index(1)
@@ -753,7 +778,7 @@ def main():
                     if action > 0:
                         openallure.questions.append(openallure.onQuestion)
                         openallure.onQuestion = openallure.onQuestion + action
-                                
+
                     elif action < 0:
                         openallure.onQuestion = max( 0, openallure.onQuestion + action )
 
@@ -761,8 +786,8 @@ def main():
                     if openallure.onQuestion >= len(seq.sequence):
                         voice.speak(_("You have reached the end. Goodbye."),openallure.systemVoice)
                         return
-                  
-                openallure.ready = False  
+
+                openallure.ready = False
 
 if __name__ == '__main__':
     main()

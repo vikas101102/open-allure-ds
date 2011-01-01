@@ -139,7 +139,7 @@ class BuildExe:
         'openallure.cfg',
         "SayStatic.exe",
         "freesansbold.ttf",
-        'music.txt','start.txt',
+        'music.txt','start.txt','silent_start.txt',
         ('locale/en/LC_MESSAGES',['locale/en/LC_MESSAGES/openallure.mo']),
         'welcome.txt',
         'responses.cfg',
