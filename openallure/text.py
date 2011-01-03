@@ -38,6 +38,8 @@ class OpenAllureText(object):
         self.fontSize = eval(config['Font']['size'])
         if sys.platform == 'darwin':
             self.font = pygame.font.Font( '/Library/Fonts/Arial.ttf', self.fontSize )
+            # For Korean
+            #self.font = pygame.font.Font( '/Library/Fonts/HeadlineA.ttf', self.fontSize )
         else:
             #self.font = pygame.font.SysFont( self.fontName, self.fontSize )
             self.font = pygame.font.Font('freesansbold.ttf', self.fontSize )

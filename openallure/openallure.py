@@ -15,6 +15,7 @@ MIT License: see LICENSE.txt
 __version__ = '0.1d32dev'
 
 # Standard Python modules
+import itertools
 import os
 import sys
 import time
@@ -132,6 +133,8 @@ def main():
 
     # track when Open Allure has gained mouse focus
     openallure.gain = 1
+    # mouse focus only matters when stickyBrowser is true (see openallure.cfg)
+    openallure.stickBrowser = eval(config['Options']['stickyBrowser'])
 
     voice = Voice()
 
@@ -149,6 +152,7 @@ def main():
     # Has question been openallure.stated (read aloud)?
     openallure.stated = False
     # Which question in sequence has been read aloud (to avoid re-reading it)?
+    # Note: -1 indicates no question as valid questions start with 0
     openallure.statedq = -1
     # What choice (if any) has been highlighted by gesture or keyboard?
     highlight = 0
@@ -157,6 +161,7 @@ def main():
     # Do we have an answer? what number is it (with 0 being first answer)?
     answer = -1
     # What questions have been shown (list)?
+    # Note: This list is also checked to avoid re-stating a question
     openallure.questions = []
     # What has been typed in so far
     openallure.currentString = u""
@@ -219,6 +224,8 @@ def main():
             onAnswer = 0
             onText = 0
             openallure.stated = False
+            if openallure.onQuestion in openallure.questions:
+                openallure.stated = True
 
             # initialize selections - nothing has been highlighted
             # or previously selected as an answer
@@ -396,6 +403,7 @@ def main():
                 not openallure.question[INPUTFLAG][choiceCount - 1] == 1:
                     # Silence reading of question
                     openallure.stated = True
+                    
                 elif event.key == pygame.K_RIGHT and openallure.allowNext:
                     # Choice is first non-zero entry
                     # in openallure.question[ACTION]
@@ -403,7 +411,15 @@ def main():
                     for i in openallure.question[ACTION]:
                         onChoice += 1
                         if not i == 0:
-                            openallure.voiceChoice = onChoice
+                            answer = onChoice - 1
+                            record_id = openallure.db.insert(time = time.time(), \
+                            url = unicode(url), q = openallure.onQuestion, \
+                            a = answer, cmd = unicode(openallure.question[DESTINATION][answer]))
+#                            if graphViz:
+#                                graphViz.kill()
+#                                oagraph(seq,openallure.db,url,openallure.showText,openallure.showResponses,openallure.showLabels)
+#                                graphViz = subprocess.Popen([graphVizPath, 'oagraph.dot'])
+                            choice = (onChoice, 0)
                             break
                     del onChoice
 
@@ -449,15 +465,54 @@ def main():
                           (nltkType == 'text' and nltkName == 'what now'):
                             # find question with goto tag = ruleName or
                             # currentString (if it didn't match anything else)
+                            if openallure.question[QUESTION] == [_(u"Input")]:
+                                # Back up to first non-Input, non-Sorry question
+                                for id in range(record_id - 1,-1,-1):
+                                    try:
+                                        record = openallure.db[id]
+                                        if not record.url in (url, u'nltkResponse.txt', _(u'[input]')):
+                                            seq = QSequence(filename = record.url, \
+                                                    path = seq.path, \
+                                                    nltkResponse = nltkResponse)
+                                            try:
+                                                openallure.systemVoice = config['Voice'][seq.language]
+                                            except KeyError:
+                                                pass
+                                            url = record.url
+                                            openallure.onQuestion = record.q
+                                            openallure.ready = False
+                                            break
+                                    except:
+                                        pass                             
                             tags = [ question[TAG] for question in seq.sequence ]
                             if nltkName in tags:
                                 openallure.onQuestion = tags.index(nltkName)
                                 openallure.ready = False
                             if nltkName== 'what now' and \
                                openallure.currentString.lower() in tags:
-                                openallure.onQuestion = \
-                                    tags.index(openallure.currentString)
-                                openallure.ready = False
+                                if openallure.onQuestion != \
+                                        tags.index(openallure.currentString):
+                                    openallure.questions.append(openallure.onQuestion) 
+                                    openallure.onQuestion = \
+                                        tags.index(openallure.currentString)
+                                    openallure.ready = False
+                            # If still no luck finding a match, use currentString
+                            # to search all through the text of all the questions
+                            if openallure.ready:
+                                for qnum, question in enumerate(seq.sequence):
+                                    # search in question text and non-Input answer text
+                                    nonInputAnswerText = [answer for answer,input in \
+                                                          itertools.izip(question[ANSWER],
+                                                                         question[INPUTFLAG]) if not input]
+                                    qtext = " ".join(question[QUESTION]) + " " + \
+                                            " ".join(nonInputAnswerText)
+                                    if qtext.lower().find(openallure.currentString.lower()) > -1:
+                                        if openallure.onQuestion != qnum:
+                                            openallure.questions.append(openallure.onQuestion)
+                                            openallure.onQuestion = qnum
+                                            openallure.ready = False
+                                            break
+                                    
 
                         if nltkType == 'quit':
                             #TODO: Make this more polite
@@ -570,8 +625,8 @@ def main():
                                 unicode(chr(event.key).upper())
                     else:
                         openallure.currentString += unicode(chr(event.key))
-                    openallure.question[ANSWER][choiceCount - 1] = \
-                        openallure.currentString
+#                    openallure.question[ANSWER][choiceCount - 1] = \
+#                        openallure.currentString
                     # Add currentString to text being displayed
                     questionText[choiceCount] = \
                         questionText[choiceCount - 1] + \
@@ -736,12 +791,13 @@ def main():
             # if so, follow it
             if len(openallure.question[LINK]) and openallure.question[LINK][answer]:
                 webbrowser.open_new_tab(openallure.question[LINK][answer])
-                # wait in loop until window gains focus
-                openallure.gain = 0
-                while not openallure.gain:
-                    for event in pygame.event.get():
-                        if event.type == pygame.ACTIVEEVENT:
-                            openallure.gain = event.gain
+                # wait in loop until window (re)gains focus
+                if openallure.stickBrowser:
+                    openallure.gain = 0
+                    while not openallure.gain:
+                        for event in pygame.event.get():
+                            if event.type == pygame.ACTIVEEVENT:
+                                openallure.gain = event.gain
 
             #check that response exists for answer
             if len(openallure.question[RESPONSE]) and \

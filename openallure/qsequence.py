@@ -180,13 +180,44 @@ TAG = 8
 RULE = 9
 
 import gettext
+import htmlentitydefs
 import os
+import re
 import sys
 import urllib2
 
 from BeautifulSoup import BeautifulSoup          # For processing HTML
 from configobj import ConfigObj
 
+
+##
+# Removes HTML or XML character references and entities from a text string.
+#
+# @param text The HTML (or XML) source text.
+# @return The plain text, as a Unicode string, if necessary.
+#
+# From Fredrik Lundh, http://effbot.org/zone/re-sub.htm#unescape-html
+
+def unescape(text):
+    def fixup(m):
+        text = m.group(0)
+        if text[:2] == "&#":
+            # character reference
+            try:
+                if text[:3] == "&#x":
+                    return unichr(int(text[3:-1], 16))
+                else:
+                    return unichr(int(text[2:-1]))
+            except ValueError:
+                pass
+        else:
+            # named entity
+            try:
+                text = unichr(htmlentitydefs.name2codepoint[text[1:-1]])
+            except KeyError:
+                pass
+        return text # leave as is
+    return re.sub("&#?\w+;", fixup, text)
 
 class QSequence( object ):
     """A Question Sequence contains (multiple) question blocks consisting of a question with answers/responses/actions"""
@@ -234,18 +265,23 @@ class QSequence( object ):
             soup = BeautifulSoup(urlOpen)
             taggedPre = soup.pre
             if not str(taggedPre) == 'None':
-                self.inputs = ''.join(soup.pre.findAll(text=True)).splitlines()
+                self.inputs = unescape(''.join(soup.pre.findAll(text=True))).splitlines()
             else:
                 # If no taggedPreText, try postbody (NING)
                 postbody = soup.find("div", { "class" : "postbody" })
                 if not str(postbody) == 'None':
-                    self.inputs = '\n'.join(postbody.findAll(text=True)).splitlines()
+                    # restore blank lines
+                    postbodyStr = str(postbody).replace('<br /><br />','\n')
+                    postbody = BeautifulSoup(postbodyStr)
+                    self.inputs = unescape('\n'.join(postbody.findAll(text=True))).splitlines()
+                    # strip off leading spaces
+                    self.inputs = [line.lstrip() for line in self.inputs]
                 else:
                     # If no taggedPreText, try Etherpad body
                     self.cleanUnicodeTextStr = \
                     str(soup)[ str(soup).find('"initialAttributedText":{"text"')+33 : \
                                str(soup).find(',"attribs":')-1 ]
-                    self.inputs = self.cleanUnicodeTextStr.split('\\n')
+                    self.inputs = unescape(self.cleanUnicodeTextStr).split('\\n')
 
 
             if len(self.inputs) == 0:
@@ -335,9 +371,9 @@ Create list of string types::
                             inQuote = False
                             inRule = False
                 elif i.startswith( "http://" ):
-                    slash_at = i.find( ";" )
-                    if slash_at > 0:
-                        string_types.append( str( slash_at ) )
+                    semicolonAt = i.find( ";" )
+                    if semicolonAt > 0:
+                        string_types.append( str( semicolonAt ) )
                     else:
                         # An answer-side link with no square bracket
                         string_types.append( "L" )
@@ -360,16 +396,16 @@ Create list of string types::
                             inRule = True
                         else:
                             # must be question tag or answer-side link
-                            slash_at = i.find( ";" )
-                            if slash_at > 0:
-                                string_types.append( str( slash_at ) )
+                            semicolonAt = i.find( ";" )
+                            if semicolonAt > 0:
+                                string_types.append( str( semicolonAt ) )
                             else:
                                 string_types.append( "Q" )
 
                 else:
-                    slash_at = i.find(";")
-                    if slash_at > 0:
-                        string_types.append(str(slash_at))
+                    semicolonAt = i.find(";")
+                    if semicolonAt > 0:
+                        string_types.append(str(semicolonAt))
                     else:
                         if len(i) > 0:
                             if priorQString.strip().endswith('?'):
@@ -690,6 +726,8 @@ if __name__ == "__main__":
     else:
         seq = QSequence('welcome.txt')
     for question in seq.sequence:
+        print '------------'
+        print 'TAG         ',question[8]
         print 'QUESTION    ',question[0]
         print 'ANSWER      ',question[1]
         print 'RESPONSE    ',question[2]
@@ -698,6 +736,5 @@ if __name__ == "__main__":
         print 'LINK        ',question[5]
         print 'INPUTFLAG   ',question[6]
         print 'PHOTOS      ',question[7]
-        print 'TAG         ',question[8]
         if len(question) > 9:
             print 'RULES       ',question[9]
