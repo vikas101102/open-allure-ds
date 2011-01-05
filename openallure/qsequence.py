@@ -265,6 +265,9 @@ class QSequence( object ):
             soup = BeautifulSoup(urlOpen)
             taggedPre = soup.pre
             if not str(taggedPre) == 'None':
+                taggedPreStr = str(taggedPre).replace('<br />\n','\n')
+                taggedPreStr = taggedPreStr.replace('<br />','\n')
+                soup = BeautifulSoup(taggedPreStr)
                 self.inputs = unescape(''.join(soup.pre.findAll(text=True))).splitlines()
             else:
                 # If no taggedPreText, try postbody (NING)
@@ -272,6 +275,7 @@ class QSequence( object ):
                 if not str(postbody) == 'None':
                     # restore blank lines
                     postbodyStr = str(postbody).replace('<br /><br />','\n')
+                    postbodyStr = postbodyStr.replace('<br/><br/>','\n')
                     postbody = BeautifulSoup(postbodyStr)
                     self.inputs = unescape('\n'.join(postbody.findAll(text=True))).splitlines()
                     # strip off leading spaces
