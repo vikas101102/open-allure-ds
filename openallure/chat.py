@@ -65,7 +65,7 @@ math, text etc..
         for (x, y, z, ruleName) in tuples]
         self._reflections = reflections
 
-    def respond(self, inputString, scriptRules):
+    def respond(self, inputString, scriptRules=None):
         """
         Generate a response to the users input.
 
@@ -145,6 +145,14 @@ math, text etc..
                     else:
                         resp = response
                     resp = self._wildcards(resp, match) # process wild cards
+
+                elif responseType == "configure":
+                    # follow link to question tag (jump to question)
+                    resp = response
+                    
+                elif responseType == "help":
+                    # follow link to question tag (jump to question)
+                    resp = response
 
                 elif responseType == "link":
                     # follow link to question tag (jump to question)
@@ -334,6 +342,12 @@ class TestChat(unittest.TestCase):
     def testHi(self):
         self.assertTrue( \
         self.chatter.respond('hi')[RESPONSE].startswith("Welcome"))
+    def testConfig(self):
+        self.assertEqual( \
+        self.chatter.respond('config')[NAME],'configure')
+    def testConfigure(self):
+        self.assertEqual( \
+        self.chatter.respond('configure')[NAME],'configure')
 
 class TestChatMath(unittest.TestCase):
 
@@ -465,8 +479,8 @@ class TestChatMath(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    test = False
-    #test = True
+    #test = False
+    test = True
     if test:
         unittest.main()
     else:

@@ -323,6 +323,7 @@ class QSequence( object ):
             if filename.startswith('~/'):
                 filename = os.environ['HOME'] + filename[1:]
             # read file and decode with utf-8
+            raw = 0
             try:
                 raw = open( filename ).readlines()
             except:
@@ -609,9 +610,22 @@ Create list of string types::
                         # the string did not match the translated values of [input] or [next]
                         # then we are probably trying to make Open Allure work in the wrong language
                         # TODO: Get user interaction here, not just console
-                        print( u"Incorrect syntax in answer: %s " % answerString )
-                        print( u"This is probably due to your language setting (%s)" % self.language)
-                        raise SystemExit
+                        print( _(u"Incorrect syntax in answer on line ") + "%(onString)d: %(answerString)s " % 
+                               {"onString" : onString + 1, "answerString" :answerString } )
+                        print( _(u"This is probably due to your language setting") + " (%s)" % self.language)
+                        sequence = []
+                        sequence.append( [ [_(u'Sorry. There is a problem with line') + ' ' + str(onString+1) + ' of the script.',
+                                            'The line reads',
+                                            answerString,
+                                            _(u"This may be due to your language setting") + " (" + self.language + ").",
+                                            _(u"Try changing your configuration or fixing the script.")], \
+                                           [_(u'open configuration file'),
+                                            _(u'open music.txt'),
+                                            _(u'[input]')],[u'',u'',u''],[0,0,0],
+                                           [u'',u'',u''],[u'',u'',u''],[1,1,1],[],[0,0,0],u'' ])
+                        
+                        return sequence
+                        # raise SystemExit
                 elif answerString.startswith(u'http://'):
                     spaceAt = answerString.find(u' ')
                     # The syntax only has a chance of being correct if the space comes before the closing bracket
@@ -779,5 +793,5 @@ if __name__ == "__main__":
         print 'INPUTFLAG   ',question[6]
         print 'PHOTOS      ',question[7]
         print 'STICKY      ',question[9]
-        if len(question) > 10:
+        if len(question) > RULE:
             print 'RULES       ',question[10]

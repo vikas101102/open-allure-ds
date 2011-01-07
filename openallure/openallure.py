@@ -450,7 +450,7 @@ def main():
                                     url = unicode(url), q = openallure.onQuestion, \
                                     a = answer, cmd = openallure.currentString)
                         # Check for rules from script at end of question 0
-                        if len(seq.sequence[0]) > 9:
+                        if len(seq.sequence[0]) > RULE:
                             scriptRules = seq.sequence[0][RULE]
                         else:
                             scriptRules = None
@@ -513,6 +513,16 @@ def main():
                                             openallure.ready = False
                                             break
                                     
+
+                        if nltkType == 'configure':
+                            # use open (Mac only) to view source
+                            if sys.platform == 'darwin':
+                                os.system("open "+'openallure.cfg')
+                                
+                        if nltkType == 'help':
+                            # use open (Mac only) to view source
+                            if sys.platform == 'darwin':
+                                os.system("open "+'help.rtf')
 
                         if nltkType == 'quit':
                             #TODO: Make this more polite
