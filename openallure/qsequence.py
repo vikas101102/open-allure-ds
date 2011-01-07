@@ -29,6 +29,7 @@ where configuration overrides can be::
    smile            image to use for smiling avatar
    talk             image to use for talking avatar
    listen           image to use for listening avatar
+   stickyBrowser    0/False = no pause while viewing Browser (voice over), 1/True = pause until gain focus
 
 where Answer can be::
 
@@ -157,8 +158,10 @@ List of lists::
    #     Special case for photos    seq[0][ 7 ] is list of smile/talk/listen photo names
    #     [ The tag strings are next,
    #                             so seq[ ][ 8 ] is a unicode string tag for the question, for example u'skip to here'
-   #     Special case for rules     seq[0][ 9 ] is a tuple with any script-specific rules
-
+   #     [ The stickyBrowser flags are the next list,
+   #                             so seq[ ][ 9 ][ 0 ] determines the behavior of the link http://movieToWatch'   
+   #     Special case for rules     seq[0][10 ] is a tuple with any script-specific rules
+   
 See `Open Allure wiki Separate Content File Syntax`_ for details and examples.
 
 .. _Open Allure wiki Separate Content File Syntax: http://code.google.com/p/open-allure-ds/wiki/SeparateContentFileSyntax
@@ -177,7 +180,8 @@ LINK = 5
 INPUTFLAG = 6
 #PHOTOS = 7
 TAG = 8
-RULE = 9
+STICKY = 9
+RULE = 10
 
 import gettext
 import htmlentitydefs
@@ -222,7 +226,7 @@ def unescape(text):
 class QSequence( object ):
     """A Question Sequence contains (multiple) question blocks consisting of a question with answers/responses/actions"""
 
-    def __init__( self, filename=u"openallure.txt", path='', nltkResponse=None ):
+    def __init__( self, filename=u"openallure.txt", path='', nltkResponse=None):
         """
         Read either a local plain text file or text tagged <pre> </pre> from a webpage or body of an Etherpad
         """
@@ -230,7 +234,7 @@ class QSequence( object ):
 
         # configure language for this question sequence
         # start with default from openallure.cfg (may be overridden by script)
-        gettext.install(domain='openallure', localedir='locale',unicode=True)
+        gettext.install(domain='openallure', localedir='locale', unicode=True)
         self.language = 'en'
         try:
             self.language = config['Options']['language']
@@ -241,7 +245,21 @@ class QSequence( object ):
                                           localedir='locale',
                                           languages=[self.language], fallback=True)
             mytrans.install(unicode=True) # must set explicitly here for Mac
+            
         self.defaultAnswer = config['Options']['defaultAnswer']
+        if self.defaultAnswer.lower() in [_('input'),'['+_('input')+']','['+_('input')+'];']:
+            self.defaultAnswer = 'input'
+        elif self.defaultAnswer.lower() in [_('next'),'['+_('next')+']','['+_('next')+'];']:
+            self.defaultAnswer = 'next'
+        else:
+            self.defaultAnswer = ''
+        self.stickyBrowser = config['Options']['stickyBrowser']
+        if self.stickyBrowser.lower() in ['1','true']:
+            self.stickyBrowser = 1
+        else:
+            self.stickyBrowser = 0
+        
+        # find rule types from responses.cfg
         responsesConfig = ConfigObj("responses.cfg")
         self.ruleTypes = responsesConfig.sections
         self.cleanUnicodeTextStr = ''
@@ -307,13 +325,18 @@ class QSequence( object ):
             # read file and decode with utf-8
             try:
                 raw = open( filename ).readlines()
+            except:
+                filename = filename.strip() + '.txt'
+                try:
+                    raw = open( filename ).readlines()
+                except IOError:
+                    self.inputs = [_(u"Well ... It seems ") + filename, _(u"could not be opened."),
+                               _(u"What now?"),
+                               _(u"[input];;")]
+            if raw:
                 self.inputs = []
                 for line in raw:
                     self.inputs.append( unicode( line, 'utf-8' ) )
-            except IOError:
-                self.inputs = [_(u"Well ... It seems ") + filename, _(u"could not be opened."),
-                           _(u"What now?"),
-                           _(u"[input];;")]
 
         # parse into sequence
         self.sequence = self.regroup( self.inputs, self.classify( self.inputs ) )
@@ -441,6 +464,7 @@ Create list of string types::
         inputFlags  = []
         photos      = []
         tag         = u''
+        sticky      = []
         rules       = []
         photoSmile = photoTalk = photoListen = None
         while onString < len( strings ):
@@ -484,6 +508,13 @@ Create list of string types::
                                 mytrans.install(unicode=True) # must set explicitly here for mac
                                 #print _('Language is %s') % self.language
 
+                        # possible override of default stickyBrowser (at question level)
+                        if configItem == 'stickybrowser':
+                            if configValue.strip().lower() in ['1','true']:
+                                self.stickyBrowser = 1
+                            elif configValue.strip().lower() in ['0','false']:
+                                self.stickyBrowser = 0
+
                 # check if next string is a link
                 # if so, this Q is really an A and will consume both lines
                 elif onString < len(string_types) - 1 and string_types[ onString + 1 ] == "L":
@@ -493,6 +524,7 @@ Create list of string types::
                     destination.append(u'')
                     link.append( strings[ onString + 1 ].strip() )
                     inputFlags.append(0)
+                    sticky.append(self.stickyBrowser)
                 else:
                     question.append( strings[ onString ].rstrip() )
             elif string_types[ onString ] == "N":
@@ -509,6 +541,7 @@ Create list of string types::
                         destination.append(u'')
                         link.append(u'')
                         inputFlags.append(1)
+                        sticky.append(self.stickyBrowser)
                     elif self.defaultAnswer == 'input':
                         answer.append(_(u'[input]'))
                         response.append(u'')
@@ -516,13 +549,14 @@ Create list of string types::
                         destination.append(u'nltkResponse.txt')
                         link.append(u'')
                         inputFlags.append(1)
+                        sticky.append(self.stickyBrowser)
                 # signal for end of question IF there are responses
                 if len(response):
                     # add to sequence and reset
                     if len(question) == 0:
                         question.append(u'')
                     sequence.append( [question, answer, response, action,
-                                      destination, link, inputFlags, photos, tag] )
+                                      destination, link, inputFlags, photos, tag, sticky] )
                     question    = []
                     answer      = []
                     response    = []
@@ -532,6 +566,7 @@ Create list of string types::
                     inputFlags  = []
                     photos      = []
                     tag         = u''
+                    sticky      = []
             elif string_types[ onString ] == "C":
                 # skip over comment strings
                 pass
@@ -588,9 +623,10 @@ Create list of string types::
                         label = u'[' + answerString + u']'
                 else:
                     label = answerString
-                link.append( linkString )
-                answer.append( label )
-                inputFlags.append( inputFlag )
+                link.append(linkString)
+                answer.append(label)
+                inputFlags.append(inputFlag)
+                sticky.append(self.stickyBrowser)
 
                 # NOTE: +1 means to leave off first semi-colon
                 responseString = strings[ onString ][ int( string_types[ onString ] ) + 1: ].strip()
@@ -602,7 +638,7 @@ Create list of string types::
                 # with additional ;'s or digits ( including + and - ) or brackets
                 # IF none found, leave action as 0
                 actionValue = 0
-                linkString = u''
+                destinationString = u''
                 while len( responseString ) and responseString.startswith(u';'):
                     actionValue += 1
                     responseString = responseString[ 1: ].lstrip()
@@ -615,29 +651,29 @@ Create list of string types::
                 if len( digits ):
                     actionValue = int( digits )
                 if responseString.startswith( u'[' ):
-                    linkEnd = responseString.find( u']' )
-                    linkString = responseString[ 1 : linkEnd ].strip()
-                    responseString = responseString[ linkEnd + 1 : ].lstrip()
+                    destinationEnd = responseString.find( u']' )
+                    destinationString = responseString[ 1 : destinationEnd ].strip()
+                    responseString = responseString[ destinationEnd + 1 : ].lstrip()
                     # now look at link and decide whether it is a page name
                     # that needs help to become a URL
                     # or a tag
-                    if not linkString.startswith(u'http'):
+                    if not destinationString.startswith(u'http'):
                         # do not put a path in front of a .txt file
-                        if not linkString.endswith(u'.txt'):
-                            linkString = self.path + linkString
+                        if not destinationString.endswith(u'.txt'):
+                            destinationString = self.path + destinationString
                             # to sort out whether this is a tag
                             # we need a complete parsing of the question sequence
                             # so this evaluation will take place in a second pass
                             # which will convert LINKS to ACTIONS when we find a link that points
                             # to a tag within the sequence
-                        #print linkString
+                        #print destinationString
 
                 # If there is [input] in the answerString and no destination
                 # in the responseString, default to nltkResponse.txt
-                if inputFlag and len( linkString ) == 0:
-                    linkString = u'nltkResponse.txt'
+                if inputFlag and len( destinationString ) == 0:
+                    destinationString = u'nltkResponse.txt'
 
-                destination.append( linkString )
+                destination.append( destinationString )
                 response.append( responseString )
                 action.append( actionValue )
 
@@ -654,19 +690,21 @@ Create list of string types::
                 destination.append(u'nltkResponse.txt')
                 link.append(u'')
                 inputFlags.append(1)
+                sticky.append(self.stickyBrowser)
             sequence.append( [question, answer, response, action,
-                              destination, link, inputFlags, photos, tag] )
+                              destination, link, inputFlags, photos, tag, sticky] )
 
         # catch sequence with a question with no answers
         # and turn it into an input
         if len(sequence) == 0:
             sequence.append( [ [_(u'What now?')],[_(u'[input]')],[u''],[0], \
-                               [u''],[u''],[1],[],u'' ])
+                               [u''],[u''],[1],[],['0'],u'' ])
         if len(sequence[0][QUESTION]) == 0:
             sequence[0][QUESTION] = [_(u'[input]')]
             sequence[0][ACTION] = [0]
             sequence[0][DESTINATION] = [u'nltkResponse.txt']
             sequence[0][INPUTFLAG] = [1]
+            sequence[0][STICKY] = [0]
         # photos will not be changed if they are not found
 
         # Take second pass at sequence to convert LINKS to TAGS into ACTIONS
@@ -726,7 +764,7 @@ Create list of string types::
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and 0 != len(sys.argv[1]):
-        seq = QSequence( sys.argv[1] )
+        seq = QSequence( sys.argv[1])
     else:
         seq = QSequence('welcome.txt')
     for question in seq.sequence:
@@ -740,5 +778,6 @@ if __name__ == "__main__":
         print 'LINK        ',question[5]
         print 'INPUTFLAG   ',question[6]
         print 'PHOTOS      ',question[7]
-        if len(question) > 9:
-            print 'RULES       ',question[9]
+        print 'STICKY      ',question[9]
+        if len(question) > 10:
+            print 'RULES       ',question[10]
