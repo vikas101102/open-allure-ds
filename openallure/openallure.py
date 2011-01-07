@@ -12,7 +12,7 @@ Copyright (c) 2011 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__ = '0.1d32dev'
+__version__ = '0.1d33dev'
 
 # Standard Python modules
 import itertools
@@ -44,7 +44,8 @@ LINK = 5
 INPUTFLAG = 6
 #PHOTOS = 7
 TAG = 8
-RULE = 9
+STICKY = 9
+RULE = 10
 
 class OpenAllure(object):
     def __init__(self):
@@ -134,7 +135,6 @@ def main():
     # track when Open Allure has gained mouse focus
     openallure.gain = 1
     # mouse focus only matters when stickyBrowser is true (see openallure.cfg)
-    openallure.stickBrowser = eval(config['Options']['stickyBrowser'])
 
     voice = Voice()
 
@@ -560,6 +560,7 @@ def main():
                                 openallure.systemVoice = config['Voice'][seq.language]
                             except KeyError:
                                 pass
+                            openallure.questions = []
                             openallure.onQuestion = 0
                             openallure.ready = False
 #                            if graphViz:
@@ -792,7 +793,7 @@ def main():
             if len(openallure.question[LINK]) and openallure.question[LINK][answer]:
                 webbrowser.open_new_tab(openallure.question[LINK][answer])
                 # wait in loop until window (re)gains focus
-                if openallure.stickBrowser:
+                if openallure.question[STICKY][answer]:
                     openallure.gain = 0
                     while not openallure.gain:
                         for event in pygame.event.get():

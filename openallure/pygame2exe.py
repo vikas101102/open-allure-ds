@@ -59,7 +59,7 @@ class BuildExe:
         self.project_url = "about:none"
 
         #Version of program
-        self.project_version = "0.1d32dev"
+        self.project_version = "0.1d33dev"
 
         #License of the program
         self.license = "openallure License"
