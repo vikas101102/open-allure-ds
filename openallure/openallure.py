@@ -19,8 +19,9 @@ import itertools
 import os
 import sys
 import time
-import webbrowser
 import gettext
+import urllib
+import webbrowser
 
 # 3rd Party modules
 # note: nltk is used by chat.py
@@ -442,8 +443,12 @@ def main():
 
                 elif event.key == pygame.K_RETURN:
                     if openallure.currentString:
-                        # add to history
-                        chatHistory.append(openallure.currentString)
+                        # add to history if new
+                        if len(chatHistory) > 0:
+                            if chatHistory[-1] != openallure.currentString:
+                                chatHistory.append(openallure.currentString)
+                        else:
+                            chatHistory.append(openallure.currentString)
                         onChatHistory = len(chatHistory)
                         # record input string
                         record_id = openallure.db.insert(time = time.time(), \
@@ -461,6 +466,12 @@ def main():
                                                    scriptRules)
 
                         # Act on commands
+                        if nltkType == 'link':
+                            tags = [ question[TAG] for question in seq.sequence ]
+                            if nltkName in tags:
+                                openallure.onQuestion = tags.index(nltkName)
+                                openallure.ready = False
+                                
                         if nltkType == 'goto' or \
                           (nltkType == 'text' and nltkName == 'what now'):
                             # find question with goto tag = ruleName or
@@ -495,6 +506,8 @@ def main():
                                     openallure.questions.append(openallure.onQuestion) 
                                     openallure.onQuestion = \
                                         tags.index(openallure.currentString)
+                                    # TODO: if question has been seen before it will not be restated, so there will be a fall through
+                                    # the question sequence until some input is required
                                     openallure.ready = False
                             # If still no luck finding a match, use currentString
                             # to search all through the text of all the questions
@@ -514,6 +527,8 @@ def main():
                                             break
                                     
 
+                        if nltkType == 'search':
+                            webbrowser.open_new_tab('http://www.google.com/#' + urllib.urlencode({"q":nltkName}))
                         if nltkType == 'configure':
                             # use open (Mac only) to view source
                             if sys.platform == 'darwin':

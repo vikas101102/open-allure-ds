@@ -147,12 +147,17 @@ math, text etc..
                     resp = self._wildcards(resp, match) # process wild cards
 
                 elif responseType == "configure":
-                    # follow link to question tag (jump to question)
                     resp = response
                     
                 elif responseType == "help":
-                    # follow link to question tag (jump to question)
                     resp = response
+                    
+                elif responseType == "search":
+                    pos = response.find('%')
+                    num = int(response[pos + 1:pos + 2])
+                    # put search words as response 
+                    respName = match.group(num)
+                    resp = "Use the return command to get back to the last script."
 
                 elif responseType == "link":
                     # follow link to question tag (jump to question)

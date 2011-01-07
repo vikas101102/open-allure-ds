@@ -327,17 +327,20 @@ class QSequence( object ):
             try:
                 raw = open( filename ).readlines()
             except:
-                filename = filename.strip() + '.txt'
-                try:
-                    raw = open( filename ).readlines()
-                except IOError:
-                    self.inputs = [_(u"Well ... It seems ") + filename, _(u"could not be opened."),
-                               _(u"What now?"),
-                               _(u"[input];;")]
+                if not filename.endswith(u'.txt'):
+                    filename = filename.strip() + '.txt'
+                    try:
+                        raw = open( filename ).readlines()
+                    except IOError:
+                        pass
             if raw:
                 self.inputs = []
                 for line in raw:
                     self.inputs.append( unicode( line, 'utf-8' ) )
+            else:
+                self.inputs = [_(u"Well ... It seems ") + filename, _(u"could not be opened."),
+                           _(u"What now?"),
+                           _(u"[input];;")]
 
         # parse into sequence
         self.sequence = self.regroup( self.inputs, self.classify( self.inputs ) )
@@ -609,20 +612,18 @@ Create list of string types::
                         # If a space is not found between the brackets AND
                         # the string did not match the translated values of [input] or [next]
                         # then we are probably trying to make Open Allure work in the wrong language
-                        # TODO: Get user interaction here, not just console
                         print( _(u"Incorrect syntax in answer on line ") + "%(onString)d: %(answerString)s " % 
                                {"onString" : onString + 1, "answerString" :answerString } )
                         print( _(u"This is probably due to your language setting") + " (%s)" % self.language)
                         sequence = []
                         sequence.append( [ [_(u'Sorry. There is a problem with line') + ' ' + str(onString+1) + ' of the script.',
                                             'The line reads',
-                                            answerString,
-                                            _(u"This may be due to your language setting") + " (" + self.language + ").",
-                                            _(u"Try changing your configuration or fixing the script.")], \
-                                           [_(u'open configuration file'),
-                                            _(u'open music.txt'),
-                                            _(u'[input]')],[u'',u'',u''],[0,0,0],
-                                           [u'',u'',u''],[u'',u'',u''],[1,1,1],[],[0,0,0],u'' ])
+                                            answerString], \
+                                           [_(u'Discuss some possible solutions'),_(u'[input]')],
+                                           [u'',u''],
+                                           [0,0],
+                                           [u'fixSyntax',u''],
+                                           [u'',u''],[1,1],[],[0,0],u'' ])
                         
                         return sequence
                         # raise SystemExit

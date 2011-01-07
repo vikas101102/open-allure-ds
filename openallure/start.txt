@@ -29,6 +29,8 @@ http://www.youtube.com/watch?v=kVtkOUJhpcA
 
 Hope you enjoyed the music.
 Press the up arrow to recall your last command.
+"return"
+will take you back to your most recent prior script.
 
 # Run this script with the command
 #
