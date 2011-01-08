@@ -19,6 +19,7 @@
 # To build exe, python, pygame, and py2exe have to be installed. After
 # building exe none of this libraries are needed.
 
+from openallure import __version__
 
 try:
     from distutils.core import setup
@@ -59,7 +60,7 @@ class BuildExe:
         self.project_url = "about:none"
 
         #Version of program
-        self.project_version = "0.1d33dev"
+        self.project_version = __version__
 
         #License of the program
         self.license = "openallure License"

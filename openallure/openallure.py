@@ -12,7 +12,7 @@ Copyright (c) 2011 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__ = '0.1d33dev'
+__version__ = '0.1d34dev'
 
 # Standard Python modules
 import itertools
@@ -47,6 +47,9 @@ INPUTFLAG = 6
 TAG = 8
 STICKY = 9
 RULE = 10
+RULE_NAME = 3
+RULE_TYPE = 2
+RULE_RESP = 1
 
 class OpenAllure(object):
     def __init__(self):
@@ -103,12 +106,15 @@ def main():
     except KeyError:
         pass
 
+    # Dictionary of things Open Allure can use to fill in templates
+    openallure.dictionary = {}
+    
     # load initial question sequence from url specified in openallure.cfg file
     url = unicode(config['Source']['url'])
     if len(sys.argv) > 1 and 0 != len(sys.argv[1]):
         url = unicode(sys.argv[1])
     backgroundColor = eval(config['Colors']['background'])
-    seq = QSequence(filename = url)
+    seq = QSequence(filename = url,dictionary=openallure.dictionary)
     try:
         openallure.systemVoice = config['Voice'][seq.language]
     except KeyError:
@@ -166,6 +172,10 @@ def main():
     openallure.questions = []
     # What has been typed in so far
     openallure.currentString = u""
+    
+    # If Open Allure needs to ask for information, what is the name of the item for the dictionary
+    openallure.thingAskingAbout = u''
+    
 
     # Subprocesses
 #    graphViz = None
@@ -204,8 +214,23 @@ def main():
     while runFlag:
 
         if not openallure.ready:
-            # prepare for question display
-            openallure.question = seq.sequence[openallure.onQuestion]
+            # check if we need to ask for anything
+            setOfThingsWithRulesToAskAbout = set([rule[RULE_NAME] for rule in seq.sequence[0][10] if rule[RULE_TYPE] == 'ask'])
+            setOfDictionaryFields = set(openallure.dictionary.keys())
+            setOfThingsToAskAbout = setOfThingsWithRulesToAskAbout - setOfDictionaryFields
+            if len(setOfThingsToAskAbout) > 0:
+                openallure.thingAskingAbout = setOfThingsToAskAbout.pop()
+                query = [rule[RULE_RESP] for rule in seq.sequence[0][RULE] if rule[RULE_NAME] == openallure.thingAskingAbout]
+                openallure.question = [[query[0]], [_(u'[input]')], [u''], [0], [u''], [u''], [1], [], u'', [0], u'']
+            else:
+                # prepare for question display
+                openallure.question = seq.sequence[openallure.onQuestion]
+            caption = u"Open Allure"
+            if len(url) > 0:    
+                caption += " - " + url
+            if len(openallure.question[TAG]) > 0:    
+                caption += " - " + openallure.question[TAG]
+            pygame.display.set_caption(caption)
             choiceCount, \
             questionText, \
             justQuestionText = text.buildQuestionText(openallure.question)
@@ -349,7 +374,7 @@ def main():
                                               _(u'[input]')):
                             url = record.url
                             break
-                seq = QSequence(filename = url)
+                seq = QSequence(filename = url,dictionary=openallure.dictionary)
                 try:
                     openallure.systemVoice = config['Voice'][seq.language]
                 except KeyError:
@@ -454,37 +479,120 @@ def main():
                         record_id = openallure.db.insert(time = time.time(), \
                                     url = unicode(url), q = openallure.onQuestion, \
                                     a = answer, cmd = openallure.currentString)
-                        # Check for rules from script at end of question 0
-                        if len(seq.sequence[0]) > RULE:
-                            scriptRules = seq.sequence[0][RULE]
-                        else:
-                            scriptRules = None
-                        nltkResponse, \
-                        nltkType, \
-                        nltkName = \
-                        openallure_chatbot.respond(openallure.currentString, \
-                                                   scriptRules)
-
-                        # Act on commands
-                        if nltkType == 'link':
-                            tags = [ question[TAG] for question in seq.sequence ]
-                            if nltkName in tags:
-                                openallure.onQuestion = tags.index(nltkName)
-                                openallure.ready = False
-                                
-                        if nltkType == 'goto' or \
-                          (nltkType == 'text' and nltkName == 'what now'):
-                            # find question with goto tag = ruleName or
-                            # currentString (if it didn't match anything else)
-                            if openallure.question[QUESTION] == [_(u"Input")]:
-                                # Back up to first non-Input, non-Sorry question
+                        
+                        # Check if we are asking about something and add it to the dictionary
+                        if len(openallure.thingAskingAbout) > 0:
+                            openallure.dictionary.update({openallure.thingAskingAbout:openallure.currentString})
+                            openallure.thingAskingAbout = u''
+                            # Reload sequence with modified dictionary
+                            seq = QSequence(filename = url,
+                                            dictionary=openallure.dictionary)
+                            openallure.questions = []
+                            openallure.statedq = -1
+                            openallure.ready = False
+                        else:    
+                            # Check for rules from script at end of question 0
+                            if len(seq.sequence[0]) > RULE:
+                                scriptRules = seq.sequence[0][RULE]
+                            else:
+                                scriptRules = None
+                            nltkResponse, \
+                            nltkType, \
+                            nltkName = \
+                            openallure_chatbot.respond(openallure.currentString, \
+                                                       scriptRules)
+    
+                            # Act on commands
+                            if nltkType == 'link':
+                                tags = [ question[TAG] for question in seq.sequence ]
+                                if nltkName in tags:
+                                    openallure.onQuestion = tags.index(nltkName)
+                                    openallure.ready = False
+                                    
+                            if nltkType == 'goto' or \
+                              (nltkType == 'text' and nltkName == 'what now'):
+                                # find question with goto tag = ruleName or
+                                # currentString (if it didn't match anything else)
+                                if openallure.question[QUESTION] == [_(u"Input")]:
+                                    # Back up to first non-Input, non-Sorry question
+                                    for id in range(record_id - 1,-1,-1):
+                                        try:
+                                            record = openallure.db[id]
+                                            if not record.url in (url, u'nltkResponse.txt', _(u'[input]')):
+                                                seq = QSequence(filename = record.url, \
+                                                        path = seq.path, \
+                                                        nltkResponse = nltkResponse, \
+                                                        dictionary=openallure.dictionary)
+                                                try:
+                                                    openallure.systemVoice = config['Voice'][seq.language]
+                                                except KeyError:
+                                                    pass
+                                                url = record.url
+                                                openallure.onQuestion = record.q
+                                                openallure.ready = False
+                                                break
+                                        except:
+                                            pass                             
+                                tags = [ question[TAG] for question in seq.sequence ]
+                                if nltkName in tags:
+                                    openallure.onQuestion = tags.index(nltkName)
+                                    openallure.ready = False
+                                if nltkName== 'what now' and \
+                                   openallure.currentString.lower() in tags:
+                                    if openallure.onQuestion != \
+                                            tags.index(openallure.currentString):
+                                        openallure.questions.append(openallure.onQuestion) 
+                                        openallure.onQuestion = \
+                                            tags.index(openallure.currentString)
+                                        # TODO: if question has been seen before it will not be restated, so there will be a fall through
+                                        # the question sequence until some input is required
+                                        openallure.ready = False
+                                # If still no luck finding a match, use currentString
+                                # to search all through the text of all the questions
+                                if openallure.ready:
+                                    for qnum, question in enumerate(seq.sequence):
+                                        # search in question text and non-Input answer text
+                                        nonInputAnswerText = [answer for answer,input in \
+                                                              itertools.izip(question[ANSWER],
+                                                                             question[INPUTFLAG]) if not input]
+                                        qtext = " ".join(question[QUESTION]) + " " + \
+                                                " ".join(nonInputAnswerText)
+                                        if qtext.lower().find(openallure.currentString.lower()) > -1:
+                                            if openallure.onQuestion != qnum:
+                                                openallure.questions.append(openallure.onQuestion)
+                                                openallure.onQuestion = qnum
+                                                openallure.ready = False
+                                                break
+                                        
+    
+                            if nltkType == 'search':
+                                webbrowser.open_new_tab('http://www.google.com/#' + urllib.urlencode({"q":nltkName}))
+                            if nltkType == 'configure':
+                                # use open (Mac only) to view source
+                                if sys.platform == 'darwin':
+                                    os.system("open "+'openallure.cfg')
+                                    
+                            if nltkType == 'help':
+                                # use open (Mac only) to view source
+                                if sys.platform == 'darwin':
+                                    os.system("open "+'help.rtf')
+    
+                            if nltkType == 'quit':
+                                #TODO: Make this more polite
+    #                            if graphViz:
+    #                                graphViz.kill()
+                                raise SystemExit
+    
+                            if nltkType == 'return':
+                                # Find first different sequence in db, walking back
                                 for id in range(record_id - 1,-1,-1):
                                     try:
                                         record = openallure.db[id]
                                         if not record.url in (url, u'nltkResponse.txt', _(u'[input]')):
                                             seq = QSequence(filename = record.url, \
                                                     path = seq.path, \
-                                                    nltkResponse = nltkResponse)
+                                                    nltkResponse = nltkResponse,
+                                                    dictionary=openallure.dictionary)
                                             try:
                                                 openallure.systemVoice = config['Voice'][seq.language]
                                             except KeyError:
@@ -492,130 +600,62 @@ def main():
                                             url = record.url
                                             openallure.onQuestion = record.q
                                             openallure.ready = False
+    #                                        if graphViz:
+    #                                            # Fall through into graphing
+    #                                            nltkType = 'graph'
+    #                                            nltkName = 'show'
                                             break
                                     except:
-                                        pass                             
-                            tags = [ question[TAG] for question in seq.sequence ]
-                            if nltkName in tags:
-                                openallure.onQuestion = tags.index(nltkName)
-                                openallure.ready = False
-                            if nltkName== 'what now' and \
-                               openallure.currentString.lower() in tags:
-                                if openallure.onQuestion != \
-                                        tags.index(openallure.currentString):
-                                    openallure.questions.append(openallure.onQuestion) 
-                                    openallure.onQuestion = \
-                                        tags.index(openallure.currentString)
-                                    # TODO: if question has been seen before it will not be restated, so there will be a fall through
-                                    # the question sequence until some input is required
-                                    openallure.ready = False
-                            # If still no luck finding a match, use currentString
-                            # to search all through the text of all the questions
-                            if openallure.ready:
-                                for qnum, question in enumerate(seq.sequence):
-                                    # search in question text and non-Input answer text
-                                    nonInputAnswerText = [answer for answer,input in \
-                                                          itertools.izip(question[ANSWER],
-                                                                         question[INPUTFLAG]) if not input]
-                                    qtext = " ".join(question[QUESTION]) + " " + \
-                                            " ".join(nonInputAnswerText)
-                                    if qtext.lower().find(openallure.currentString.lower()) > -1:
-                                        if openallure.onQuestion != qnum:
-                                            openallure.questions.append(openallure.onQuestion)
-                                            openallure.onQuestion = qnum
-                                            openallure.ready = False
-                                            break
-                                    
-
-                        if nltkType == 'search':
-                            webbrowser.open_new_tab('http://www.google.com/#' + urllib.urlencode({"q":nltkName}))
-                        if nltkType == 'configure':
-                            # use open (Mac only) to view source
-                            if sys.platform == 'darwin':
-                                os.system("open "+'openallure.cfg')
-                                
-                        if nltkType == 'help':
-                            # use open (Mac only) to view source
-                            if sys.platform == 'darwin':
-                                os.system("open "+'help.rtf')
-
-                        if nltkType == 'quit':
-                            #TODO: Make this more polite
-#                            if graphViz:
-#                                graphViz.kill()
-                            raise SystemExit
-
-                        if nltkType == 'return':
-                            # Find first different sequence in db, walking back
-                            for id in range(record_id - 1,-1,-1):
+                                        pass
+                                nltkResponse = u''
+                                openallure.currentString = u''
+    
+                            if nltkType == 'open':
+                                # Reset stated question pointer for new sequence
+                                openallure.statedq = -1
+                                path = seq.path
+                                linkStart = nltkResponse.find(u'[')
+                                linkEnd = nltkResponse.find(u']', linkStart)
+                                url = nltkResponse[linkStart + 1:linkEnd]
+                                seq = QSequence(filename = url,
+                                                path = path,
+                                                nltkResponse = nltkResponse,
+                                                dictionary=openallure.dictionary)
                                 try:
-                                    record = openallure.db[id]
-                                    if not record.url in (url, u'nltkResponse.txt', _(u'[input]')):
-                                        seq = QSequence(filename = record.url, \
-                                                path = seq.path, \
-                                                nltkResponse = nltkResponse)
-                                        try:
-                                            openallure.systemVoice = config['Voice'][seq.language]
-                                        except KeyError:
-                                            pass
-                                        url = record.url
-                                        openallure.onQuestion = record.q
-                                        openallure.ready = False
-#                                        if graphViz:
-#                                            # Fall through into graphing
-#                                            nltkType = 'graph'
-#                                            nltkName = 'show'
-                                        break
-                                except:
+                                    openallure.systemVoice = config['Voice'][seq.language]
+                                except KeyError:
                                     pass
-                            nltkResponse = u''
-                            openallure.currentString = u''
-
-                        if nltkType == 'open':
-                            # Reset stated question pointer for new sequence
-                            openallure.statedq = -1
-                            path = seq.path
-                            linkStart = nltkResponse.find(u'[')
-                            linkEnd = nltkResponse.find(u']', linkStart)
-                            url = nltkResponse[linkStart + 1:linkEnd]
-                            seq = QSequence(filename = url,
-                                            path = path,
-                                            nltkResponse = nltkResponse)
-                            try:
-                                openallure.systemVoice = config['Voice'][seq.language]
-                            except KeyError:
-                                pass
-                            openallure.questions = []
-                            openallure.onQuestion = 0
-                            openallure.ready = False
-#                            if graphViz:
-#                                # Fall through into graphing
-#                                nltkType = 'graph'
-#                                nltkName = 'show'
-                            nltkResponse = u''
-                            openallure.currentString = u''
-
-                        if nltkType == 'show':
-                            # use open (Mac only) to view source
-                            if sys.platform == 'darwin':
-                                # Find first non-[input] sequence in db, walking back
-                                for id in range(record_id - 1,-1,-1):
-                                    record = openallure.db[id]
-                                    if record.url.find('.txt') > 0 or \
-                                       record.url.find('http:') == 0 :
-                                        if not record.url == 'nltkResponse.txt':
-                                            url = record.url
-                                            break
-                                os.system("open "+url)
-
-                        # if nltkResponse is one line containing a semicolon,
-                        # replace the semicolon with \n
-                        if nltkResponse.find('\n') == -1:
-                            nltkResponse = nltkResponse.replace(';', '\n')
-
-                        if nltkResponse:
-                            answer = choiceCount - 1
-                            choice = (choiceCount, 0)
+                                openallure.questions = []
+                                openallure.onQuestion = 0
+                                openallure.ready = False
+    #                            if graphViz:
+    #                                # Fall through into graphing
+    #                                nltkType = 'graph'
+    #                                nltkName = 'show'
+                                nltkResponse = u''
+                                openallure.currentString = u''
+    
+                            if nltkType == 'show':
+                                # use open (Mac only) to view source
+                                if sys.platform == 'darwin':
+                                    # Find first non-[input] sequence in db, walking back
+                                    for id in range(record_id - 1,-1,-1):
+                                        record = openallure.db[id]
+                                        if record.url.find('.txt') > 0 or \
+                                           record.url.find('http:') == 0 :
+                                            if not record.url == 'nltkResponse.txt':
+                                                url = record.url
+                                                break
+                                    os.system("open "+url)
+    
+                            # if nltkResponse is one line containing a semicolon,
+                            # replace the semicolon with \n
+                            if nltkResponse.find('\n') == -1:
+                                nltkResponse = nltkResponse.replace(';', '\n')
+    
+                            if nltkResponse:
+                                answer = choiceCount - 1
+                                choice = (choiceCount, 0)
                     else:
                         # This takes last response
                         answer = choiceCount - 1
@@ -848,7 +888,8 @@ def main():
                     url = openallure.question[DESTINATION][answer]
                     seq = QSequence(filename = url,
                                     path = path,
-                                    nltkResponse = nltkResponse)
+                                    nltkResponse = nltkResponse,
+                                    dictionary=openallure.dictionary)
                     try:
                         openallure.systemVoice = config['Voice'][seq.language]
                     except KeyError:

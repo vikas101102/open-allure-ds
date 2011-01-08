@@ -1,6 +1,5 @@
 Open Allure
-Version: 0.1d32dev
-==================
+===========
 http://openallureds.org
 
 The MIT License
