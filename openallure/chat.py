@@ -16,10 +16,12 @@ from configobj import ConfigObj
 import gettext
 import re
 import random
+import sys
 
 RESPONSE = 0
 TYPE = 1
 NAME = 2
+RULE_RE = 0
 
 reflections = {
   "am"     : "are",
@@ -74,8 +76,9 @@ math, text etc..
         @rtype: C{string}
         """
         if scriptRules != None:
+            scriptRulesWithRE = [rule for rule in scriptRules if len(rule[RULE_RE]) > 0 ]
             scriptRuleTuples = [(re.compile(x, re.IGNORECASE), y, z ,ruleName) \
-                                 for (x, y, z, ruleName) in scriptRules]
+                                 for (x, y, z, ruleName) in scriptRulesWithRE]
             # Put the script rules at the front
             scriptRuleTuples.extend(self._tuples)
             self._tuples = scriptRuleTuples
@@ -484,8 +487,10 @@ class TestChatMath(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    #test = False
-    test = True
+    if len(sys.argv) > 1 and 0 != len(sys.argv[1]):
+        test = False
+    else:
+        test = True
     if test:
         unittest.main()
     else:

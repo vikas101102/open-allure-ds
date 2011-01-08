@@ -1,6 +1,14 @@
 Change history::
 
-  v0.1d32, 31 January 2011
+  v0.1d34, 8 January 2011
+    Added dictionary and ask rules to fill template fields.
+    
+  v0.1d33, 6 January 2011
+    Added in-script stickyBrowser support. Allow open <name> with .txt assumed.
+    Added help and configure commands. See help.rtf.
+    Added search command. Greatly extended welcome.txt script.
+    
+  v0.1d32, 31 December 2010
     Fixed bugs with mouse events. Lowercase tags. 
     Enhanced qsequence and oadb reports
 

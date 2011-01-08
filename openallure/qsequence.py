@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 """
 qsequence.py
 a component of openallure.py
@@ -187,6 +188,7 @@ import gettext
 import htmlentitydefs
 import os
 import re
+from string import Template
 import sys
 import urllib2
 
@@ -226,10 +228,12 @@ def unescape(text):
 class QSequence( object ):
     """A Question Sequence contains (multiple) question blocks consisting of a question with answers/responses/actions"""
 
-    def __init__( self, filename=u"openallure.txt", path='', nltkResponse=None):
+    def __init__( self, filename=u"openallure.txt", path='', nltkResponse=None, dictionary={}):
         """
         Read either a local plain text file or text tagged <pre> </pre> from a webpage or body of an Etherpad
         """
+        self.dictionary = dictionary.copy()
+         
         config = ConfigObj("openallure.cfg")
 
         # configure language for this question sequence
@@ -346,6 +350,14 @@ class QSequence( object ):
         self.sequence = self.regroup( self.inputs, self.classify( self.inputs ) )
 
 
+    def findSetOfTemplateFields( self, strings ):
+        string = ' '.join(strings)
+        # Strip out escaped $ (two $s in a row)
+        # then find matches for unicode strings $field or ${field}
+        # finally, make a set of the unique fields
+        return set(re.findall("(?u)\${?(\w*)[}\s]",string.replace('$$','')))
+
+    
     def classify( self, strings ):
         """
 Create list of string types::
@@ -368,29 +380,29 @@ Create list of string types::
         inRule = False
         inQuote = False
         priorQString = ""
-        for i in strings:
+        for string in strings:
             if inQuote:
                 # mark as type R until closing triple quotes are found
                 string_types.append( "R" )
-                tripleQuoteAt = i.find('"""')
+                tripleQuoteAt = string.find('"""')
                 if not tripleQuoteAt == -1:
                     inQuote = False
                     inRule = False
             else:
-                if i.strip() in ["","\n","\\n"]:
+                if string.strip() in ["","\n","\\n"]:
                     string_types.append( "N" )
                     priorQString = ""
-                elif i.startswith( "#" ):
+                elif string.startswith( "#" ):
                     string_types.append( "C" )
 
-                elif i.startswith( "re=" ) or i.startswith( "re =" ):
+                elif string.startswith( "re=" ) or string.startswith( "re =" ):
                     string_types.append( "R" )
-                elif i.startswith( "example=" ) or i.startswith( "example =" ):
+                elif string.startswith( "example=" ) or string.startswith( "example =" ):
                     string_types.append( "R" )
-                elif i.startswith( "reply=" ) or i.startswith( "reply =" ):
+                elif string.startswith( "reply=" ) or string.startswith( "reply =" ):
                     string_types.append( "R" )
                     # test for triple quotes on this line
-                    tripleQuoteAt = i.find('"""')
+                    tripleQuoteAt = string.find('"""')
                     if tripleQuoteAt == -1:
                         # reply marks last line of rule
                         inRule = False
@@ -398,56 +410,56 @@ Create list of string types::
                         # closing triple quotes will mark last line of rule
                         inQuote = True
                         # test for SECOND (closing) triple quotes on this line
-                        if not i[tripleQuoteAt+2:].find('"""') == -1:
+                        if not string[tripleQuoteAt+2:].find('"""') == -1:
                             inQuote = False
                             inRule = False
-                elif i.startswith( "http://" ):
-                    semicolonAt = i.find( ";" )
+                elif string.startswith( "http://" ):
+                    semicolonAt = string.find( ";" )
                     if semicolonAt > 0:
                         string_types.append( str( semicolonAt ) )
                     else:
                         # An answer-side link with no square bracket
                         string_types.append( "L" )
 
-                elif i.startswith( "[" ):
+                elif string.startswith( "[" ):
                     # This could be a rule type, rule name, question tag or answer-side link
                     if inRule:
                         # It's a rule name
                         string_types.append( "R" )
-                    elif i.startswith("[["):
+                    elif string.startswith("[["):
                         # It's a second rule name
                         string_types.append( "R" )
                     else:
                         # Check content against list of rule types
-                        bracketAt = i.find( ']' )
-                        maybeRuleType = i[ 1 : bracketAt ].strip()
+                        bracketAt = string.find( ']' )
+                        maybeRuleType = string[ 1 : bracketAt ].strip()
                         if maybeRuleType in self.ruleTypes:
                             # It's a rule type
                             string_types.append( "R" )
                             inRule = True
                         else:
                             # must be question tag or answer-side link
-                            semicolonAt = i.find( ";" )
+                            semicolonAt = string.find( ";" )
                             if semicolonAt > 0:
                                 string_types.append( str( semicolonAt ) )
                             else:
                                 string_types.append( "Q" )
 
                 else:
-                    semicolonAt = i.find(";")
+                    semicolonAt = string.find(";")
                     if semicolonAt > 0:
                         string_types.append(str(semicolonAt))
                     else:
-                        if len(i) > 0:
+                        if len(string) > 0:
                             if priorQString.strip().endswith('?'):
                                 # next things are answers even if not marked with ;
-                                string_types.append(len(i))
+                                string_types.append(len(string))
                             else:
                                 string_types.append("Q")
-                                priorQString = i
+                                priorQString = string
                         else:
                             string_types.append("Q")
-                            priorQString = i
+                            priorQString = string
 
 #        for index, string in enumerate(strings):
 #            print string_types[index], string
@@ -471,6 +483,20 @@ Create list of string types::
         sticky      = []
         rules       = []
         photoSmile = photoTalk = photoListen = None
+        
+        #TODO: Sort out templates
+        setOfTemplateFields = self.findSetOfTemplateFields(strings)
+        setOfDictionaryFields = set(self.dictionary.keys())
+        setOfMissingFields = (setOfTemplateFields - setOfDictionaryFields)
+        for templateField in list(setOfMissingFields):
+            additionToDictionary = {str(templateField) : 'place holder'}
+            self.dictionary.update(additionToDictionary)
+        
+        # substitute dictionary values into template
+        for index, string in enumerate(strings):
+            pattern = Template(string)
+            strings[index] = pattern.substitute(self.dictionary)
+            
         while onString < len( strings ):
             if string_types[ onString ] == "Q":
                 # check for tags and configuration overrides (which use =)
@@ -736,10 +762,13 @@ Create list of string types::
 
         # Parse just the lines classified as rules
         ruleStrings = [ str( unicodeStr ) for unicodeStr in rules ]
-        scriptRules = ConfigObj( infile = ruleStrings )
+        scriptRules = ConfigObj( infile = ruleStrings , encoding='utf-8')
         rules = []
         for section in scriptRules.sections:
             for subsection in scriptRules[section].sections:
+                re = ""
+                reply = ""
+                rule = ()
                 # a regular expression overrides an example
                 if 're' in scriptRules[section][subsection]:
                     if 'reply' in scriptRules[section][subsection]:
@@ -772,7 +801,11 @@ Create list of string types::
                     else:
                         reply = '[' + subsection + ']'
                     rule = ( re, reply, section, subsection )
-                rules.append(rule)
+                if reply == "" and len(scriptRules[section][subsection]['reply']) > 0:
+                    # This is an ask rule with no triggering re or example
+                    rule = ('', scriptRules[section][subsection]['reply'], section, subsection )
+                if not rule == ():    
+                    rules.append(rule)
         sequence[ 0 ].append( tuple( rules ) )
         return sequence
 
