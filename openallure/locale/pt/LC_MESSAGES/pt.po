@@ -51,8 +51,8 @@ msgid "           exit"
 msgstr "           saír"
 
 #: openallure.py:180
-msgid "           open <filename or url>)"
-msgstr "           aberto <filename o URL>"
+msgid "           open <filename or url>"
+msgstr "           aberto <nome do arquivo o URL>"
 
 #: openallure.py:181
 msgid "           quit"

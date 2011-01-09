@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 The Natural Language Processing component of open-allure-ds.
 Based on the Chat bot class from NLTK
@@ -289,35 +290,35 @@ math, text etc..
 # by rules included in the scripts.
 gettext.install(domain='openallure', localedir='locale', unicode=True)
 
-config = ConfigObj("openallure.cfg")
+config = ConfigObj("openallure.cfg", encoding='utf-8')
 try:
     language = config['Options']['language']
 except KeyError:
-    language = 'en'
-if len(language) > 0 and language != 'en':
+    language = u'en'
+if len(language) > 0 and language != u'en':
     mytrans = gettext.translation(u"openallure",
                                   localedir='locale',
                                   languages=[language], fallback=True)
     mytrans.install(unicode=True) # must set explicitly here for mac
     # Add underscore for use in file name of responses.cfg
-    responsesFile = "responses_" + language + ".cfg"
+    responsesFile = u"responses_" + language + u".cfg"
 else:
-    responsesFile = "responses.cfg"
+    responsesFile = u"responses.cfg"
 
-config = ConfigObj(responsesFile)
+config = ConfigObj(responsesFile, encoding='utf-8')
 ruleTypes = config.sections
 rules = []
 for section in config.sections:
     for subsection in config[section].sections:
-        rule = ( config[section][subsection]['re'],
-                 config[section][subsection]['reply'],
+        rule = ( config[section][subsection][u're'],
+                 config[section][subsection][u'reply'],
                  section, subsection )
         rules.append(rule)
 responses = tuple(rules)
 
 # As a last resort, ask for input
 responses = responses + \
-((r'(.*)', (_("Sorry, I don't understand that. What now?") + '\n' + _("[input];"),), "text", "what now"),)
+((r'(.*)', (_(u"Sorry, I don't understand that. What now?") + '\n' + _(u"[input];"),), u"text", u"what now"),)
 
 
 import unittest

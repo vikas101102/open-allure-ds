@@ -45,6 +45,8 @@ class Voice( object ):
         Options:language in openallure.cfg or [systemVoice=xx] override in a script.
         """
         phrase = phrase.strip()
+        phrase = phrase.replace('http://www.','')
+        
         if len(phrase) == 0:
             return
 
