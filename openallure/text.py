@@ -126,34 +126,34 @@ What is appropriate depends on
             self.writewrap( screen, self.font, self.boundingRectangle, self.unreadColor, questionText[-1] )
 
             if onAnswer == 0:
-               # paint as much readColor as needed on question
-               onText = min( onText, len( justQuestionText ) - 1 )
-               priorOnText = min( onText - 1, len( justQuestionText ) - 1 )
-               for color in range(255, -1, -8):
-                   color = max(color, 0)
-                   self.fadeColor = (color, color, color)
-                   if onText > -1 and onText < len(justQuestionText):
-                       self.writewrap( screen, self.font, self.boundingRectangle, self.fadeColor, justQuestionText[onText] )
-                   self.fadeColor = [item - 8 for item in self.fadeColor]
-                   if onText > 0 and onText < len(justQuestionText):
-                       self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, justQuestionText[priorOnText] )
-                   pygame.display.flip()
-                   pygame.time.wait( self.fadeTime )
+                # paint as much readColor as needed on question
+                onText = min( onText, len( justQuestionText ) - 1 )
+                priorOnText = min( onText - 1, len( justQuestionText ) - 1 )
+                for color in range(255, -1, -8):
+                    color = max(color, 0)
+                    self.fadeColor = (color, color, color)
+                    if onText > -1 and onText < len(justQuestionText):
+                        self.writewrap( screen, self.font, self.boundingRectangle, self.fadeColor, justQuestionText[onText] )
+                    self.fadeColor = [item - 8 for item in self.fadeColor]
+                    if onText > 0 and onText < len(justQuestionText):
+                        self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, justQuestionText[priorOnText] )
+                    pygame.display.flip()
+                    pygame.time.wait( self.fadeTime )
 
             else:
-               # or paint as much readColor as needed on answers
-               # print "on answer" + str( on_answer )
-               onAnswer = min( onAnswer, len( questionText ) - 1 )
-               priorOnAnswer = min( onAnswer - 1, len( questionText ) - 1 )
-               for color in range(255, -1, -8):
-                   color = max(color, 0)
-                   self.fadeColor = (color, color, color)
-                   self.writewrap( screen, self.font, self.boundingRectangle, self.fadeColor, questionText[onAnswer] )
-                   if onAnswer > 1:
-                       self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, questionText[priorOnAnswer] )
-                   self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, justQuestionText[-1] )
-                   pygame.display.flip()
-                   pygame.time.wait( self.fadeTime )
+                # or paint as much readColor as needed on answers
+                # print "on answer" + str( on_answer )
+                onAnswer = min( onAnswer, len( questionText ) - 1 )
+                priorOnAnswer = min( onAnswer - 1, len( questionText ) - 1 )
+                for color in range(255, -1, -8):
+                    color = max(color, 0)
+                    self.fadeColor = (color, color, color)
+                    self.writewrap( screen, self.font, self.boundingRectangle, self.fadeColor, questionText[onAnswer] )
+                    if onAnswer > 1:
+                        self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, questionText[priorOnAnswer] )
+                    self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, justQuestionText[-1] )
+                    pygame.display.flip()
+                    pygame.time.wait( self.fadeTime )
 
         # else start with all readColor
         else:
@@ -161,24 +161,24 @@ What is appropriate depends on
 
             # If choice made,  paint it selectedColor,  but everything before it readColor
             if choice[ 0 ] > 0 and choice[ 0 ] <= len( questionText ) - 1:
-               self.writewrap( screen, self.font, self.boundingRectangle, self.selectedColor, questionText[ choice[ 0 ] ] )
-               self.writewrap( screen, self.font, self.boundingRectangle, self.readColor,     questionText[ choice[ 0 ] - 1 ] )
+                self.writewrap( screen, self.font, self.boundingRectangle, self.selectedColor, questionText[ choice[ 0 ] ] )
+                self.writewrap( screen, self.font, self.boundingRectangle, self.readColor,     questionText[ choice[ 0 ] - 1 ] )
             else:
                 # If choice highlighted,  paint it yellow,  but everything before it gray
                 if highlight > 0:
-                   #self.writewrap( screen, self.font, self.boundingRectangle, self.yellow, questionText[highlight] )
-                   #print highlight,  len( questionText )
-                   highlightPercent = float( colorLevel ) / float( colorLevels )
-                   highlightPart    = [ x * highlightPercent for x in self.highlightColor ]
-                   selectedPercent  = 1 - highlightPercent
-                   selectedPart     = [ x * selectedPercent for x in self.selectedColor ]
-                   blendedColor = [ int( selectedPart[ i ] + highlightPart[ i ] ) for i in [0, 1, 2] ]
+                    #self.writewrap( screen, self.font, self.boundingRectangle, self.yellow, questionText[highlight] )
+                    #print highlight,  len( questionText )
+                    highlightPercent = float( colorLevel ) / float( colorLevels )
+                    highlightPart    = [ x * highlightPercent for x in self.highlightColor ]
+                    selectedPercent  = 1 - highlightPercent
+                    selectedPart     = [ x * selectedPercent for x in self.selectedColor ]
+                    blendedColor = [ int( selectedPart[ i ] + highlightPart[ i ] ) for i in [0, 1, 2] ]
 ##                   print highlight, stated, choice, colorLevel, colorLevels, blendedColor
 ##                   print highlightPercent,  highlightPart
 ##                   print selectedPercent,  selectedPart
 ##                   print blendedColor,  highlight
-                   self.writewrap( screen, self.font, self.boundingRectangle, blendedColor, questionText[highlight] )
-                   self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, questionText[highlight-1] )
+                    self.writewrap( screen, self.font, self.boundingRectangle, blendedColor, questionText[highlight] )
+                    self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, questionText[highlight-1] )
 
         pygame.display.flip()
 

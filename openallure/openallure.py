@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 openallure.py
 
@@ -12,7 +13,7 @@ Copyright (c) 2011 John Graves
 MIT License: see LICENSE.txt
 """
 
-__version__ = '0.1d34dev'
+__version__ = '0.1d35dev'
 
 # Standard Python modules
 import itertools
@@ -176,6 +177,12 @@ def main():
     # If Open Allure needs to ask for information, what is the name of the item for the dictionary
     openallure.thingAskingAbout = u''
     
+    # flashcard mode checks the input against the response.
+    # If they match, Open Allure says "correct"
+    # Otherwise, the correct answer is shown (stuffed into currentString)
+    openallure.flashcard = False
+    openallure.flashcardTried = False
+    
 
     # Subprocesses
 #    graphViz = None
@@ -225,12 +232,22 @@ def main():
             else:
                 # prepare for question display
                 openallure.question = seq.sequence[openallure.onQuestion]
+                
+            # Set flashcard mode    
+            if openallure.question[ANSWER][0] == _(u'[flashcard]'):
+                openallure.flashcard = True
+                openallure.flashcardTried = False
+            else:
+                openallure.flashcard = False
+                
+            # Set window caption including url and tag (if available)    
             caption = u"Open Allure"
             if len(url) > 0:    
                 caption += " - " + url
             if len(openallure.question[TAG]) > 0:    
                 caption += " - " + openallure.question[TAG]
             pygame.display.set_caption(caption)
+            
             choiceCount, \
             questionText, \
             justQuestionText = text.buildQuestionText(openallure.question)
@@ -283,7 +300,7 @@ def main():
 
             # arrival record for new question
             record_id = openallure.db.insert(time = time.time(), \
-            url = unicode(url), q = openallure.onQuestion)
+                        url = unicode(url), q = openallure.onQuestion)
 
         # make sure currentString has been added to questionText
         if openallure.currentString:
@@ -294,10 +311,12 @@ def main():
         mouseButtonDownEvent = False
         mouseButtonDownEventY = 0
         for event in pygame.event.get():
+            
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouseButtonDownEvent = True
                 YCOORDINATE = 1
                 mouseButtonDownEventY = event.pos[YCOORDINATE]
+                
             if event.type == pygame.QUIT   \
                or (event.type == pygame.KEYDOWN and    \
                    event.key == pygame.K_ESCAPE):
@@ -328,10 +347,11 @@ def main():
                             url = unicode(url), q = 0)
                 openallure.ready = False
 
-            # Trap and paste clipboard on Ctrl + V for Mac
+            # Trap and paste clipboard on Command + V for Mac, Control + V for others
             elif (event.type == pygame.KEYDOWN and
                   event.key == pygame.K_v and
-                  pygame.key.get_mods() & pygame.KMOD_CTRL):
+                  ((pygame.key.get_mods() & pygame.KMOD_META) or
+                   (pygame.key.get_mods() & pygame.KMOD_CTRL))):
                 if sys.platform == 'darwin':
                     os.system('pbpaste > clipboard')
                     clipboard = open('clipboard').readlines()
@@ -383,6 +403,8 @@ def main():
 
             # Define toggle keys and capture string inputs
             elif event.type == pygame.KEYDOWN:
+                #print event.key
+                #print pygame.key.name(event.key)
                 # Keys 1 through 6 select choices 1 through 6
                 if event.key in range(pygame.K_1, pygame.K_6) and \
                     (not openallure.question[INPUTFLAG][choiceCount - 1] == 1 or
@@ -490,6 +512,20 @@ def main():
                             openallure.questions = []
                             openallure.statedq = -1
                             openallure.ready = False
+                        elif openallure.flashcard == True:
+                            openallure.flashcardTried = True
+                            # compare current string with response
+                            if openallure.currentString.lower() == openallure.question[RESPONSE][answer].lower():
+                                # say "correct"
+                                voice.speak(_(u'correct'),openallure.systemVoice)
+                            else:
+                                # show correct response (this will also be said)
+                                voice.speak(_(openallure.question[RESPONSE][answer]),openallure.systemVoice)
+                            # Every try results in the correct answer    
+                            openallure.currentString = openallure.question[RESPONSE][answer]
+                            openallure.stated = False
+                            # Take note of time for automatic page turns
+                            delayStartTime = pygame.time.get_ticks()
                         else:    
                             # Check for rules from script at end of question 0
                             if len(seq.sequence[0]) > RULE:
@@ -570,7 +606,7 @@ def main():
                             if nltkType == 'configure':
                                 # use open (Mac only) to view source
                                 if sys.platform == 'darwin':
-                                    os.system("open "+'openallure.cfg')
+                                    os.system("/Applications/TextEdit.app/Contents/MacOS/TextEdit "+'openallure.cfg')
                                     
                             if nltkType == 'help':
                                 # use open (Mac only) to view source
@@ -702,12 +738,14 @@ def main():
         # check for automatic page turn
         if openallure.ready and \
            openallure.stated == True and \
-           not openallure.currentString and \
-           openallure.question[ANSWER][-1] == _(u'[next]') and \
+           ((not openallure.currentString and \
+           openallure.question[ANSWER][-1] == _(u'[next]')) or
+           (openallure.flashcard and openallure.flashcardTried)) and \
            pygame.time.get_ticks() - delayStartTime > delayTime:
             # This takes last response
             answer = choiceCount - 1
             choice = (choiceCount, 0)
+            openallure.flashcardTried = False
 
         if openallure.statedq == openallure.onQuestion:
             openallure.stated = True
@@ -732,6 +770,7 @@ def main():
                     answerText = openallure.question[ANSWER][onAnswer - 1]
                     if not (answerText.startswith(_('[input]')) or
                              answerText.startswith(_('[next]')) or
+                             answerText.startswith(_('[flashcard]')) or
                              answerText.endswith( '...]' ) or
                              answerText.endswith( '...' )):
                         if len(answerText) > 0:
@@ -843,7 +882,7 @@ def main():
             openallure.stated = True
 
             # respond to choice when something has been typed and entered
-            if openallure.currentString:
+            if openallure.currentString and not openallure.flashcard:
                 if len(nltkResponse) == 0:
                     choice = (-1, 0)
                     answer = -1
@@ -870,8 +909,9 @@ def main():
                answer < len(openallure.question[RESPONSE]) and \
                 (isinstance(openallure.question[RESPONSE][answer], str) or \
                 isinstance(openallure.question[RESPONSE][answer], unicode)):
-                    #speak response to answer
-                    voice.speak(openallure.question[RESPONSE][answer].strip(),openallure.systemVoice)
+                    if not openallure.flashcard:
+                        #speak response to answer
+                        voice.speak(openallure.question[RESPONSE][answer].strip(),openallure.systemVoice)
 
             #check that next sequence exists as integer for answer
             if len(openallure.question[ACTION]) and \

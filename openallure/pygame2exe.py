@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        pygame2exe.py
 # Purpose:
@@ -140,7 +141,7 @@ class BuildExe:
         'openallure.cfg',
         "SayStatic.exe",
         "freesansbold.ttf",
-        'music.txt','start.txt','silent_start.txt',
+        'music.txt','start.txt','silent_start.txt','fixSyntax.txt','help.rtf',
         ('locale/en/LC_MESSAGES',['locale/en/LC_MESSAGES/openallure.mo']),
         'welcome.txt',
         'responses.cfg',

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 """
 qsequence.py
@@ -234,17 +235,17 @@ class QSequence( object ):
         """
         self.dictionary = dictionary.copy()
          
-        config = ConfigObj("openallure.cfg")
+        config = ConfigObj("openallure.cfg", )
 
         # configure language for this question sequence
         # start with default from openallure.cfg (may be overridden by script)
         gettext.install(domain='openallure', localedir='locale', unicode=True)
-        self.language = 'en'
+        self.language = u'en'
         try:
             self.language = config['Options']['language']
         except KeyError:
             pass
-        if len(self.language) > 0 and self.language != 'en':
+        if len(self.language) > 0 and self.language != u'en':
             mytrans = gettext.translation(u"openallure",
                                           localedir='locale',
                                           languages=[self.language], fallback=True)
@@ -262,6 +263,9 @@ class QSequence( object ):
             self.stickyBrowser = 1
         else:
             self.stickyBrowser = 0
+        # flashcard mode causes the first question line to become a prompt
+        # and the next question line to become an answer    
+        self.flashcard = False
         
         # find rule types from responses.cfg
         responsesConfig = ConfigObj("responses.cfg")
@@ -276,15 +280,17 @@ class QSequence( object ):
             # read text tagged with <pre> </pre> from website or body of an Etherpad
             try:
                 urlOpen = urllib2.urlopen( filename )
+                urlText = urlOpen.read()
             except:
                 print( u"Could not open %s" % filename )
-
+                urlText = "<pre>It seems " + filename + " could not be opened.\nWhat now?\n[input];</pre>"
+                
             # parse out text marked with <pre> </pre>
 #            links = SoupStrainer('pre')
 #            taggedPreText = [tag for tag in BeautifulSoup(urlOpen, parseOnlyThese=links)]
 #          print 'taggedPreText', taggedPreText
 
-            soup = BeautifulSoup(urlOpen)
+            soup = BeautifulSoup(urlText)
             taggedPre = soup.pre
             if not str(taggedPre) == 'None':
                 taggedPreStr = str(taggedPre).replace('<br />\n','\n')
@@ -294,7 +300,7 @@ class QSequence( object ):
             else:
                 # If no taggedPreText, try postbody (NING)
                 postbody = soup.find("div", { "class" : "postbody" })
-                if not str(postbody) == 'None':
+                if not str(postbody) == 'None' and filename.find('.ning.') > -1:
                     # restore blank lines
                     postbodyStr = str(postbody).replace('<br /><br />','\n')
                     postbodyStr = postbodyStr.replace('<br/><br/>','\n')
@@ -302,18 +308,27 @@ class QSequence( object ):
                     self.inputs = unescape('\n'.join(postbody.findAll(text=True))).splitlines()
                     # strip off leading spaces
                     self.inputs = [line.lstrip() for line in self.inputs]
-                else:
+                    
+                elif (filename.find('etherpad.') > -1):
                     # If no taggedPreText, try Etherpad body
-                    self.cleanUnicodeTextStr = \
-                    str(soup)[ str(soup).find('"initialAttributedText":{"text"')+33 : \
-                               str(soup).find(',"attribs":')-1 ]
-                    self.inputs = unescape(self.cleanUnicodeTextStr).split('\\n')
-
+                    soupString = ""
+                    try:
+                        soupString = str(soup)
+                    except UnicodeDecodeError:
+                        # no luck here, give up
+                        pass
+                    if len(soupString) > 0:
+                        self.cleanUnicodeTextStr = \
+                        soupString[ soupString.find(u'"initialAttributedText":{"text"')+33 : \
+                                   soupString.find(u',"attribs":')-1 ]
+                        self.inputs = unescape(self.cleanUnicodeTextStr).split('\\n')
 
             if len(self.inputs) == 0:
                 self.inputs = [_(u"Hmmm. It seems ") + filename, _(u"does not have a script"),
-                           _(u"marked with <pre> </pre>."),
+                           _(u"marked with preformatted text (<pre> </pre>)."),
                            _(u"What now?"),
+                           _(u"[input];;")]
+                self.inputs = [_(u"What now?"),
                            _(u"[input];;")]
             else:
                 # set path attribute to be everything up to through last slash in url
@@ -460,7 +475,8 @@ Create list of string types::
                         else:
                             string_types.append("Q")
                             priorQString = string
-
+                            
+        # for debugging, show how strings are classified
 #        for index, string in enumerate(strings):
 #            print string_types[index], string
         return string_types
@@ -495,7 +511,11 @@ Create list of string types::
         # substitute dictionary values into template
         for index, string in enumerate(strings):
             pattern = Template(string)
-            strings[index] = pattern.substitute(self.dictionary)
+            try:
+                strings[index] = pattern.substitute(self.dictionary)
+            except ValueError:
+                # if there is something unrecognizable, just ignore it for now
+                pass
             
         while onString < len( strings ):
             if string_types[ onString ] == "Q":
@@ -544,7 +564,33 @@ Create list of string types::
                                 self.stickyBrowser = 1
                             elif configValue.strip().lower() in ['0','false']:
                                 self.stickyBrowser = 0
-
+                                
+                        if configItem == 'flashcard':
+                            if configValue.strip().lower() in ['1','true']:
+                                self.flashcard = 1
+                            elif configValue.strip().lower() in ['0','false']:
+                                self.flashcard = 0
+                            
+                # if in flashcard mode, next line needs to be marked Q as well, 
+                # although it is really an answer.
+                # Both lines will be consumed.
+                elif self.flashcard == True and \
+                     onString < len(string_types) - 1 and \
+                     string_types[ onString + 1 ] == "Q":
+                    # first add current Q 
+                    question.append( strings[ onString ].rstrip() )
+                    # make this into a flashcard answer
+                    answer.append( _(u'[flashcard]') )
+                    # add next Q as response to an answer
+                    response.append(strings[ onString + 1 ].rstrip() )
+                    # and skip it in next pass through loop
+                    onString += 1
+                    action.append(1)
+                    destination.append(u'')
+                    link.append(u'')
+                    inputFlags.append(1)
+                    sticky.append(0)
+                    
                 # check if next string is a link
                 # if so, this Q is really an A and will consume both lines
                 elif onString < len(string_types) - 1 and string_types[ onString + 1 ] == "L":
@@ -649,7 +695,7 @@ Create list of string types::
                                            [u'',u''],
                                            [0,0],
                                            [u'fixSyntax',u''],
-                                           [u'',u''],[1,1],[],[0,0],u'' ])
+                                           [u'',u''],[1,1],[],[0,0],u'',[0,0],u'' ])
                         
                         return sequence
                         # raise SystemExit
