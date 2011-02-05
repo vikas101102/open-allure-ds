@@ -22,13 +22,13 @@ record_id = db.insert(localtime=time.time(),filename='test',question=1,answer=2)
 db.close()
 
 # Get list of questions touched
-[record.question for record in records]
+#[record.question for record in records]
 
 # Get list of answers touched
-[(record.question,record.answer) for record in records]
+#[(record.question,record.answer) for record in records]
 
 # Create database
-db = Base(path)
-db.create(('localTime',float),('fileName',string),('question',int),('answer',int))
+#db = Base(path)
+#db.create(('localTime',float),('fileName',string),('question',int),('answer',int))
 
 

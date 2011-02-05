@@ -1,5 +1,15 @@
 Change history::
 
+  v0.1d36, 5 February 2011
+    Added tab completion for opening .txt files.
+    Path can be added before .txt files, including ~ for user home directory.
+    Fixed click on [input] bug.
+    New photo icon.
+    New name Wiki-to-Speech
+    
+  v0.1d35, 9 January 2011
+    Added flashcards.
+
   v0.1d34, 8 January 2011
     Added dictionary and ask rules to fill template fields.
     
