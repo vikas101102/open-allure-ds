@@ -135,12 +135,20 @@ math, text etc..
                     pass
 
                 elif responseType == "open":
-                    pos = response.find('%')
-                    num = int(response[pos + 1:pos + 2])
-                    sequenceToOpen = match.group(num)
-
-                    resp = _(u'Confirm') + '\n' + _(u'Open ') + sequenceToOpen + \
-                           ';[' + sequenceToOpen + ']\n' + _(u'[input];')
+                    if ruleName == "open":
+                        pos = response.find('%')
+                        num = int(response[pos + 1:pos + 2])
+                        sequenceToOpen = match.group(num)
+    
+                        resp = _(u'Confirm') + '\n' + _(u'Open ') + sequenceToOpen + \
+                               ';[' + sequenceToOpen + ']\n' + _(u'[input];')
+                    if ruleName == "openTXT":
+                        pos = response.find('%')
+                        num = int(response[pos + 1:pos + 2])
+                        sequenceToOpen = match.group(num) + ".txt"
+    
+                        resp = _(u'Confirm') + '\n' + _(u'Open ') + sequenceToOpen + \
+                               ';[' + sequenceToOpen + ']\n' + _(u'[input];')
 
                 elif responseType == "text":
                     if isinstance(response, tuple):

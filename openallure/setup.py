@@ -7,7 +7,7 @@ Usage:
 
 from setuptools import setup
 
-APP = ['openallure.py']
+APP = ['Wiki-to-Speech.py']
 DATA_FILES = ['CHANGES.txt','ethics_notice.txt','README.txt','LICENSE.txt',
         'openallure.cfg',
         'music.txt','start.txt','silent_start.txt','fixSyntax.txt','help.rtf',

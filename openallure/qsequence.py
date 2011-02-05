@@ -154,7 +154,7 @@ List of lists::
    #     [ The links are the next list,
    #                             so seq[ ][ 5 ][ 0 ] is the first  link, for example 'http://movieToWatch'
    #                            and seq[ ][ 5 ][ 1 ] is the second link, for example 'slidecastToWatch' ]]]
-   #     [ The inputs are the next list,
+   #     [ The input flags are the next list,
    #                             so seq[ ][ 6 ][ 0 ] is the first  input, for example 0 (indicating no input on this answer)
    #                            and seq[ ][ 6 ][ 1 ] is the second link, for example 1 (indicating input allowed on this answer)
    #     Special case for photos    seq[0][ 7 ] is list of smile/talk/listen photo names
@@ -328,8 +328,8 @@ class QSequence( object ):
                            _(u"marked with preformatted text (<pre> </pre>)."),
                            _(u"What now?"),
                            _(u"[input];;")]
-                self.inputs = [_(u"What now?"),
-                           _(u"[input];;")]
+#                self.inputs = [_(u"What now?"),
+#                           _(u"[input];;")]
             else:
                 # set path attribute to be everything up to through last slash in url
                 slashAt = filename.rfind( '/' ) + 1
@@ -337,6 +337,14 @@ class QSequence( object ):
 
         elif filename.startswith("nltkResponse.txt"):
             self.inputs = nltkResponse.split("\n")
+            
+        elif filename.endswith(".py"):  
+            file = open(filename)              
+            pyText = file.read()
+            soup = BeautifulSoup(pyText)
+            taggedPre = soup.pre
+            if not str(taggedPre) == 'None':
+                self.inputs = unescape(''.join(soup.pre.findAll(text=True))).splitlines()
 
         else:
             if filename.startswith('~/'):
@@ -505,7 +513,7 @@ Create list of string types::
         setOfDictionaryFields = set(self.dictionary.keys())
         setOfMissingFields = (setOfTemplateFields - setOfDictionaryFields)
         for templateField in list(setOfMissingFields):
-            additionToDictionary = {str(templateField) : 'place holder'}
+            additionToDictionary = {str(templateField) : 'placeholder'}
             self.dictionary.update(additionToDictionary)
         
         # substitute dictionary values into template
@@ -566,9 +574,9 @@ Create list of string types::
                                 self.stickyBrowser = 0
                                 
                         if configItem == 'flashcard':
-                            if configValue.strip().lower() in ['1','true']:
+                            if configValue.strip().lower() in ['1','true','on']:
                                 self.flashcard = 1
-                            elif configValue.strip().lower() in ['0','false']:
+                            elif configValue.strip().lower() in ['0','false','off']:
                                 self.flashcard = 0
                             
                 # if in flashcard mode, next line needs to be marked Q as well, 
@@ -688,14 +696,19 @@ Create list of string types::
                                {"onString" : onString + 1, "answerString" :answerString } )
                         print( _(u"This is probably due to your language setting") + " (%s)" % self.language)
                         sequence = []
-                        sequence.append( [ [_(u'Sorry. There is a problem with line') + ' ' + str(onString+1) + ' of the script.',
-                                            'The line reads',
+                        sequence.append( [ [_(u'Sorry. There is a problem with line') + ' ' + str(onString+1) + _(u' of the script.'),
+                                            _(u'The line reads'),
                                             answerString], \
                                            [_(u'Discuss some possible solutions'),_(u'[input]')],
                                            [u'',u''],
                                            [0,0],
                                            [u'fixSyntax',u''],
-                                           [u'',u''],[1,1],[],[0,0],u'',[0,0],u'' ])
+                                           [u'',u''],
+                                           [1,1],
+                                           [u''], 
+                                           u'',
+                                           [0,0],
+                                           ((u'', u'', u'', u''),) ])
                         
                         return sequence
                         # raise SystemExit
@@ -784,7 +797,7 @@ Create list of string types::
         # catch sequence with a question with no answers
         # and turn it into an input
         if len(sequence) == 0:
-            sequence.append( [ [_(u'What now?')],[_(u'[input]')],[u''],[0], \
+            sequence.append( [ [_(u'What now? Try another input.')],[_(u'[input]')],[u''],[0], \
                                [u''],[u''],[1],[],['0'],u'' ])
         if len(sequence[0][QUESTION]) == 0:
             sequence[0][QUESTION] = [_(u'[input]')]
