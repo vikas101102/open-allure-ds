@@ -162,7 +162,11 @@ List of lists::
    #                             so seq[ ][ 8 ] is a unicode string tag for the question, for example u'skip to here'
    #     [ The stickyBrowser flags are the next list,
    #                             so seq[ ][ 9 ][ 0 ] determines the behavior of the link http://movieToWatch'   
-   #     Special case for rules     seq[0][10 ] is a tuple with any script-specific rules
+   #     [ The visited flags are the next list,
+   #                             so seq[0][10 ][0] tells whether the first answer has been picked in the past
+   #     Special case for flashcard question number (NOT a list)
+   #                             so Seq[0][11 ] tells what question number in the original sequence gave this flashcard question
+   #     Special case for rules     seq[0][12 ] is a tuple with any script-specific rules
    
 See `Open Allure wiki Separate Content File Syntax`_ for details and examples.
 
@@ -183,7 +187,9 @@ INPUTFLAG = 6
 #PHOTOS = 7
 TAG = 8
 STICKY = 9
-RULE = 10
+VISITED = 10
+FLASHCARD = 11
+RULE = 12
 
 import gettext
 import htmlentitydefs
@@ -205,6 +211,8 @@ from configobj import ConfigObj
 #
 # From Fredrik Lundh, http://effbot.org/zone/re-sub.htm#unescape-html
 
+
+                
 def unescape(text):
     def fixup(m):
         text = m.group(0)
@@ -265,7 +273,7 @@ class QSequence( object ):
             self.stickyBrowser = 0
         # flashcard mode causes the first question line to become a prompt
         # and the next question line to become an answer    
-        self.flashcard = False
+        self.flashcardMode = False
         
         # find rule types from responses.cfg
         responsesConfig = ConfigObj("responses.cfg")
@@ -276,7 +284,7 @@ class QSequence( object ):
         # attribute storing path to sequence (excludes name)
         self.path = path
 
-        if filename.startswith(u"http://"):
+        if (filename.startswith(u"http://") or filename.startswith(u"https://") or filename.startswith(u"file://")):
             # read text tagged with <pre> </pre> from website or body of an Etherpad
             try:
                 urlOpen = urllib2.urlopen( filename )
@@ -505,7 +513,9 @@ Create list of string types::
         photos      = []
         tag         = u''
         sticky      = []
-        rules       = []
+        visited     = []
+        flashcard   = None
+        rules       = None
         photoSmile = photoTalk = photoListen = None
         
         #TODO: Sort out templates
@@ -525,15 +535,40 @@ Create list of string types::
                 # if there is something unrecognizable, just ignore it for now
                 pass
             
+        onQuestion = 0
         while onString < len( strings ):
             if string_types[ onString ] == "Q":
                 # check for tags and configuration overrides (which use =)
                 if strings[ onString ].startswith('['):
                     if strings[ onString ].find( '=' ) == -1:
                         # this is a tag
+                        # Add prior question to sequence, if any
+                        if len(question)>0:
+                            if not len(answer):
+                                answer.append(_(u'[next]'))
+                                response.append(u'')
+                                action.append(1)
+                                destination.append(u'')
+                                link.append(u'')
+                                inputFlags.append(1)
+                                sticky.append(self.stickyBrowser)
+                                visited.append(0)
+                            sequence.append( [question, answer, response, action,
+                                              destination, link, inputFlags, photos, tag, sticky, visited, flashcard] )
+                            onQuestion += 1
+                            question    = []
+                            answer      = []
+                            response    = []
+                            action      = []
+                            destination = []
+                            link        = []
+                            inputFlags  = []
+                            photos      = []
+                            sticky      = []
+                            visited     = []
+                            flashcard   = None
                         bracketAt = strings[ onString ].find( ']' )
                         tag = strings[ onString ][ 1 : bracketAt ]
-                        tag = tag.lower()
                     else:
                         # this is a configuration override
                         # strip [ and ] and then split on =
@@ -575,14 +610,14 @@ Create list of string types::
                                 
                         if configItem == 'flashcard':
                             if configValue.strip().lower() in ['1','true','on']:
-                                self.flashcard = 1
+                                self.flashcardMode = 1
                             elif configValue.strip().lower() in ['0','false','off']:
-                                self.flashcard = 0
+                                self.flashcardMode = 0
                             
                 # if in flashcard mode, next line needs to be marked Q as well, 
                 # although it is really an answer.
                 # Both lines will be consumed.
-                elif self.flashcard == True and \
+                elif self.flashcardMode == True and \
                      onString < len(string_types) - 1 and \
                      string_types[ onString + 1 ] == "Q":
                     # first add current Q 
@@ -598,6 +633,8 @@ Create list of string types::
                     link.append(u'')
                     inputFlags.append(1)
                     sticky.append(0)
+                    visited.append(0)
+                    flashcard = onQuestion
                     
                 # check if next string is a link
                 # if so, this Q is really an A and will consume both lines
@@ -609,6 +646,7 @@ Create list of string types::
                     link.append( strings[ onString + 1 ].strip() )
                     inputFlags.append(0)
                     sticky.append(self.stickyBrowser)
+                    visited.append(0)
                 else:
                     question.append( strings[ onString ].rstrip() )
             elif string_types[ onString ] == "N":
@@ -626,6 +664,7 @@ Create list of string types::
                         link.append(u'')
                         inputFlags.append(1)
                         sticky.append(self.stickyBrowser)
+                        visited.append(0)
                     elif self.defaultAnswer == 'input':
                         answer.append(_(u'[input]'))
                         response.append(u'')
@@ -634,13 +673,15 @@ Create list of string types::
                         link.append(u'')
                         inputFlags.append(1)
                         sticky.append(self.stickyBrowser)
+                        visited.append(0)
                 # signal for end of question IF there are responses
                 if len(response):
                     # add to sequence and reset
                     if len(question) == 0:
                         question.append(u'')
                     sequence.append( [question, answer, response, action,
-                                      destination, link, inputFlags, photos, tag, sticky] )
+                                      destination, link, inputFlags, photos, tag, sticky, visited, flashcard] )
+                    onQuestion += 1
                     question    = []
                     answer      = []
                     response    = []
@@ -651,6 +692,9 @@ Create list of string types::
                     photos      = []
                     tag         = u''
                     sticky      = []
+                    visited     = []
+                    flashcard   = None
+                    rules       = []
             elif string_types[ onString ] == "C":
                 # skip over comment strings
                 pass
@@ -727,6 +771,7 @@ Create list of string types::
                 answer.append(label)
                 inputFlags.append(inputFlag)
                 sticky.append(self.stickyBrowser)
+                visited.append(0)
 
                 # NOTE: +1 means to leave off first semi-colon
                 responseString = strings[ onString ][ int( string_types[ onString ] ) + 1: ].strip()
@@ -784,15 +829,17 @@ Create list of string types::
             if len(question) == 0:
                 question.append(u'')
             if len(question) and not len(answer):
-                answer.append(_(u'[input]'))
-                response.append(u'')
+                answer.append(_(u"[input]"))
+                response.append(u"")
                 action.append(0)
-                destination.append(u'nltkResponse.txt')
-                link.append(u'')
+                destination.append(u"")
+                link.append(u"")
                 inputFlags.append(1)
                 sticky.append(self.stickyBrowser)
+                visited.append(0)
             sequence.append( [question, answer, response, action,
-                              destination, link, inputFlags, photos, tag, sticky] )
+                              destination, link, inputFlags, photos, tag, sticky, visited, flashcard] )
+            onQuestion += 1
 
         # catch sequence with a question with no answers
         # and turn it into an input
@@ -805,6 +852,7 @@ Create list of string types::
             sequence[0][DESTINATION] = [u'nltkResponse.txt']
             sequence[0][INPUTFLAG] = [1]
             sequence[0][STICKY] = [0]
+            sequence[0][VISITED] = [0]
         # photos will not be changed if they are not found
 
         # Take second pass at sequence to convert LINKS to TAGS into ACTIONS
@@ -819,53 +867,133 @@ Create list of string types::
                     # to tagged question
                     sequence[ qnum ][ACTION][ lnum ] = tags.index(link[link.rfind('/') + 1:].lower()) - qnum
 
+        # build final question(s) with Contents if any
+        tagWithQNumTuples = zip(tags,range(len(tags)))
+        tagMap = [item for item in tagWithQNumTuples if len(item[0])>0]
+        if len(tagMap)>0:
+            lastQuestionNumber = len(sequence)
+            sectionNamesCount = len(tagMap)
+            onSectionName = 0
+            for tagTuple in tagMap:
+                if 0==onSectionName % 5:
+                    if 0!=onSectionName:
+                        # add batch of 5 to sequence with More ...
+                        lastQuestionNumber += 1
+                        answer.append(_(u"More ..."))
+                        response.append('')
+                        action.append(1)
+                        destination.append('')
+                        link.append('')
+                        inputFlags.append(0)
+                        sticky.append(0)
+                        visited.append(0)
+                        sequence.append( [question, answer, response, action,
+                              destination, link, inputFlags, photos, tag, sticky, visited, flashcard] )
+                    if 0==onSectionName:
+                        question    = [_(u"Contents")]
+                    else:
+                        question    = [_(u"Contents ...")]
+                    answer      = []
+                    response    = []
+                    action      = []
+                    destination = []
+                    link        = []
+                    inputFlags  = []
+                    photos      = []
+                    if 0==onSectionName:
+                        tag         = u'Contents'
+                    else:
+                        tag         = u''
+                    sticky      = []
+                    visited     = []
+                answer.append(tagTuple[0])
+                response.append('')
+                action.append(tagTuple[1]-lastQuestionNumber)
+                destination.append('')
+                link.append('')
+                inputFlags.append(0)
+                sticky.append(0)
+                visited.append(0)
+                if onSectionName == sectionNamesCount-1:
+                    # Add last batch
+                    sequence.append( [question, answer, response, action,
+                              destination, link, inputFlags, photos, tag, sticky, visited, flashcard] )
+                onSectionName += 1
+        else:
+            # Add in Contents with Start link (to question 0)
+            question    = []
+            answer      = []
+            response    = []
+            action      = []
+            destination = []
+            link        = []
+            inputFlags  = []
+            photos      = []
+            tag         = u''
+            sticky      = []
+            visited     = []
+            flashcard   = None
+            
+            question.append("Contents")
+            answer.append("Start");
+            response.append('')
+            action.append(-len(sequence));
+            destination.append('')
+            link.append('')
+            inputFlags.append(0)
+            sticky.append(0)
+            visited.append(0)
+            sequence.append( [question, answer, response, action,
+                      destination, link, inputFlags, photos, tag, sticky, visited, flashcard] )
+
         # Parse just the lines classified as rules
-        ruleStrings = [ str( unicodeStr ) for unicodeStr in rules ]
-        scriptRules = ConfigObj( infile = ruleStrings , encoding='utf-8')
-        rules = []
-        for section in scriptRules.sections:
-            for subsection in scriptRules[section].sections:
-                re = ""
-                reply = ""
-                rule = ()
-                # a regular expression overrides an example
-                if 're' in scriptRules[section][subsection]:
-                    if 'reply' in scriptRules[section][subsection]:
-                        reply = scriptRules[section][subsection]['reply']
-                    else:
-                        reply = '[' + subsection + ']'
-                    rule = ( scriptRules[section][subsection]['re'],
-                             reply,
-                             section, subsection )
-                elif 'example' in scriptRules[section][subsection]:
-                    # turn example into a regular expression
-                    example = scriptRules[section][subsection]['example']
-                    openBracketAt = example.find('[')
-                    closeBracketAt = example.find(']', openBracketAt + 1)
-                    secondOpenBracketAt = example.find('[', closeBracketAt + 1)
-                    secondCloseBracketAt = example.find(']', secondOpenBracketAt + 1)
-                    if openBracketAt == -1:
-                        # if no brackets, use whole example as the regular expression
-                        re = example
-                    else:
-                        firstPartRE = example[ openBracketAt + 1 : closeBracketAt ].strip()
-                        re = '(' + firstPartRE + ')(.*)'
-                        if openBracketAt > 0:
-                            re = '(.*)' + re
-                        if secondOpenBracketAt > closeBracketAt:
-                            secondPartRE = example[ secondOpenBracketAt + 1 : secondCloseBracketAt ].strip()
-                            re = re + '(' + secondPartRE + ')(.*)'
-                    if 'reply' in scriptRules[section][subsection]:
-                        reply = scriptRules[section][subsection]['reply']
-                    else:
-                        reply = '[' + subsection + ']'
-                    rule = ( re, reply, section, subsection )
-                if reply == "" and len(scriptRules[section][subsection]['reply']) > 0:
-                    # This is an ask rule with no triggering re or example
-                    rule = ('', scriptRules[section][subsection]['reply'], section, subsection )
-                if not rule == ():    
-                    rules.append(rule)
-        sequence[ 0 ].append( tuple( rules ) )
+        if rules:
+            ruleStrings = [ str( unicodeStr ) for unicodeStr in rules ]
+            scriptRules = ConfigObj( infile = ruleStrings , encoding='utf-8')
+            rules = []
+            for section in scriptRules.sections:
+                for subsection in scriptRules[section].sections:
+                    re = ""
+                    reply = ""
+                    rule = ()
+                    # a regular expression overrides an example
+                    if 're' in scriptRules[section][subsection]:
+                        if 'reply' in scriptRules[section][subsection]:
+                            reply = scriptRules[section][subsection]['reply']
+                        else:
+                            reply = '[' + subsection + ']'
+                        rule = ( scriptRules[section][subsection]['re'],
+                                 reply,
+                                 section, subsection )
+                    elif 'example' in scriptRules[section][subsection]:
+                        # turn example into a regular expression
+                        example = scriptRules[section][subsection]['example']
+                        openBracketAt = example.find('[')
+                        closeBracketAt = example.find(']', openBracketAt + 1)
+                        secondOpenBracketAt = example.find('[', closeBracketAt + 1)
+                        secondCloseBracketAt = example.find(']', secondOpenBracketAt + 1)
+                        if openBracketAt == -1:
+                            # if no brackets, use whole example as the regular expression
+                            re = example
+                        else:
+                            firstPartRE = example[ openBracketAt + 1 : closeBracketAt ].strip()
+                            re = '(' + firstPartRE + ')(.*)'
+                            if openBracketAt > 0:
+                                re = '(.*)' + re
+                            if secondOpenBracketAt > closeBracketAt:
+                                secondPartRE = example[ secondOpenBracketAt + 1 : secondCloseBracketAt ].strip()
+                                re = re + '(' + secondPartRE + ')(.*)'
+                        if 'reply' in scriptRules[section][subsection]:
+                            reply = scriptRules[section][subsection]['reply']
+                        else:
+                            reply = '[' + subsection + ']'
+                        rule = ( re, reply, section, subsection )
+                    if reply == "" and len(scriptRules[section][subsection]['reply']) > 0:
+                        # This is an ask rule with no triggering re or example
+                        rule = ('', scriptRules[section][subsection]['reply'], section, subsection )
+                    if not rule == ():    
+                        rules.append(rule)
+            sequence[ 0 ].append( tuple( rules ) )
         return sequence
 
 
@@ -886,5 +1014,8 @@ if __name__ == "__main__":
         print 'INPUTFLAG   ',question[6]
         print 'PHOTOS      ',question[7]
         print 'STICKY      ',question[9]
+        print 'VISITED     ',question[10]
+        if len(question) > FLASHCARD:
+            print 'FLASHCARD   ',question[11]
         if len(question) > RULE:
-            print 'RULES       ',question[10]
+            print 'RULES       ',question[12]

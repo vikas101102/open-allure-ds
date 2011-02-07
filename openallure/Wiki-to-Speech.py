@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
-openallure.py
+Wiki-to-Speech.py
 
-Voice-and-vision enabled dialog system
+Read scripts from a wiki or local file to play using text-to-speech
 
 Project home at `Open Allure project`_.
 
@@ -11,9 +11,17 @@ Project home at `Open Allure project`_.
 Copyright (c) 2011 John Graves
 
 MIT License: see LICENSE.txt
+
+TODO
+timer [Wait=10 seconds]
+Clipboard watching
+Photos to go with text
+Multiple language within flashcard
+Anki-style tracking of questions?
+Gray out visited answers (in text.py)
 """
 
-__version__ = '0.1d35dev'
+__version__ = '0.1d37dev'
 
 # Standard Python modules
 import itertools
@@ -47,7 +55,9 @@ INPUTFLAG = 6
 #PHOTOS = 7
 TAG = 8
 STICKY = 9
-RULE = 10
+VISITED = 10
+FLASHCARD = 11
+RULE = 12
 RULE_NAME = 3
 RULE_TYPE = 2
 RULE_RESP = 1
@@ -71,7 +81,8 @@ def inRegion(region, y):
         return 1
     else:
         return 0
-
+        
+#html_name main
 def main():
     """Initialization and event loop"""
 
@@ -85,7 +96,7 @@ def main():
     screen = pygame.display.set_mode(screenRect.size)
     if sys.platform != 'darwin':
         pygame.scrap.init()
-
+    pygame.key.set_repeat (300, 30)
     config = ConfigObj('openallure.cfg')
 
     # determine what language to use for string translations
@@ -130,6 +141,18 @@ def main():
         openallure.db = Base(oadb)
         openallure.db.create(('time',float), ('url',unicode), \
         ('q',int), ('a',int), ('cmd',unicode))
+        
+    # open database to track flashcards
+
+    oafc = config['Data']['oafc']
+    try:
+        openallure.fcdb = Base(oafc).open()
+    except IOError:
+        openallure.fcdb = Base(oafc)
+        openallure.fcdb.create(('time',float), ('url',unicode), \
+        ('q',int), ('score',int), ('duration',float))
+    # track duration of question by difference between time of answer and time of arrival
+    timeOfArrival = time.time()    
 
     # read configuration options
     delayTime = int(config['Options']['delayTime'])
@@ -177,10 +200,10 @@ def main():
     # If Open Allure needs to ask for information, what is the name of the item for the dictionary
     openallure.thingAskingAbout = u''
     
-    # flashcard mode checks the input against the response.
+    # flashcardMode checks the input against the response.
     # If they match, Open Allure says "correct"
     # Otherwise, the correct answer is shown (stuffed into currentString)
-    openallure.flashcard = False
+    openallure.flashcardMode = False
     openallure.flashcardTried = False
     
 
@@ -198,7 +221,7 @@ def main():
     #voice.speak('Hello')
 
     WELCOME_TEXT = ["",
-    _(u"       Welcome to the Open Allure Dialog System."),
+    _(u"       Welcome to Wiki-to-Speech."),
     "",
     _(u"       Keys:"),
     _(u"           Escape quits"),
@@ -207,24 +230,28 @@ def main():
     _(u"           Ctrl+V paste"),
     "",
     _(u"       Commands:"),
-    _(u"           exit"),
-    _(u"           open <filename or url>"),
-    _(u"           quit"),
-    _(u"           return (resumes at last question)"),
+    _(u"           e exit"),
+    _(u"           o open <filename or url>"),
+    _(u"           q quit"),
+    _(u"           r return (resumes at last question)"),
     _(u"           show source (Mac only)"),
     ""]
 
     for line in WELCOME_TEXT:
         print line
 
+#html_name loop
     runFlag = True;
     while runFlag:
 
         if not openallure.ready:
             # check if we need to ask for anything
-            setOfThingsWithRulesToAskAbout = set([rule[RULE_NAME] for rule in seq.sequence[0][10] if rule[RULE_TYPE] == 'ask'])
-            setOfDictionaryFields = set(openallure.dictionary.keys())
-            setOfThingsToAskAbout = setOfThingsWithRulesToAskAbout - setOfDictionaryFields
+            setOfThingsToAskAbout = []
+            # TODO Hack. This should be fixed by a restructuring of the code. We don't know whether the last list entry is rules or a flashcard question number
+            if len(seq.sequence[0])>RULE and not isinstance(seq.sequence[0][RULE],int):
+                setOfThingsWithRulesToAskAbout = set([rule[RULE_NAME] for rule in seq.sequence[0][RULE] if rule[RULE_TYPE] == 'ask'])
+                setOfDictionaryFields = set(openallure.dictionary.keys())
+                setOfThingsToAskAbout = setOfThingsWithRulesToAskAbout - setOfDictionaryFields
             if len(setOfThingsToAskAbout) > 0:
                 openallure.thingAskingAbout = setOfThingsToAskAbout.pop()
                 query = [rule[RULE_RESP] for rule in seq.sequence[0][RULE] if rule[RULE_NAME] == openallure.thingAskingAbout]
@@ -235,16 +262,16 @@ def main():
                 
             # Set flashcard mode    
             if openallure.question[ANSWER][0] == _(u'[flashcard]'):
-                openallure.flashcard = True
+                openallure.flashcardMode = True
                 openallure.flashcardTried = False
             else:
-                openallure.flashcard = False
+                openallure.flashcardMode = False
                 
             # Set window caption including url and tag (if available)    
-            caption = u"Open Allure"
+            caption = u"Wiki-to-Speech"
             if len(url) > 0:    
                 caption += " - " + url
-            if len(openallure.question[TAG]) > 0:    
+            if (isinstance(openallure.question[TAG],str) and len(openallure.question[TAG]) > 0):    
                 caption += " - " + openallure.question[TAG]
             pygame.display.set_caption(caption)
             
@@ -269,6 +296,8 @@ def main():
             openallure.stated = False
             if openallure.onQuestion in openallure.questions:
                 openallure.stated = True
+                # but update delayStartTime to avoid "dropping through" a series of [next]
+                delayStartTime = pygame.time.get_ticks()
 
             # initialize selections - nothing has been highlighted
             # or previously selected as an answer
@@ -299,7 +328,8 @@ def main():
             openallure.gain = 1
 
             # arrival record for new question
-            record_id = openallure.db.insert(time = time.time(), \
+            timeOfArrival = time.time()
+            record_id = openallure.db.insert(time = timeOfArrival, \
                         url = unicode(url), q = openallure.onQuestion)
 
         # make sure currentString has been added to questionText
@@ -317,12 +347,18 @@ def main():
                 YCOORDINATE = 1
                 mouseButtonDownEventY = event.pos[YCOORDINATE]
                 
+            # Trap and quit on Escape, Ctrl + q or Command + q (Mac)
             if event.type == pygame.QUIT   \
                or (event.type == pygame.KEYDOWN and    \
-                   event.key == pygame.K_ESCAPE):
+                   event.key == pygame.K_ESCAPE) \
+               or (event.type == pygame.KEYDOWN and    \
+                   event.key == pygame.K_q and \
+                   ((pygame.key.get_mods() & pygame.KMOD_META) or
+                   (pygame.key.get_mods() & pygame.KMOD_CTRL))):
 #               if graphViz:
 #                   graphViz.kill()
                 runFlag = False
+                return
 
             # Trap and quit on Ctrl + C
             elif (event.type == pygame.KEYDOWN and
@@ -357,12 +393,12 @@ def main():
                     clipboard = open('clipboard').readlines()
                     if clipboard[0].startswith(u"http://") or \
                        clipboard[0].find(u"http://"):
-                        openallure.currentString += clipboard[0]
+                        openallure.currentString += unicode(clipboard[0])
                 else:
                     clipboard = pygame.scrap.get(pygame.SCRAP_TEXT)
                     if clipboard.startswith(u"http://") or \
                        clipboard.find(u"http://"):
-                        openallure.currentString += clipboard
+                        openallure.currentString += unicode(clipboard)
 
             # Trap Ctrl + - (minus) to decrease font size
             elif (event.type == pygame.KEYDOWN and
@@ -405,11 +441,49 @@ def main():
             elif event.type == pygame.KEYDOWN:
                 #print event.key
                 #print pygame.key.name(event.key)
-                # Keys 1 through 6 select choices 1 through 6
-                if event.key in range(pygame.K_1, pygame.K_6) and \
-                    (not openallure.question[INPUTFLAG][choiceCount - 1] == 1 or
-                    (openallure.question[INPUTFLAG][choiceCount - 1] == 1 and
-                    openallure.currentString == u'')):
+                if event.key == pygame.K_TAB:
+                    # Look up text files using currentString as path or index into current list
+                    currentStringPath = ""
+                    currentStringPathSeparatorAt = 0
+                    if len(openallure.currentString) == 0:
+                        listOfFiles = os.listdir('.')
+                    else:
+                        # replace ~ with home directory if needed
+                        if openallure.currentString.startswith('~/'):
+                            currentStringWithPath = os.environ['HOME'] + openallure.currentString[1:].rstrip()
+                        else:
+                            currentStringWithPath = openallure.currentString.rstrip()
+                        # parse currentString for any path
+                        currentStringPathSeparatorAt = currentStringWithPath.rfind(os.sep)
+                        if currentStringPathSeparatorAt > 0:
+                            currentStringPath = currentStringWithPath[0:currentStringPathSeparatorAt+1]
+                            listOfFiles = os.listdir(currentStringWithPath[0:currentStringPathSeparatorAt])
+                        else:
+                            # look in current directory
+                            listOfFiles = os.listdir(os.curdir)
+                    if len(listOfFiles) > 0:
+                        listOfTXTFiles = [txtFile for txtFile in listOfFiles if txtFile.endswith('.txt')]
+                        listOfTXTFiles.sort()
+                    if len(listOfTXTFiles) > 0:
+                        # try to further filter list with currentString filename stub
+                        if currentStringPathSeparatorAt > 0:
+                            currentStringFileNameStub = openallure.currentString[currentStringPathSeparatorAt+1:].rstrip()
+                        else:
+                            currentStringFileNameStub = openallure.currentString.rstrip()
+                        filteredListOfTXTFiles = []
+                        if len(currentStringFileNameStub) > 0:    
+                            filteredListOfTXTFiles = [fileMatchingStub for fileMatchingStub in listOfTXTFiles if fileMatchingStub.startswith(currentStringFileNameStub)]
+                        if len(filteredListOfTXTFiles) > 0:   
+                            openallure.currentString = unicode(currentStringPath + filteredListOfTXTFiles[0].strip())
+                        elif len(currentStringFileNameStub) == 0:
+                            openallure.currentString = unicode(currentStringPath + listOfTXTFiles[-1].strip())
+                # Keys 1 through 6 select choices 1 through 6 if not input
+                if event.key in range(pygame.K_1, pygame.K_6+1) and \
+                   not openallure.question[INPUTFLAG][choiceCount - 1] == 1:
+#                     or (IS input and empty currentString)
+#                    (not openallure.question[INPUTFLAG][choiceCount - 1] == 1 or
+#                    (openallure.question[INPUTFLAG][choiceCount - 1] == 1 and
+#                    openallure.currentString == u'')):
                         answer = event.key - pygame.K_1
                         if answer < choiceCount:
                             # Record choice along with destination, if any
@@ -512,8 +586,7 @@ def main():
                             openallure.questions = []
                             openallure.statedq = -1
                             openallure.ready = False
-                        elif openallure.flashcard == True:
-                            openallure.flashcardTried = True
+                        elif openallure.flashcardMode == True:
                             # compare current string with response
                             if openallure.currentString.lower() == openallure.question[RESPONSE][answer].lower():
                                 # say "correct"
@@ -521,14 +594,36 @@ def main():
                             else:
                                 # show correct response (this will also be said)
                                 voice.speak(_(openallure.question[RESPONSE][answer]),openallure.systemVoice)
+                            # Hold last character of answer for possible score
+                            lastCharacterOfCurrentString = openallure.currentString[-1]    
                             # Every try results in the correct answer    
                             openallure.currentString = openallure.question[RESPONSE][answer]
                             openallure.stated = False
                             # Take note of time for automatic page turns
                             delayStartTime = pygame.time.get_ticks()
+                            # Find duration
+                            qDuration = time.time() - timeOfArrival
+                            # Find score
+                            qScore = 0
+                            possibleScores = ["0","1","2","3","4","5"]
+                            if lastCharacterOfCurrentString in possibleScores:
+                                qScore = possibleScores.index(lastCharacterOfCurrentString)
+                            # record selection of answer
+                            if not openallure.flashcardTried:
+                                if len(openallure.question)>FLASHCARD: 
+                                    # Run of flashcards.  Refer to original source question number in fc record
+                                    fcRecordId = openallure.fcdb.insert(time = time.time(), \
+                                    url = unicode(url), q = openallure.question[FLASHCARD], \
+                                    score = qScore, duration = qDuration)
+                                else:
+                                    fcRecordId = openallure.fcdb.insert(time = time.time(), \
+                                    url = unicode(url), q = openallure.onQuestion, \
+                                    score = qScore, duration = qDuration)
+                            openallure.flashcardTried = True
+
                         else:    
                             # Check for rules from script at end of question 0
-                            if len(seq.sequence[0]) > RULE:
+                            if len(seq.sequence[0]) > RULE and not isinstance(seq.sequence[0][RULE], int):
                                 scriptRules = seq.sequence[0][RULE]
                             else:
                                 scriptRules = None
@@ -539,11 +634,120 @@ def main():
                                                        scriptRules)
     
                             # Act on commands
+                            if nltkType == 'run':
+                                # run flashcards
+                                # get most recent visit to each card   
+                                mostRecentFlashcardQuestions = []
+                                mostRecentFlashcardScores = []
+                                mostRecentFlashcardDurations = []
+                                for record in openallure.fcdb.select(None,url=url).sort_by('-time'):
+                                    if record.q not in mostRecentFlashcardQuestions:
+                                        mostRecentFlashcardQuestions.append(record.q)
+                                        mostRecentFlashcardScores.append(record.score)
+                                        mostRecentFlashcardDurations.append(record.duration)
+                                if len(mostRecentFlashcardQuestions)>0:        
+                                    onFCQuestion = 0   
+                                    FCTuples = []     
+                                    for q in mostRecentFlashcardQuestions:
+                                        # Construct descending order composite key of score*1000 with duration as tie-breaker (longer duration ~ harder)
+                                        FCTuples.append( (q, -mostRecentFlashcardScores[onFCQuestion]*1000-mostRecentFlashcardDurations[onFCQuestion]) )
+                                        onFCQuestion += 1
+                                    sortedFCTuples = sorted(FCTuples,key=lambda fc: fc[1])
+                                    # sortedFC should be a list of the flashcard question numbers from the original source
+                                    sortedFC = [fc[0] for fc in sortedFCTuples]
+                                    # play flashcard stack in that order from source
+                                    openallure.onQuestion = sortedFC[0]
+                                    # add a question to rerun cards
+                                    if seq.sequence[-1][QUESTION][0]!=_(u"End of flashcards"):
+                                        seq.sequence.append([[_(u"End of flashcards")],[_(u"[input]")],[u''], [0], [u''], [u''], [1], [], u'', [0]])
+                                    # adjust actions
+                                    onFC = 0
+                                    lastFC = len(sortedFC)-1
+                                    for fc in sortedFC:
+                                        if onFC!=lastFC:
+                                            seq.sequence[fc][ACTION][0] = sortedFC[onFC+1]-sortedFC[onFC]
+                                        else:
+                                            # action to get to new last question
+                                            seq.sequence[fc][ACTION][0] = (len(seq.sequence)-1)-sortedFC[onFC]
+                                        onFC+=1
+                                    openallure.ready = False
+                                else:
+                                    # Script lacks flashcards or they have not been seen yet
+                                    answersInScript = [question[ANSWER][0] for question in seq.sequence]
+                                    answersInScriptQNumTuples = zip(answersInScript,range(len(answersInScript)))
+                                    flashcardsInScriptQNums = [item[1] for item in answersInScriptQNumTuples if item[0]==_(u"[flashcard]")]
+                                    if len(flashcardsInScriptQNums) > 0:
+                                        openallure.onQuestion=flashcardsInScriptQNums[0]
+                                        openallure.ready = False
+                                    else:
+                                        # look for other flashcards
+                                        seq.sequence = [[[_(u"Open another script containing flashcards.")],[_(u"[input]")],[u''], [0], [u''], [u''], [1], [], u'', [0]]]
+                                        openallure.onQuestion = 0
+                                        openallure.ready = False
+                                        
                             if nltkType == 'link':
                                 tags = [ question[TAG] for question in seq.sequence ]
                                 if nltkName in tags:
                                     openallure.onQuestion = tags.index(nltkName)
                                     openallure.ready = False
+                                    
+                            if nltkType == 'list':
+                                # read directory, sort it, return sequence
+                                listOfFiles = []
+                                if nltkName == 'currentDirectoryScripts':
+                                    listOfFiles = os.listdir('.')
+                                    directoryToList = ""
+                                elif nltkName == 'localScripts':
+                                    #resp = u'Confirm\nList Scripts in ' + directoryToList + '\n[input];'
+                                    directoryToListStart = nltkResponse.find(u'List Scripts in ')+16
+                                    directoryToListEnd = nltkResponse.find(u'\n', directoryToListStart)
+                                    directoryToList = nltkResponse[directoryToListStart:directoryToListEnd]
+                                    if directoryToList.startswith('~/'):
+                                        directoryToList = os.environ['HOME'] + directoryToList[1:].rstrip()
+                                    print directoryToList
+                                    try:
+                                        listOfFiles = os.listdir(directoryToList)
+                                    except OSError:
+                                        pass
+                                if len(listOfFiles) > 0:
+                                    listOfTXTFiles = [txtFile for txtFile in listOfFiles if txtFile.endswith('.txt')]
+                                    listOfTXTFiles.sort()
+                                    # Build question sequence from list of TXT files
+                                    scriptFileForTXTFiles = open('List of Scripts.txt','w')
+                                    TXTFileCount = len(listOfTXTFiles)
+                                    onTXTFile = 0
+                                    onTXTFilePage = 1
+                                    TXTFilePages = TXTFileCount / 5 
+                                    if TXTFileCount % 5 > 0:
+                                        TXTFilePages += 1 
+                                    for TXTFile in listOfTXTFiles:
+                                        if 0==onTXTFile % 5:
+                                            if 0!=onTXTFile:
+                                                # add batch of 5 to sequence with More ...
+                                                scriptFileForTXTFiles.write("More ...;;\n\n")
+                                            else:
+                                                #TODO Add to table of contents sequence?
+                                                #questionTagMap.append("")
+                                                pass
+                                            if TXTFilePages > 1:
+                                                scriptFileForTXTFiles.write("Scripts (" + str(onTXTFilePage) + " of " + str(TXTFilePages) + ")\n")
+                                                onTXTFilePage += 1
+                                            else:
+                                                scriptFileForTXTFiles.write("Scripts\n")
+                                        if len(directoryToList) > 0:
+                                            scriptFileForTXTFiles.write(listOfTXTFiles[onTXTFile]+";["+directoryToList+os.sep+listOfTXTFiles[onTXTFile]+"]\n")
+                                        else:
+                                                scriptFileForTXTFiles.write(listOfTXTFiles[onTXTFile]+";["+listOfTXTFiles[onTXTFile]+"]\n")
+                                        onTXTFile += 1
+                                else:
+                                    # no TXT files
+                                    scriptFileForTXTFiles = open('List of Scripts.txt','w')
+                                    scriptFileForTXTFiles.write("No scripts found in directory.\nWhat now?\n")
+                                scriptFileForTXTFiles.close()
+                                openallure.currentString = ""
+                                seq = QSequence(filename='List of Scripts.txt')
+                                openallure.onQuestion = 0
+                                openallure.ready = False
                                     
                             if nltkType == 'goto' or \
                               (nltkType == 'text' and nltkName == 'what now'):
@@ -699,7 +903,7 @@ def main():
 
                 elif event.key == pygame.K_BACKSPACE and \
                 openallure.question[INPUTFLAG][choiceCount - 1] == 1:
-                    openallure.currentString = openallure.currentString[0:-1]
+                    openallure.currentString = openallure.currentString.rstrip()[0:-1]
                     openallure.question[ANSWER][choiceCount - 1] = \
                     openallure.currentString
                     questionText[choiceCount] = \
@@ -708,7 +912,8 @@ def main():
                     screen.fill(backgroundColor, rect=textRect)
 
                 elif event.key <= 127 and \
-                openallure.question[INPUTFLAG][-1] == 1:
+                openallure.question[INPUTFLAG][-1] == 1 and \
+                event.key != pygame.K_TAB:
                     # p rint event.key
                     mods = pygame.key.get_mods()
                     if mods & pygame.KMOD_SHIFT:
@@ -740,7 +945,7 @@ def main():
            openallure.stated == True and \
            ((not openallure.currentString and \
            openallure.question[ANSWER][-1] == _(u'[next]')) or
-           (openallure.flashcard and openallure.flashcardTried)) and \
+           (openallure.flashcardMode and openallure.flashcardTried)) and \
            pygame.time.get_ticks() - delayStartTime > delayTime:
             # This takes last response
             answer = choiceCount - 1
@@ -882,7 +1087,7 @@ def main():
             openallure.stated = True
 
             # respond to choice when something has been typed and entered
-            if openallure.currentString and not openallure.flashcard:
+            if openallure.currentString and not openallure.flashcardMode:
                 if len(nltkResponse) == 0:
                     choice = (-1, 0)
                     answer = -1
@@ -909,7 +1114,7 @@ def main():
                answer < len(openallure.question[RESPONSE]) and \
                 (isinstance(openallure.question[RESPONSE][answer], str) or \
                 isinstance(openallure.question[RESPONSE][answer], unicode)):
-                    if not openallure.flashcard:
+                    if not openallure.flashcardMode:
                         #speak response to answer
                         voice.speak(openallure.question[RESPONSE][answer].strip(),openallure.systemVoice)
 

@@ -1,5 +1,10 @@
 Change history::
 
+  v0.1d37, 6 February 2011
+    Added list scripts command
+    Added table of contents for sections
+    Run command for flashcards
+    
   v0.1d36, 5 February 2011
     Added tab completion for opening .txt files.
     Path can be added before .txt files, including ~ for user home directory.
