@@ -100,6 +100,18 @@ math, text etc..
                     # find question with goto tag = ruleName
                     resp = u'Confirm\nGo to tag ' + ruleName + '\n[input];'
 
+                elif responseType == "run":
+                    resp = u'Confirm\nRun ' + ruleName + '\n[input];'
+
+                elif responseType == "list":
+                    if ruleName == "currentDirectoryScripts":
+                        resp = u'Confirm\nList Scripts\n[input];'
+                    if ruleName == "localScripts":
+                        pos = response.find('%')
+                        num = int(response[pos + 1:pos + 2])
+                        directoryToList = match.group(num)
+                        resp = u'Confirm\nList Scripts in ' + directoryToList + '\n[input];'
+
                 elif responseType == "graph":
                     if ruleName == 'list':
                         resp = u'Confirm\nList Records\n[input];'
