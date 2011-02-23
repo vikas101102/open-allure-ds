@@ -27,6 +27,9 @@ NLTK
 http://www.nltk.org/download
 Steven Bird, <sb@csse.unimelb.edu.au>
 
+buzhug
+http://buzhug.sourceforge.net/
+
 License
 =======
 
