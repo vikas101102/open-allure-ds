@@ -242,6 +242,9 @@ class QSequence( object ):
         Read either a local plain text file or text tagged <pre> </pre> from a webpage or body of an Etherpad
         """
         self.dictionary = dictionary.copy()
+        self.script_path = os.path.split(filename)
+        if len(self.script_path[0])==0:
+            self.script_path = (path,"") # work around to get path into links inside rules
          
         config = ConfigObj("openallure.cfg", )
 
@@ -317,7 +320,7 @@ class QSequence( object ):
                     # strip off leading spaces
                     self.inputs = [line.lstrip() for line in self.inputs]
                     
-                elif (filename.find('etherpad.') > -1):
+                elif (filename.lower().find('etherpad') > -1):
                     # If no taggedPreText, try Etherpad body
                     soupString = ""
                     try:
@@ -731,6 +734,11 @@ Create list of string types::
                     # The syntax only has a chance of being correct if the space comes before the closing bracket
                     if spaceAt > 0 and closeBracketAt > 0 and spaceAt < closeBracketAt:
                         linkString = answerString[ 1 : spaceAt]
+                        # if linkString does not contain any path information
+                        # the browser may be unable to find the file, so add the path of the current script
+                        slashAt = linkString.find(u'/')
+                        if slashAt==-1:
+                            linkString = "file://" + self.script_path[0] + "/" + linkString 
                         label = u'[' + answerString[ spaceAt + 1 : ]
                     else:
                         # If a space is not found between the brackets AND
@@ -776,8 +784,8 @@ Create list of string types::
                 # NOTE: +1 means to leave off first semi-colon
                 responseString = strings[ onString ][ int( string_types[ onString ] ) + 1: ].strip()
                 # catch answers with no marking
-                if responseString == '':
-                    responseString = ';'
+#                if responseString == '':
+#                    responseString = ';'
 
                 # examine start of responseString to determine if it signals action
                 # with additional ;'s or digits ( including + and - ) or brackets
@@ -856,7 +864,7 @@ Create list of string types::
         # photos will not be changed if they are not found
 
         # Take second pass at sequence to convert LINKS to TAGS into ACTIONS
-        tags = [ question[TAG] for question in sequence ]
+        tags = [ question[TAG].lower() for question in sequence ]
         for qnum, question in enumerate( sequence ):
             for lnum, link in enumerate( question[DESTINATION] ):
                 if not link == u'' and link[link.rfind('/') + 1:].lower() in tags:
@@ -890,7 +898,7 @@ Create list of string types::
                         sequence.append( [question, answer, response, action,
                               destination, link, inputFlags, photos, tag, sticky, visited, flashcard] )
                     if 0==onSectionName:
-                        question    = [_(u"Contents")]
+                        question    = [_(u"Contents ...")]
                     else:
                         question    = [_(u"Contents ...")]
                     answer      = []
@@ -945,6 +953,31 @@ Create list of string types::
             visited.append(0)
             sequence.append( [question, answer, response, action,
                       destination, link, inputFlags, photos, tag, sticky, visited, flashcard] )
+                        # Add in Contents with Start link (to question 0)
+        question    = []
+        answer      = []
+        response    = []
+        action      = []
+        destination = []
+        link        = []
+        inputFlags  = []
+        photos      = []
+        tag         = u'_what_now'
+        sticky      = []
+        visited     = []
+        flashcard   = None
+        
+        question.append("Sorry, I don't understand that. What now?")
+        answer.append("[input]");
+        response.append('')
+        action.append(0);
+        destination.append('')
+        link.append('')
+        inputFlags.append(1)
+        sticky.append(0)
+        visited.append(0)
+        sequence.append( [question, answer, response, action,
+                  destination, link, inputFlags, photos, tag, sticky, visited, flashcard] )
 
         # Parse just the lines classified as rules
         if rules:
