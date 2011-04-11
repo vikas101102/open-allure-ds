@@ -1,5 +1,13 @@
 Change history::
 
+  v0.1d39, 11 April 2011
+    Changes around starting scripts in other directories 
+    Update to voice.py for espeak (ubuntu)
+    
+  v0.1d38, 5 March 2011
+    Clicking on [input] just clears it
+    Configured to start Chatterbox_Challenge_2011_Script.txt
+
   v0.1d37, 6 February 2011
     Added list scripts command
     Added table of contents for sections

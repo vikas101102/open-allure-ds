@@ -21,7 +21,7 @@ Anki-style tracking of questions?
 Gray out visited answers (in text.py)
 """
 
-__version__ = '0.1d37dev'
+__version__ = '0.1d39dev'
 
 # Standard Python modules
 import itertools
@@ -125,6 +125,9 @@ def main():
     url = unicode(config['Source']['url'])
     if len(sys.argv) > 1 and 0 != len(sys.argv[1]):
         url = unicode(sys.argv[1])
+        # if not an http link, help get full path
+        if not (url.startswith("http") or url.startswith(os.environ['HOME'])):
+            url = os.environ['PWD'] + os.sep + url
     backgroundColor = eval(config['Colors']['background'])
     seq = QSequence(filename = url,dictionary=openallure.dictionary)
     try:
@@ -249,12 +252,17 @@ def main():
             setOfThingsToAskAbout = []
             # TODO Hack. This should be fixed by a restructuring of the code. We don't know whether the last list entry is rules or a flashcard question number
             if len(seq.sequence[0])>RULE and not isinstance(seq.sequence[0][RULE],int):
-                setOfThingsWithRulesToAskAbout = set([rule[RULE_NAME] for rule in seq.sequence[0][RULE] if rule[RULE_TYPE] == 'ask'])
+                #Hello $name
+                # 1: strips off leading underscore from rule name
+                #[_ask]
+                #[[_name]] 
+                #reply="What is your name?"
+                setOfThingsWithRulesToAskAbout = set([rule[RULE_NAME][1:] for rule in seq.sequence[0][RULE] if rule[RULE_TYPE] == '_ask'])
                 setOfDictionaryFields = set(openallure.dictionary.keys())
                 setOfThingsToAskAbout = setOfThingsWithRulesToAskAbout - setOfDictionaryFields
             if len(setOfThingsToAskAbout) > 0:
                 openallure.thingAskingAbout = setOfThingsToAskAbout.pop()
-                query = [rule[RULE_RESP] for rule in seq.sequence[0][RULE] if rule[RULE_NAME] == openallure.thingAskingAbout]
+                query = [rule[RULE_RESP] for rule in seq.sequence[0][RULE] if rule[RULE_NAME][1:] == openallure.thingAskingAbout]
                 openallure.question = [[query[0]], [_(u'[input]')], [u''], [0], [u''], [u''], [1], [], u'', [0], u'']
             else:
                 # prepare for question display
@@ -451,13 +459,18 @@ def main():
                         # replace ~ with home directory if needed
                         if openallure.currentString.startswith('~/'):
                             currentStringWithPath = os.environ['HOME'] + openallure.currentString[1:].rstrip()
+                        elif openallure.currentString.startswith('./'):
+                            currentStringWithPath = os.environ['PWD'] + openallure.currentString[1:].rstrip()
                         else:
                             currentStringWithPath = openallure.currentString.rstrip()
                         # parse currentString for any path
                         currentStringPathSeparatorAt = currentStringWithPath.rfind(os.sep)
                         if currentStringPathSeparatorAt > 0:
                             currentStringPath = currentStringWithPath[0:currentStringPathSeparatorAt+1]
-                            listOfFiles = os.listdir(currentStringWithPath[0:currentStringPathSeparatorAt])
+                            try:
+                                listOfFiles = os.listdir(currentStringWithPath[0:currentStringPathSeparatorAt])
+                            except:
+                                listOfFiles = []
                         else:
                             # look in current directory
                             listOfFiles = os.listdir(os.curdir)
@@ -563,7 +576,7 @@ def main():
                         openallure.currentString = chatHistory[onChatHistory]
 
                 elif event.key == pygame.K_RETURN:
-                    if openallure.currentString:
+                    if len(openallure.currentString)>0:
                         # add to history if new
                         if len(chatHistory) > 0:
                             if chatHistory[-1] != openallure.currentString:
@@ -634,7 +647,7 @@ def main():
                                                        scriptRules)
     
                             # Act on commands
-                            if nltkType == 'run':
+                            if nltkType == '_run':
                                 # run flashcards
                                 # get most recent visit to each card   
                                 mostRecentFlashcardQuestions = []
@@ -685,19 +698,22 @@ def main():
                                         openallure.onQuestion = 0
                                         openallure.ready = False
                                         
-                            if nltkType == 'link':
+                            if nltkType == '_link':
                                 tags = [ question[TAG] for question in seq.sequence ]
                                 if nltkName in tags:
                                     openallure.onQuestion = tags.index(nltkName)
                                     openallure.ready = False
+                                    if nltkName=='_what_now':
+                                        # make sure [input] is restored as answer
+                                        seq.sequence[openallure.onQuestion][ANSWER][0]=_('[input]')
                                     
-                            if nltkType == 'list':
+                            if nltkType == '_list':
                                 # read directory, sort it, return sequence
                                 listOfFiles = []
-                                if nltkName == 'currentDirectoryScripts':
+                                if nltkName == '_currentDirectoryScripts':
                                     listOfFiles = os.listdir('.')
                                     directoryToList = ""
-                                elif nltkName == 'localScripts':
+                                elif nltkName == '_localScripts':
                                     #resp = u'Confirm\nList Scripts in ' + directoryToList + '\n[input];'
                                     directoryToListStart = nltkResponse.find(u'List Scripts in ')+16
                                     directoryToListEnd = nltkResponse.find(u'\n', directoryToListStart)
@@ -749,8 +765,8 @@ def main():
                                 openallure.onQuestion = 0
                                 openallure.ready = False
                                     
-                            if nltkType == 'goto' or \
-                              (nltkType == 'text' and nltkName == 'what now'):
+                            if nltkType == '_goto' or \
+                              (nltkType == '_text' and nltkName == '_what now'):
                                 # find question with goto tag = ruleName or
                                 # currentString (if it didn't match anything else)
                                 if openallure.question[QUESTION] == [_(u"Input")]:
@@ -773,11 +789,13 @@ def main():
                                                 break
                                         except:
                                             pass                             
-                                tags = [ question[TAG] for question in seq.sequence ]
+                                tags = [ question[TAG].lower() for question in seq.sequence ]
+#                                print tags
+#                                print openallure.currentString + "|"
                                 if nltkName in tags:
                                     openallure.onQuestion = tags.index(nltkName)
                                     openallure.ready = False
-                                if nltkName== 'what now' and \
+                                if nltkName== '_what now' and \
                                    openallure.currentString.lower() in tags:
                                     if openallure.onQuestion != \
                                             tags.index(openallure.currentString):
@@ -788,7 +806,7 @@ def main():
                                         # the question sequence until some input is required
                                         openallure.ready = False
                                 # If still no luck finding a match, use currentString
-                                # to search all through the text of all the questions
+                                # to search all through the text of all the questions (full text)
                                 if openallure.ready:
                                     for qnum, question in enumerate(seq.sequence):
                                         # search in question text and non-Input answer text
@@ -805,25 +823,25 @@ def main():
                                                 break
                                         
     
-                            if nltkType == 'search':
+                            if nltkType == '_search':
                                 webbrowser.open_new_tab('http://www.google.com/#' + urllib.urlencode({"q":nltkName}))
-                            if nltkType == 'configure':
+                            if nltkType == '_configure':
                                 # use open (Mac only) to view source
                                 if sys.platform == 'darwin':
                                     os.system("/Applications/TextEdit.app/Contents/MacOS/TextEdit "+'openallure.cfg')
                                     
-                            if nltkType == 'help':
+                            if nltkType == '_help':
                                 # use open (Mac only) to view source
                                 if sys.platform == 'darwin':
                                     os.system("open "+'help.rtf')
     
-                            if nltkType == 'quit':
+                            if nltkType == '_quit':
                                 #TODO: Make this more polite
     #                            if graphViz:
     #                                graphViz.kill()
                                 raise SystemExit
     
-                            if nltkType == 'return':
+                            if nltkType == '_return':
                                 # Find first different sequence in db, walking back
                                 for id in range(record_id - 1,-1,-1):
                                     try:
@@ -850,13 +868,15 @@ def main():
                                 nltkResponse = u''
                                 openallure.currentString = u''
     
-                            if nltkType == 'open':
+                            if nltkType == '_open':
                                 # Reset stated question pointer for new sequence
                                 openallure.statedq = -1
                                 path = seq.path
                                 linkStart = nltkResponse.find(u'[')
                                 linkEnd = nltkResponse.find(u']', linkStart)
                                 url = nltkResponse[linkStart + 1:linkEnd]
+                                if len(path)==0:
+                                    path = os.path.split(url)[0]
                                 seq = QSequence(filename = url,
                                                 path = path,
                                                 nltkResponse = nltkResponse,
@@ -875,7 +895,7 @@ def main():
                                 nltkResponse = u''
                                 openallure.currentString = u''
     
-                            if nltkType == 'show':
+                            if nltkType == '_show':
                                 # use open (Mac only) to view source
                                 if sys.platform == 'darwin':
                                     # Find first non-[input] sequence in db, walking back
@@ -896,7 +916,7 @@ def main():
                             if nltkResponse:
                                 answer = choiceCount - 1
                                 choice = (choiceCount, 0)
-                    else:
+                    elif openallure.question[INPUTFLAG]==0:
                         # This takes last response
                         answer = choiceCount - 1
                         choice = (choiceCount, 0)
@@ -1016,6 +1036,13 @@ def main():
             if onRegion > 0:
                 if mouseButtonDownEvent:
                     answer = onRegion - 1
+                    # just clear [input] if clicked
+                    if openallure.question[ANSWER][answer]==_('[input]'):
+                        answer = -1
+                        openallure.currentString=""
+                        questionText[choiceCount] = \
+                          questionText[choiceCount - 1] 
+                        screen.fill(backgroundColor, rect=textRect)
                     if answer < choiceCount:
                         # record selection of answer
                         record_id = openallure.db.insert(time = time.time(), \
@@ -1130,11 +1157,20 @@ def main():
                     # Reset stated question pointer for new sequence
                     openallure.statedq = -1
                     path = seq.path
+                    # save url and rules from prior sequence if going into nltkResponse
+#                    if openallure.question[DESTINATION][answer]==u'nltkResponse.txt':
+#                        sourceUrl = url
+#                        rulesFromUrl = seq.sequence[0][RULE]
                     url = openallure.question[DESTINATION][answer]
+                    
                     seq = QSequence(filename = url,
                                     path = path,
                                     nltkResponse = nltkResponse,
                                     dictionary=openallure.dictionary)
+                    
+#                    if url==u'nltkResponse.txt':
+#                        seq.sequence[0].append(rulesFromUrl)
+                        
                     try:
                         openallure.systemVoice = config['Voice'][seq.language]
                     except KeyError:

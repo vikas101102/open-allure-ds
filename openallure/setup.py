@@ -9,7 +9,7 @@ from setuptools import setup
 
 APP = ['Wiki-to-Speech.py']
 DATA_FILES = ['CHANGES.txt','ethics_notice.txt','README.txt','LICENSE.txt',
-        'openallure.cfg',
+        'openallure.cfg','Chatterbox_Challenge_2011_Script.txt',
         'music.txt','start.txt','silent_start.txt','fixSyntax.txt','help.rtf',
         ('locale/en/LC_MESSAGES',['locale/en/LC_MESSAGES/openallure.mo']),
         'welcome.txt',

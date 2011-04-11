@@ -51,8 +51,21 @@ class Voice( object ):
             return
 
         if self.useEspeak:
-            subprocess.Popen( ['espeak', " -s150 " + self.language + \
-                               phrase + '"' ] )
+#            subprocess.Popen( ['espeak', self.language + phrase + '"' ] )
+
+#            commandLine = 'eSpeak -v ' + systemVoice + ' "' + phrase + '"' 
+            commandLine = 'espeak "' + phrase + '"' 
+            if self.pid_status == 0:
+                self.pid_status = subprocess.Popen(commandLine,shell=True).pid
+            else:
+
+                # wait for prior speaking to finish
+                try:
+                    self.pid_status = os.waitpid(self.pid_status, 0)[1]
+                except:
+                    pass
+                self.pid_status = subprocess.Popen(commandLine,shell=True).pid
+                
         elif self.useSay:
             commandLine = 'say -v ' + systemVoice + ' "' + phrase + '"' 
             if self.pid_status == 0:
