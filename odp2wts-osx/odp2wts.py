@@ -8,6 +8,9 @@ Extract speaker notes from .odp file and prepare script.txt for Wiki-to-Speech
 Copyright (c) 2011 John Graves
 
 MIT License: see LICENSE.txt
+
+OSX Version
+
 """
 __version__ = 1.1
 
@@ -23,11 +26,11 @@ import sys
 
 ## Step 0 - obtain file names
 
-odpFilePath = easygui.fileopenbox(title="ODP2WTS Converter", msg="Select an .odp file", 
+odpFilePath = easygui.fileopenbox(title="ODP2WTS Converter", msg="Select an .odp file",
                               default='~/*.odp', filetypes=None)
 if odpFilePath == None:
     sys.exit()
-    
+
 (odpFileDirectory, odpFile) = os.path.split(odpFilePath)
 
 ## Step 1 - parse the .odp file, prepare script.txt and .zip file
@@ -63,17 +66,17 @@ if 0 != len(odpFile) and os.path.exists(odpFilePath):
     notes = soup.findAll(attrs={"presentation:class":"notes"})
     noteTextPLists = [item.findAll("text:p") for item in notes]
     noteText = [joinContents(noteTextPList) for noteTextPList in noteTextPLists]
-    
+
     stem="img"
 
     suffix="png"
-        
+
     relativePath=""
 
 else:
     sys.exit()
-    
-# OpenOffice starts numbers at 0    
+
+# OpenOffice starts numbers at 0
 onImg = 0
 
 firstOnImg = onImg
@@ -92,7 +95,7 @@ scriptFile.close()
 def ensure_dir(d):
     if not os.path.exists(d):
         os.makedirs(d)
-        
+
 ensure_dir(odpFileDirectory+os.sep+odpName)
 
 dir = os.listdir(odpFileDirectory+os.sep+odpName)
@@ -153,7 +156,7 @@ def writeHtmlHeader():
     htmlFile.write('<title>Wiki-to-Speech</title>\n</head>\n')
     htmlFile.write('<body text="#000000" bgcolor="#FFFFFF" link="#000080" vlink="#0000CC" alink="#000080">' + "\n")
     htmlFile.write('<center>' + "\n")
-    
+
 for file in png:
     stem = file.split(".")[0]
     if stem.startswith("Slide"):
@@ -166,19 +169,19 @@ for file in png:
         htmlFile = open(odpFileDirectory+os.sep+odpName+ ".htm","w")
     else:
         htmlFile = open(odpFileDirectory+os.sep+odpName +"/" + stem+".htm","w")
-        
+
     writeHtmlHeader()
-        
-    # First page and Back Navigation    
-    if num==0:    
+
+    # First page and Back Navigation
+    if num==0:
         htmlFile.write("""First page Back """)
-    elif num==1:    
+    elif num==1:
         htmlFile.write("""<a href="../""" + odpName +""".htm">First page</a> <a href="../""" + odpName + """.htm">Back</a> """)
     else:
         htmlFile.write("""<a href="../""" + odpName +""".htm">First page</a> <a href="img""" + str(num-1) + """.htm">Back</a> """)
-    
+
     # Continue and Last Page navigation
-    if num==maxNum: 
+    if num==maxNum:
         htmlFile.write(""" Continue Last page<br>""" + "\n")
     elif num==0:
         htmlFile.write("""<a href=""" + '"' + odpName +"""/img1.htm">Continue</a> """)
@@ -191,25 +194,25 @@ for file in png:
     if (num==maxNum and num>0):
         # src but no link
         htmlFile.write("""<img src=""" + '"' + file + '" style="border:0px"><br>' + "\n")
-    elif (num==maxNum and num==0): 
+    elif (num==maxNum and num==0):
         # src but no link
         htmlFile.write("""<img src=""" + '"' + odpName +'/' + file + '" style="border:0px"><br>' + "\n")
-    elif num==0:      
+    elif num==0:
         htmlFile.write("""<a href=""" + '"' + odpName +"/img" + str(num+1) + """.htm"><img src=""" + '"' + odpName +'/' + file + '" style="border:0px"></a><br>' + "\n")
     else:
         htmlFile.write("""<a href="img""" + str(num+1) + """.htm"><img src=""" + '"' + file + '" style="border:0px"></a><br>' + "\n")
- 
+
     # include audio
     if num==0:
         htmlFile.write("""<p id="playaudio"><audio controls="controls" autoplay="autoplay"><source src=""" + '"' + odpName +'/' + stem + """.ogg" /><source src=""" + '"' + odpName +'/' + stem + """.mp3" />\nYour browser does not support the <code>audio</code> element.\n</audio></p>\n""")
         htmlFile.write("""<!--[if IE 7]>\n<script>\ndocument.getElementById("playaudio").innerHTML='<embed src=""" + '"' + odpName +'/' + stem + """.mp3" autostart="true">';\n</script>\n<![endif]-->\n""")
-    else:    
+    else:
         htmlFile.write("""<p id="playaudio"><audio controls="controls" autoplay="autoplay"><source src=""" + '"' + stem + """.ogg" /><source src=""" + '"' + stem + """.mp3" />\nYour browser does not support the <code>audio</code> element.\n</audio></p>\n""")
         htmlFile.write("""<!--[if IE 7]>\n<script>\ndocument.getElementById("playaudio").innerHTML='<embed src=""" + '"' + stem + """.mp3" autostart="true">';\n</script>\n<![endif]-->\n""")
-        
+
     htmlFile.write('</center>' + "\n")
     htmlFile.write('</body>\n</html>\n')
     htmlFile.close()
-    
+
 p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
-p = subprocess.Popen("open "+odpFileDirectory+os.sep+odpName+".htm", shell=True).pid        
+p = subprocess.Popen("open "+odpFileDirectory+os.sep+odpName+".htm", shell=True).pid
