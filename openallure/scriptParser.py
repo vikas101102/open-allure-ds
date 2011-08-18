@@ -5,7 +5,7 @@
 # Author:      John Graves
 #
 # Created:     17 April 2011
-# Modified:    1 May 2011
+# Modified:    18 August 2011
 # Copyright:   (c) John 2011
 # Licence:     MIT license
 #-------------------------------------------------------------------------------
@@ -61,16 +61,16 @@ def parseScript(name):
 
 def parseEtherpad(name):
     # download Etherpad and extract script
-    # http://ietherpad.com/mieeiphS5J
+    # http://ietherpad.com/mieeiphS5# J
     try:
         proxy = os.environ["HTTP_PROXY"]
     except:
-        proxy = ""
-    if proxy:
+        proxy = ''
+    if proxy=="http://cache.aut.ac.nz:3128":
         proxies = {'http': 'http://cache.aut.ac.nz:3128'}
         urlOpen = urllib.urlopen( name , proxies=proxies )
     else:
-        urlOpen = urllib.urlopen( name )
+        urlOpen = urllib.urlopen( name, proxies={} )
     soup = BeautifulSoup(urlOpen.read())
     postbody = soup.find("div", { "class" : "postbody" })
     soupString = ""
@@ -95,12 +95,12 @@ def parseHtml(name):
     try:
         proxy = os.environ["HTTP_PROXY"]
     except:
-        proxy = ""
-    if proxy:
+        proxy = ''
+    if proxy=="http://cache.aut.ac.nz:3128":
         proxies = {'http': 'http://cache.aut.ac.nz:3128'}
         urlOpen = urllib.urlopen( name , proxies=proxies )
     else:
-        urlOpen = urllib.urlopen( name )
+        urlOpen = urllib.urlopen( name, proxies={} )
     if name.endswith(".txt"):
         urlText = urlOpen.read().split("\n")
     else:
