@@ -118,6 +118,14 @@ def respondToAnswer(n):
         response = seq.sequence[seq.onQuestion].answers[n].responseText
         if response != "":
             speakList([response])
+        # follow any response side link
+        responseSideLink = seq.sequence[seq.onQuestion].answers[n].responseSideLink
+        if len(responseSideLink)>0:
+            seq.sequence = scriptParser.parseScript(responseSideLink)
+            if seq.sequence:
+                seq.onQuestion = 0
+                return speakAndReturnForm()
+            #TODO error recovery
         # move to whichever question comes next
         if seq.sequence[seq.onQuestion].answers[n].action != 0:
             seq.onQuestion += seq.sequence[seq.onQuestion].answers[n].action

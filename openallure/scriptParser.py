@@ -139,7 +139,10 @@ def parseTxtFile(name):
 
 def parseText(text):
     # textString = text[0]
-    questionMode = False
+    if text[0].lower().endswith(".png"):
+        questionMode = False
+    else:
+        questionMode = True
     seq = objects.Sequence()
     seq.sequence = []
     question = objects.Question()
@@ -243,6 +246,7 @@ def parseText(text):
     if True:
         f = open('debug2.txt','w')
         f.write("test run at " + strftime("%d %b %Y %H:%M", gmtime()))
+        f.write("\nquestionMode is "+ str(questionMode))
         for i, q in enumerate(seq.sequence):
             f.write("\nQuestion "+str(i)+"-"*30)
             f.write("\n               tag: "+q.tag)
