@@ -73,7 +73,6 @@ class WelcomePage:
     nextSlideFromAnswer6.exposed = True
 
 seq = objects.Sequence()
-seq.onQuestion = 0
 voiceInstance = voice.Voice()
 
 def speakAndReturnForm():
@@ -87,17 +86,22 @@ def speakAndReturnForm():
         for a in seq.sequence[seq.onQuestion].answers:
             speakList([a.answerText])
     linkToShow = seq.sequence[seq.onQuestion].linkToShow
+
     if linkToShow.lower().endswith(".pdf"):
         return forms.showPDFSlide(seq.sequence[seq.onQuestion].linkToShow)
-    elif linkToShow.lower().endswith(".jpg"):
-        if linkToShow.startswith("Slide") or linkToShow.startswith("img") or \
-           linkToShow.find("/Slide")>0 or linkToShow.find("/img")>0:
-            linkToShow = "static/" + linkToShow
+
+    elif linkToShow.lower().endswith(".jpg") or linkToShow.lower().endswith(".png"):
+        if linkToShow.startswith("Slide") or linkToShow.startswith("img"):
+            if len(seq.sequence[seq.onQuestion].pathToImageFiles)>0:
+                linkToShow = seq.sequence[seq.onQuestion].pathToImageFiles + linkToShow
+            else:
+                linkToShow = "static/" + linkToShow
         if len(seq.sequence[seq.onQuestion].answers)>0:
             return forms.showJPGSlideWithQuestion(linkToShow, \
                                      seq.sequence[seq.onQuestion] )
         else:
             return forms.showJPGSlide(linkToShow)
+
     elif linkToShow.lower().endswith(".htm"):
         return forms.showDHTML()
     elif linkToShow.lower().endswith(".swf"):

@@ -5,7 +5,7 @@
 # Author:      John Graves
 #
 # Created:     17 April 2011
-# Modified:    18 August 2011
+# Modified:    19 August 2011
 # Copyright:   (c) John 2011
 # Licence:     MIT license
 #-------------------------------------------------------------------------------
@@ -138,13 +138,14 @@ def parseTxtFile(name):
     return sequence
 
 def parseText(text):
-    # textString = text[0]
-    if text[0].lower().endswith(".png"):
+    # guess at questionMode based on first line
+    if text[0].lower().endswith(".png") or text[0].startswith("[path="):
         questionMode = False
     else:
         questionMode = True
     seq = objects.Sequence()
     seq.sequence = []
+    pathToImageFiles = ""
     question = objects.Question()
     answer = objects.Answer()
     for line in text:
@@ -154,6 +155,7 @@ def parseText(text):
                 if len(question.questionTexts)>0:
                     seq.sequence.append(question)
                     question = objects.Question()
+                    question.pathToImageFiles = pathToImageFiles
                 equalsAt = line.find("=")
                 if equalsAt>1: # set parameters
                     parameterName = line[1:equalsAt].strip().lower()
@@ -163,6 +165,10 @@ def parseText(text):
                             questionMode = True
                         if parameterValue == "off":
                             questionMode = False
+                        continue
+                    elif parameterName == "path":
+                        pathToImageFiles = parameterValue
+                        question.pathToImageFiles = pathToImageFiles
                         continue
                 else: # question tag
                     question.tag = line[1:line.find("]")]
@@ -180,10 +186,13 @@ def parseText(text):
                         if (line.startswith("http") or
                             line.endswith(".html") or
                             line.endswith(".jpg") or
-                            line.endswith(".JPG")):
+                            line.endswith(".JPG") or
+                            line.endswith(".png") or
+                            line.endswith(".PNG")):
                                 if len(question.questionTexts)>0:
                                     seq.sequence.append(question)
                                     question = objects.Question()
+                                    question.pathToImageFiles = pathToImageFiles
                                 question.linkToShow = line
                         else:
                             question.questionTexts.append(line)
@@ -199,10 +208,13 @@ def parseText(text):
                     #
                     if len(line)>0:
                         if (line.endswith(".jpg") or
-                            line.endswith(".JPG")):
+                            line.endswith(".JPG") or
+                            line.endswith(".png") or
+                            line.endswith(".PNG")):
                                 if len(question.questionTexts)>0:
                                     seq.sequence.append(question)
                                     question = objects.Question()
+                                    question.pathToImageFiles = pathToImageFiles
                                 question.linkToShow = line
                         else:
                             semicolonAt = line.find(";")
@@ -229,6 +241,7 @@ def parseText(text):
                         if len(question.questionTexts)>0:
                             seq.sequence.append(question)
                             question = objects.Question()
+                            question.pathToImageFiles = pathToImageFiles
 
     if len(question.questionTexts)>0:
         seq.sequence.append(question)
@@ -251,6 +264,7 @@ def parseText(text):
             f.write("\nQuestion "+str(i)+"-"*30)
             f.write("\n               tag: "+q.tag)
             f.write("\n        linkToShow: "+q.linkToShow)
+            f.write("\n  pathToImageFiles: "+q.pathToImageFiles)
             for l in q.questionTexts:
                 f.write("\n      questionText: "+l)
             for j, a in enumerate(q.answers):
@@ -263,4 +277,4 @@ def parseText(text):
     return seq.sequence
 
 if __name__ == "__main__":
-    parseTxtFile("20110428a.txt")
+    parseTxtFile("20110819b.txt")
