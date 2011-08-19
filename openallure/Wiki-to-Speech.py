@@ -22,6 +22,8 @@ class WelcomePage:
     def getScriptName(self, name = None):
         #name = "http://dl.dropbox.com/u/12838403/20110428a.txt"
         if name:
+            if name=="exit":
+                sys.exit()
             seq.sequence = scriptParser.parseScript(name)
             if seq.sequence:
                 seq.onQuestion = 0
