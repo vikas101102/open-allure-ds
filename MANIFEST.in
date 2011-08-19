@@ -1,0 +1,4 @@
+include openallure/*.py
+include openallure/*.txt
+include openallure/*.jpg
+include openallure/docs/*
