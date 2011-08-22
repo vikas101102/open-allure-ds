@@ -1,21 +1,21 @@
 # Apply buzhug data to color graph
-def main():
-    from buzhug import Base
-    try:
-        db = Base('oadb').open()
-    except IOError:
-        print('Error opening oadb')
-        
-    import os
-    from qsequence import QSequence
-    #seq = QSequence(filename='welcome.txt')
-    #seq = QSequence(filename='sky.txt')
-    #seq = QSequence(filename='http://openallure.wikia.com/wiki/Evaluation_of_Software_Architecture_Structural_Quality')
-    #seq = QSequence(filename='Structural Quality of Software Architectures.txt')
-    seq = QSequence(filename='http://openallureds.ning.com/profiles/blogs/open-allure-script-for-the')
-    
-    #showResponses = True
-    #showText = True
+#def main():
+#    from buzhug import Base
+#    try:
+#        db = Base('oadb').open()
+#    except IOError:
+#        print('Error opening oadb')
+#        
+#    import os
+#    from qsequence import QSequence
+#    #seq = QSequence(filename='welcome.txt')
+#    #seq = QSequence(filename='sky.txt')
+#    #seq = QSequence(filename='http://openallure.wikia.com/wiki/Evaluation_of_Software_Architecture_Structural_Quality')
+#    #seq = QSequence(filename='Structural Quality of Software Architectures.txt')
+#    seq = QSequence(filename='http://openallureds.ning.com/profiles/blogs/open-allure-script-for-the')
+#    
+#    #showResponses = True
+#    #showText = True
 
 def wrapWords(string, wordWidth):
     words = string.split(' ')
@@ -86,13 +86,14 @@ def oagraph(seq,db,url,showText,showResponses,showLabels):
         else:
             colorString = 'style=filled colorscheme=greys3 color=3 '
         if showLabels:
-           labelString = 'fontcolor=white label="' + labelText + '"'
+            labelString = 'fontcolor=white label="' + labelText + '"'
         else:
-           labelString = 'label=""'
+            labelString = 'label=""'
         f.write("Q" + str(qnum1) + ' [' + colorString + labelString + '];\n')
         
         # Add answers to graph with ID of Q<number>A<number>
         for anum, answer in enumerate( question[1] ):
+            answer = answer # just to use un-needed variable
             # Count from 1 not 0
             anum1 = anum + 1
             colorString = ''
@@ -109,9 +110,9 @@ def oagraph(seq,db,url,showText,showResponses,showLabels):
             else:
                 labelText = "Q" + str(qnum1) + "A" + str(anum1)
             if showLabels:
-               labelString = 'fontcolor=black label="' + labelText + '"'
+                labelString = 'fontcolor=black label="' + labelText + '"'
             else:
-               labelString = 'label=""'
+                labelString = 'label=""'
             f.write("Q" + str(qnum1) + "A" + str(anum1) + \
             ' [' + colorString + labelString + '];\n')
             # link INTO answer from question with and without arrow head
@@ -147,9 +148,9 @@ def oagraph(seq,db,url,showText,showResponses,showLabels):
                 else:
                     labelText = "Q" + str(qnum1) + "R" + str(anum1)
                 if showLabels:
-                   labelString = 'label="' + labelText + '"'
+                    labelString = 'label="' + labelText + '"'
                 else:
-                   labelString = 'label=""'
+                    labelString = 'label=""'
                 f.write(u"Q" + str(qnum1) + u"R" + str(anum1) + \
                 u' [' + colorString + labelString + u'];\n')
                 # link INTO response with and without arrow head
@@ -163,7 +164,7 @@ def oagraph(seq,db,url,showText,showResponses,showLabels):
                         f.write("Q" + str(qnum1) + "A" + str(anum1) + \
                         " -> " + \
                         "Q" + str(qnum1) + "R" + str(anum1) + ';\n')
-                    # link OUT of respose to next question 
+                    # link OUT of response to next question 
                     if not question[6][anum] and question[3][anum] > 0:
                         f.write("Q" + str(qnum1) + "R" + str(anum1) + " -> " \
                         + "Q" + str(qnum1 + question[3][anum]) + ';\n')

@@ -1,0 +1,21 @@
+This is the presentation script for the Easier Way.
+
+The author of this script is John Graves.
+
+[Slide1.JPG Link to first slide];;
+
+There is an easier way to make on-line presentations.
+
+[Slide2.JPG next];;
+
+You can place the contents of the presentation on a wiki page
+including the script and images of the slides.
+
+[Slide3.JPG next];;
+
+When the script is played by Wiki-to-Speech,
+you get a presentation with a voice over.
+
+It's as simple as that.
+
+[input];

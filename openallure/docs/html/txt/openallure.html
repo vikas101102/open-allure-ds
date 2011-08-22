@@ -5,13 +5,13 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>openallure.cfg &mdash; OpenAllure v0.1d16dev (alpha) documentation</title>
+    <title>openallure.cfg &mdash; OpenAllure v0.1d29dev (alpha) documentation</title>
     <link rel="stylesheet" href="../_static/default.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '../',
-        VERSION:     '0.1d16dev (alpha)',
+        VERSION:     '0.1d29dev (alpha)',
         COLLAPSE_MODINDEX: false,
         FILE_SUFFIX: '.html',
         HAS_SOURCE:  true
@@ -19,7 +19,7 @@
     </script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
-    <link rel="top" title="OpenAllure v0.1d16dev (alpha) documentation" href="../index.html" />
+    <link rel="top" title="OpenAllure v0.1d29dev (alpha) documentation" href="../index.html" />
     <link rel="next" title="openallure" href="../modules/openallure.html" />
     <link rel="prev" title="Welcome to Open Allure’s documentation!" href="../index.html" /> 
   </head>
@@ -39,7 +39,7 @@
         <li class="right" >
           <a href="../index.html" title="Welcome to Open Allure’s documentation!"
              accesskey="P">previous</a> |</li>
-        <li><a href="../index.html">OpenAllure v0.1d16dev (alpha) documentation</a> &raquo;</li> 
+        <li><a href="../index.html">OpenAllure v0.1d29dev (alpha) documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -63,23 +63,42 @@
 # the question sequence tagged as preformatted text
 # (i.e. text between the tags &lt;pre&gt; and &lt;/pre&gt;)
 #
-url = sky.txt
-#url = jg.txt
-#url = cielo.txt
-#url = about.txt
-#url = input_only.txt
-#url = http://openallureds.ning.com/profiles/blogs/introduction-to-open-allure
-#url = http://bit.ly/csdZio
+url = welcome.txt
+#url = http://openallureds.ning.com/profiles/blogs/open-allure-script-for-the
+#url = test.txt
+#url = 20101101_Khan.txt
+#url = talk.txt
+#url = sage.txt
+#url = temp.txt
+#url = http://ietherpad.com/dR9b1BiBo6
+#url = input.txt
 
 [Options]
 #
-# delayTime determines the default delay for an automatic page turn (in milliseconds)
+# fadeTime controls how long text takes (in milliseconds) to appear on screen
 #
-# allowNext allows voice command Next or right arrow on keyboard to skip to
-#   next question without giving answer or hearing response
+fadeTime = 30
+
+# delayTime is the default time (in milliseconds) for an automatic page turn
 #
-delayTime = 6000
+delayTime = 3000
+
+# allowNext allows right arrow on keyboard to skip to
+#    the next question without giving an answer or hearing a response
+#
 allowNext = 1
+
+# defaultAnswer allows a script to have questions without specific answers
+#    (a blank line signals the end of a question or statement)
+#    in which case defaultAnswer is added by default to fill the gap.
+#    Leave blank to disable.
+#    Key:
+#    defaultAnswer = next
+#      inserts a default answer of [next];;
+#    defaultAnswer = input
+#      inserts a default answer of [input];;
+#
+defaultAnswer = next
 
 [Browser]
 #
@@ -88,6 +107,7 @@ allowNext = 1
 #
 windowsBrowser = d:\\firefox\\firefox
 darwinBrowser = open
+#darwinBrowser = /Applications/Firefox.app/Contents/MacOS/firefox-bin
 
 [Colors]
 #
@@ -103,10 +123,17 @@ darwinBrowser = open
 # purple= 255,0,255
 #
 background      = 255,255,255
-unreadText      = 0,255,0
-readText        = 200,200,200
+unreadText      = 255,255,255
+readText        = 0,0,0
 selectedText    = 255,0,0
 highlightedText = 255,255,0
+
+[Data]
+#
+# oadb is the Open Allure Database
+# different users could use different databases
+#
+oadb = oadb
 
 [Font]
 #
@@ -114,7 +141,30 @@ highlightedText = 255,255,0
 # heititc supports Chinese characters
 #
 font = heititc
-size = 40
+size = 25
+#
+# margins are top x, top y, x width, y width
+#
+margins = [ 20, 20, 600, 440 ]
+
+[GraphViz]
+#
+# GraphViz displays a graph of the flow of questions and answers
+# Commands:
+#    show graph
+#    hide graph
+# autoStart causes Open Allure to start in show graph mode
+# path is the full path including the name of the application
+# showResponses causes responses to be show on the graph
+# showText causes the text of the question/answer/response to show as words
+#    if False, text shows at Q&lt;num&gt;A&lt;num&gt; codes
+# showLabels causes the text labels to show
+#
+autoStart = False
+path = /Applications/Graphviz.app/Contents/MacOS/Graphviz
+showResponses = True
+showText = True
+showLabels = True
 
 [Photos]
 #
@@ -142,7 +192,8 @@ talk   = jg-gesturing-small.jpg
 #
 useDragonfly = 0
 useEspeak = 0
-useSay = 0
+useSay = 1
+useSayStatic = 0
 #language = -v french
 #language = -v english
 language =</pre>
@@ -193,7 +244,7 @@ language =</pre>
         <li class="right" >
           <a href="../index.html" title="Welcome to Open Allure’s documentation!"
              >previous</a> |</li>
-        <li><a href="../index.html">OpenAllure v0.1d16dev (alpha) documentation</a> &raquo;</li> 
+        <li><a href="../index.html">OpenAllure v0.1d29dev (alpha) documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">

@@ -15,8 +15,8 @@ Dependencies
 
 These may vary depending on the platform
 
-dragonfly
-http://code.google.com/p/dragonfly/
+StaticSay
+http://krolik.net/post/Say-exe-a-simple-command-line-text-to-speech-program-for-Windows.aspx
 
 Pygame
 http://www.pygame.org/download.shtml
