@@ -1,5 +1,62 @@
 Change history::
 
+  v0.1.7, 22 August 2011
+    CherryPy version. Shows version number on input form.
+    
+ --------
+ 
+  v0.1d39, 11 April 2011
+    Changes around starting scripts in other directories 
+    Update to voice.py for espeak (ubuntu)
+    
+  v0.1d38, 5 March 2011
+    Clicking on [input] just clears it
+    Configured to start Chatterbox_Challenge_2011_Script.txt
+
+  v0.1d37, 6 February 2011
+    Added list scripts command
+    Added table of contents for sections
+    Run command for flashcards
+    
+  v0.1d36, 5 February 2011
+    Added tab completion for opening .txt files.
+    Path can be added before .txt files, including ~ for user home directory.
+    Fixed click on [input] bug.
+    New photo icon.
+    New name Wiki-to-Speech
+    
+  v0.1d35, 9 January 2011
+    Added flashcards.
+
+  v0.1d34, 8 January 2011
+    Added dictionary and ask rules to fill template fields.
+    
+  v0.1d33, 6 January 2011
+    Added in-script stickyBrowser support. Allow open <name> with .txt assumed.
+    Added help and configure commands. See help.rtf.
+    Added search command. Greatly extended welcome.txt script.
+    
+  v0.1d32, 31 December 2010
+    Fixed bugs with mouse events. Lowercase tags. 
+    Enhanced qsequence and oadb reports
+
+  v0.1d31, 31 December 2010
+    Added gettext for internationalization
+    Responses also have a translated version. For example, responses_pt.cfg for Portuguese.
+    
+  v0.1d30, 31 December 2010
+    Platform specific text-to-speech engine selection
+    QSequence parses text file, NING, Wikia, Etherpad and Google wiki
+    
+  v0.1d29, 28 December 2010
+    Ctrl+V for paste now also works in Windows
+    Clean (no semi-colon) scripts
+    Access chat history with up and down arrows
+    
+  v0.1d28, 28 December 2010
+    Start with selected script from command line
+    Allow typing of tilde
+
   v0.1d27, 11 December 2010
     Added Ctrl + R for refresh
     Added show source command (for Mac)
@@ -13,9 +70,9 @@ Change history::
 
   v0.1d23, 6 October 2010
     Resize text with Ctrl+(+/-)
-    Paste with Ctrl+V
+    Paste with Ctrl+V in OSX
     Force input with Ctrl+I
-    
+
   v0.1d22, 4 October 2010
     Fade-in text
     

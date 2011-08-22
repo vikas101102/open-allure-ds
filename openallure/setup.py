@@ -7,8 +7,8 @@ Usage:
 
 from setuptools import setup
 
-APP = ['openallure.py']
-DATA_FILES = ['openallure.cfg','responses.cfg','welcome.txt','CHANGES.txt','README.txt','start.txt','LICENSE.txt','ethics_notice.txt']
+APP = ['Wiki-to-Speech.py']
+DATA_FILES = ['CHANGES.txt','ethics_notice.txt','README.txt','LICENSE.txt']
 OPTIONS = {'argv_emulation': True}
 
 setup(

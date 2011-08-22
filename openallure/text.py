@@ -5,13 +5,15 @@ a component of openallure.py
 
 Collection of functions for rendering text
 
-Copyright (c) 2010 John Graves
+Copyright (c) 2011 John Graves
 
 MIT License: see LICENSE.txt
 """
 
+import sys
+
+from configobj import ConfigObj
 import pygame
-import ConfigParser
 pygame.font.init()
 
 class OpenAllureText(object):
@@ -22,21 +24,25 @@ class OpenAllureText(object):
         self.boundingRectangle = pygame.Rect( margins )
 
         # put colors on things
-        config = ConfigParser.RawConfigParser()
-        config.read( 'openallure.cfg' )
-        self.unreadColor    = eval( config.get( 'Colors', 'unreadText' ))
-        self.readColor      = eval( config.get( 'Colors', 'readText' ))
-        self.selectedColor  = eval( config.get( 'Colors', 'selectedText' ))
-        self.highlightColor = eval( config.get( 'Colors', 'highlightedText' ))
+        config = ConfigObj(r'openallure.cfg' )
+        self.unreadColor = eval(config['Colors']['unreadText'])
+        self.readColor = eval(config['Colors']['readText'])
+        self.selectedColor = eval(config['Colors']['selectedText'])
+        self.highlightColor = eval(config['Colors']['highlightedText'])
         self.fadeColor = (255, 255, 255)
-        
-        self.fadeTime    = eval( config.get( 'Options', 'fadeTime' ))
+
+        self.fadeTime = eval(config['Options']['fadeTime'])
 
         # set font
-        self.fontName = config.get( 'Font', 'font' )
-        self.fontSize = eval( config.get( 'Font', 'size' ) )
-        # self.font = pygame.font.SysFont( self.fontName, self.fontSize )
-        self.font = pygame.font.Font( '/Library/Fonts/Arial.ttf', self.fontSize )
+        self.fontName = config['Font']['font']
+        self.fontSize = eval(config['Font']['size'])
+        if sys.platform == 'darwin':
+            self.font = pygame.font.Font( '/Library/Fonts/Arial.ttf', self.fontSize )
+            # For Korean
+            #self.font = pygame.font.Font( '/Library/Fonts/HeadlineA.ttf', self.fontSize )
+        else:
+            #self.font = pygame.font.SysFont( self.fontName, self.fontSize )
+            self.font = pygame.font.Font('freesansbold.ttf', self.fontSize )
 
 
     def buildQuestionText( self, question ):
@@ -91,7 +97,7 @@ Prepare text of question and answers for display and reading aloud::
             x = r.left
             for word in sentence.split( " " ):
                 i = font.render( word, 1, c )
-                iw, ih = i.get_width(), i.get_height()
+                iw = i.get_width()
                 if x + iw > r.right: x, y = r.left, y + sh
                 if s:
                     s.blit( i, ( x, y ) )
@@ -99,8 +105,8 @@ Prepare text of question and answers for display and reading aloud::
             y += sh
             # don't make a choice out of a blank line
             if not sentence == "":
-               choices.append((starting_x, starting_y, r.right, y))
-               starting_y = y + 1
+                choices.append((starting_x, starting_y, r.right, y))
+                starting_y = y + 1
         return choices
 
     def paintText( self, screen, justQuestionText, onText, questionText, onAnswer, highlight, stated, choice, colorLevel, colorLevels ):
@@ -120,33 +126,34 @@ What is appropriate depends on
             self.writewrap( screen, self.font, self.boundingRectangle, self.unreadColor, questionText[-1] )
 
             if onAnswer == 0:
-               # paint as much readColor as needed on question
-               onText = min( onText, len( justQuestionText ) - 1 )
-               priorOnText = min( onText - 1, len( justQuestionText ) - 1 )
-               for color in range(255, -1, -8):
-                   color = max(color, 0)
-                   self.fadeColor = (color, color, color)
-                   self.writewrap( screen, self.font, self.boundingRectangle, self.fadeColor, justQuestionText[onText] )
-                   self.fadeColor = [item - 8 for item in self.fadeColor]
-                   if onText > 0:
-                       self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, justQuestionText[priorOnText] )
-                   pygame.display.flip()
-                   pygame.time.wait( self.fadeTime )
+                # paint as much readColor as needed on question
+                onText = min( onText, len( justQuestionText ) - 1 )
+                priorOnText = min( onText - 1, len( justQuestionText ) - 1 )
+                for color in range(255, -1, -8):
+                    color = max(color, 0)
+                    self.fadeColor = (color, color, color)
+                    if onText > -1 and onText < len(justQuestionText):
+                        self.writewrap( screen, self.font, self.boundingRectangle, self.fadeColor, justQuestionText[onText] )
+                    self.fadeColor = [item - 8 for item in self.fadeColor]
+                    if onText > 0 and onText < len(justQuestionText):
+                        self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, justQuestionText[priorOnText] )
+                    pygame.display.flip()
+                    pygame.time.wait( self.fadeTime )
 
             else:
-               # or paint as much readColor as needed on answers
-               # print "on answer" + str( on_answer )
-               onAnswer = min( onAnswer, len( questionText ) - 1 )
-               priorOnAnswer = min( onAnswer - 1, len( questionText ) - 1 )
-               for color in range(255, -1, -8):
-                   color = max(color, 0)
-                   self.fadeColor = (color, color, color)
-                   self.writewrap( screen, self.font, self.boundingRectangle, self.fadeColor, questionText[onAnswer] )
-                   if onAnswer > 1:
-                       self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, questionText[priorOnAnswer] )
-                   self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, justQuestionText[-1] )
-                   pygame.display.flip()
-                   pygame.time.wait( self.fadeTime )
+                # or paint as much readColor as needed on answers
+                # print "on answer" + str( on_answer )
+                onAnswer = min( onAnswer, len( questionText ) - 1 )
+                priorOnAnswer = min( onAnswer - 1, len( questionText ) - 1 )
+                for color in range(255, -1, -8):
+                    color = max(color, 0)
+                    self.fadeColor = (color, color, color)
+                    self.writewrap( screen, self.font, self.boundingRectangle, self.fadeColor, questionText[onAnswer] )
+                    if onAnswer > 1:
+                        self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, questionText[priorOnAnswer] )
+                    self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, justQuestionText[-1] )
+                    pygame.display.flip()
+                    pygame.time.wait( self.fadeTime )
 
         # else start with all readColor
         else:
@@ -154,24 +161,24 @@ What is appropriate depends on
 
             # If choice made,  paint it selectedColor,  but everything before it readColor
             if choice[ 0 ] > 0 and choice[ 0 ] <= len( questionText ) - 1:
-               self.writewrap( screen, self.font, self.boundingRectangle, self.selectedColor, questionText[ choice[ 0 ] ] )
-               self.writewrap( screen, self.font, self.boundingRectangle, self.readColor,     questionText[ choice[ 0 ] - 1 ] )
+                self.writewrap( screen, self.font, self.boundingRectangle, self.selectedColor, questionText[ choice[ 0 ] ] )
+                self.writewrap( screen, self.font, self.boundingRectangle, self.readColor,     questionText[ choice[ 0 ] - 1 ] )
             else:
                 # If choice highlighted,  paint it yellow,  but everything before it gray
                 if highlight > 0:
-                   #self.writewrap( screen, self.font, self.boundingRectangle, self.yellow, questionText[highlight] )
-                   #print highlight,  len( questionText )
-                   highlightPercent = float( colorLevel ) / float( colorLevels )
-                   highlightPart    = [ x * highlightPercent for x in self.highlightColor ]
-                   selectedPercent  = 1 - highlightPercent
-                   selectedPart     = [ x * selectedPercent for x in self.selectedColor ]
-                   blendedColor = [ int( selectedPart[ i ] + highlightPart[ i ] ) for i in [0, 1, 2] ]
+                    #self.writewrap( screen, self.font, self.boundingRectangle, self.yellow, questionText[highlight] )
+                    #print highlight,  len( questionText )
+                    highlightPercent = float( colorLevel ) / float( colorLevels )
+                    highlightPart    = [ x * highlightPercent for x in self.highlightColor ]
+                    selectedPercent  = 1 - highlightPercent
+                    selectedPart     = [ x * selectedPercent for x in self.selectedColor ]
+                    blendedColor = [ int( selectedPart[ i ] + highlightPart[ i ] ) for i in [0, 1, 2] ]
 ##                   print highlight, stated, choice, colorLevel, colorLevels, blendedColor
 ##                   print highlightPercent,  highlightPart
 ##                   print selectedPercent,  selectedPart
 ##                   print blendedColor,  highlight
-                   self.writewrap( screen, self.font, self.boundingRectangle, blendedColor, questionText[highlight] )
-                   self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, questionText[highlight-1] )
+                    self.writewrap( screen, self.font, self.boundingRectangle, blendedColor, questionText[highlight] )
+                    self.writewrap( screen, self.font, self.boundingRectangle, self.readColor, questionText[highlight-1] )
 
         pygame.display.flip()
 
