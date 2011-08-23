@@ -132,6 +132,10 @@ ensure_dir(odpName)
 os.chdir(odpName)
 dir = os.listdir(".")
 imageFiles = [file for file in dir if file.endswith(suffix)]
+if len(imageFiles)==0:
+    dir = os.listdir(odpFileDirectory+os.sep+odpName)
+    imageFiles = [file for file in dir if file.lower().endswith(suffix)]
+
 for file in imageFiles:
     outputFile.write(file)
 os.chdir(savePath)
@@ -164,7 +168,10 @@ f.close()
 maxNum = 0
 for file in png:
     stem = file.split(".")[0]
-    number = stem[3:]
+    if stem.startswith("Slide"):
+        number = stem[5:]
+    else:
+        number = stem[3:]
     num = int(number)
     if num>maxNum:
         maxNum=num
