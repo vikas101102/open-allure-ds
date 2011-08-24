@@ -12,6 +12,11 @@
 #-------------------------------------------------------------------------------
 
 from setuptools import setup
+import operator
+import os
+import shutil
+import sys
+
 
 class BuildApp:
     def __init__(self):

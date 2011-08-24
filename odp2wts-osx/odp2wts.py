@@ -37,13 +37,18 @@ except:
     with open('odp2wts.ini', 'wb') as configfile:
         config.write(configfile)
 
-odpFilePath = easygui.fileopenbox(title="ODP2WTS Converter", msg="Select an .odp file",
-                              default=lastOdpFile, filetypes=None)
-if odpFilePath == None:
-    sys.exit()
+odpFile = ""
+while odpFile[-4:]!=".odp":
+    odpFilePath = easygui.fileopenbox(title="ODP2WTS Converter", msg="Select an .odp file",
+                                  default=lastOdpFile, filetypes=None)
+    if odpFilePath == None:
+        sys.exit()
+    
+    (odpFileDirectory, odpFile) = os.path.split(odpFilePath)
+    (odpName, odpSuffix) = odpFile.split(".")
 
-(odpFileDirectory, odpFile) = os.path.split(odpFilePath)
-(odpName, odpSuffix) = odpFile.split(".")
+    if odpFile[-4:]!=".odp":
+        easygui.msgbox("Select an .odp file to convert.\nYou selected "+odpFile)
 
 ## Find list of .png files
 
@@ -115,7 +120,7 @@ def joinContents(textPList):
             justText = u""
             for item in textAndTags:
                 if type(item)==BeautifulSoup.Tag:
-                    justText = justText + " "
+                    justText = justText + item.text + " "
                 else:
                     # deal with single quote and double quotes and dashes
                     justText = justText + \
@@ -123,7 +128,7 @@ def joinContents(textPList):
                                                 u'\u0027').replace(u'\u201c',
                                                 u'\u0022').replace(u'\u201d',
                                                 u'\u0022').replace(u'\u2013',
-                                                u'\u002D'))
+                                                u'\u002D')) + " "
             textItems.append(justText)
         joinedItems = "\n".join(textItems)
     return joinedItems
@@ -220,10 +225,10 @@ for item in noteText:
                 break
     #    f.write(item)
         f.write('"\n')
-        f.write("~/bin/sox "+imageFilePrefix+str(onImg)+".aiff "+
-          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+".ogg\n")
-        f.write("~/bin/sox "+imageFilePrefix+str(onImg)+".aiff "+
-          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+".mp3\n")
+        f.write('~/bin/sox '+imageFilePrefix+str(onImg)+'.aiff "'+
+          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+'.ogg"\n')
+        f.write('~/bin/sox '+imageFilePrefix+str(onImg)+'.aiff "'+
+          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+'.mp3"\n')
     onImg += 1
 f.close()
 
