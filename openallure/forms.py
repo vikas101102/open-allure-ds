@@ -1,15 +1,15 @@
 # forms.py
 import urllib
 
-def scriptInputFormWithErrorMessage(errorMessage):
+def scriptInputFormWithErrorMessage(version, errorMessage):
     return '''<html><head><title>Wiki-to-Speech</title></head>
               <body><br><br><hr><br><center><form action="getScriptName" method="GET">
             Wiki-to-Speech Script:<br>
             <input type="text" name="name" size="80" /><br>
             <input type="submit" value="Open"/><br><br>
-            <small>Version 0.1.7</small><br>
-            <italic>%s</italic>
-            </form></center><br><hr></body></html>''' % errorMessage
+            <small>Version {0}</small><br>
+            <italic>{1}</italic>
+            </form></center><br><hr></body></html>'''.format(version, errorMessage)
 
 def loading(name):
     return "Loading script: " + name + " ..."
