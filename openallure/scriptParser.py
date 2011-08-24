@@ -47,16 +47,18 @@ def parseScript(name):
         if name.endswith(".txt"):
             sequence = parseTxtFile(name)
         else:
-            # No parsing of .html
-            # Set up dummy sequence
-            seq = objects.Sequence()
-            seq.sequence = []
-            question = objects.Question()
-            question.questionTexts = []
-            question.questionTexts.append("Opening "+name)
-            question.linkToShow = name
-            seq.sequence.append(question)
-            sequence = seq.sequence
+            sequence = None
+##            # No parsing of .html
+##            # Set up dummy sequence
+##            seq = objects.Sequence()
+##            seq.sequence = []
+##            question = objects.Question()
+##            question.questionTexts = []
+##            question.questionTexts.append("Opening "+name)
+##            question.linkToShow = name
+##            seq.sequence.append(question)
+##            sequence = seq.sequence
+##            dumpSequence(seq, False)
     return sequence
 
 def parseEtherpad(name):
@@ -256,6 +258,11 @@ def parseText(text):
                     answer.action = tags.index(answer.responseSideLink) - qnum
                     answer.responseSideLink = ""
 
+    dumpSequence(seq, questionMode)
+
+    return seq.sequence
+
+def dumpSequence(seq, questionMode):
     if True:
         f = open('debug2.txt','w')
         f.write("test run at " + strftime("%d %b %Y %H:%M", gmtime()))
@@ -273,8 +280,6 @@ def parseText(text):
                 f.write("\n     responseText"+str(j)+": "+a.responseText)
                 f.write("\n           action"+str(j)+": "+str(a.action))
         f.close()
-
-    return seq.sequence
 
 if __name__ == "__main__":
     parseTxtFile("20110819b.txt")

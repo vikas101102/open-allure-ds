@@ -6,6 +6,8 @@
 # http://aucklandunitarian.pagekite.me/Test20110819b which has [path=pathToImageFiles] and
 #   combined image with question
 # 20110822 Added version number to input form
+# 20110824 Pass __version__ to input form
+#          Ensure static directory exists
 import cherrypy
 import os.path
 import Queue
@@ -18,11 +20,16 @@ import scriptParser
 import sys
 import voice
 
+__version__ = "0.1.8"
+
+if not os.path.exists('static'):
+    os.makedirs('static')
+
 class WelcomePage:
 
     def index(self):
         # Ask for the script name.
-        return forms.scriptInputFormWithErrorMessage("")
+        return forms.scriptInputFormWithErrorMessage(__version__,"")
     index.exposed = True
     webbrowser.open_new_tab('http://localhost:8080')
 
@@ -37,18 +44,20 @@ class WelcomePage:
                 return speakAndReturnForm()
             else:
                 return forms.scriptInputFormWithErrorMessage( \
+                       __version__,
                        "<i>Could not open "+name+"</i>")
         else:
             # No name was specified
             return forms.scriptInputFormWithErrorMessage( \
-                       "<i>Please enter a filename or URL.</i>")
+                       __version__,
+                       "<i>Please enter a file name or link on the web.</i>")
     getScriptName.exposed = True
 
     def nextSlide(self):
         clearQueue()
         seq.onQuestion += 1
         if seq.onQuestion > len(seq.sequence) - 1:
-            return forms.scriptInputFormWithErrorMessage("")
+            return forms.scriptInputFormWithErrorMessage(__version__,"")
         else:
             return speakAndReturnForm()
     nextSlide.exposed = True
@@ -100,7 +109,8 @@ def speakAndReturnForm():
         return forms.showPDFSlide(seq.sequence[seq.onQuestion].linkToShow)
 
     elif linkToShow.lower().endswith(".jpg") or linkToShow.lower().endswith(".png"):
-        if linkToShow.startswith("Slide") or linkToShow.startswith("img"):
+        if linkToShow.startswith("Slide") or linkToShow.startswith("img") or \
+           linkToShow.find("\Slide")!=-1 or linkToShow.find("/img")!=-1:
             if len(seq.sequence[seq.onQuestion].pathToImageFiles)>0:
                 linkToShow = seq.sequence[seq.onQuestion].pathToImageFiles + linkToShow
             else:
@@ -147,7 +157,7 @@ def respondToAnswer(n):
     else:
         # past end of sequence
         speakList(["You have reached the end. Please select another script."])
-        return forms.scriptInputFormWithErrorMessage("")
+        return forms.scriptInputFormWithErrorMessage(__version__,"")
 
 def clearQueue():
     while not q.empty():
