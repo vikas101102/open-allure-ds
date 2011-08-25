@@ -8,8 +8,10 @@ Extract speaker notes from .odp file and prepare script.txt for Wiki-to-Speech
 Copyright (c) 2011 John Graves
 
 MIT License: see LICENSE.txt
+
+20110825 Add version to title bar
 """
-__version__ = "0.1.8"
+__version__ = "0.1.9"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -37,7 +39,7 @@ except:
     with open('odp2wts.ini', 'wb') as configfile:
         config.write(configfile)
 
-odpFilePath = easygui.fileopenbox(title="ODP2WTS Converter", msg="Select an .odp file",
+odpFilePath = easygui.fileopenbox(title="ODP2WTS Converter "+__version__, msg="Select an .odp file",
                               default=lastOdpFile, filetypes=None)
 if odpFilePath == None:
     sys.exit()

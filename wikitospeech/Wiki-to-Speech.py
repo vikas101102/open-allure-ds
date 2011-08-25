@@ -8,6 +8,7 @@
 # 20110822 Added version number to input form
 # 20110824 Pass __version__ to input form
 #          Ensure static directory exists
+# 20110825 Add __version__ to title
 import cherrypy
 import os.path
 import Queue
@@ -20,7 +21,7 @@ import scriptParser
 import sys
 import voice
 
-__version__ = "0.1.8"
+__version__ = "0.1.9"
 
 if not os.path.exists('static'):
     os.makedirs('static')
