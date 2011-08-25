@@ -62,17 +62,32 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE, DAMMIT.
 
-lame
-http://lame.sourceforge.net/
-============================
-GNU General Public License (GPL)
-GNU Library or Lesser General Public License (LGPL)
+buzhug
+======
+http://buzhug.sourceforge.net/
+buzhug is an Open Source software, published under the revised BSD licence
 
-sapi2wav
-http://blog.hacker.dk/2008/07/text-to-speech-command-line-save-to-wav-whats-missing-in-textaloud/
-=================================================================================================
-Distributed by permission of the author
+ConfigObj
+Michael Foord
+=============
+http://www.voidspace.org.uk/python/configobj.html
+ConfigObj is distributed under the BSD License
+http://www.voidspace.org.uk/python/license.shtml
 
+NTLK
+Steven Bird
+===========
+http://www.nltk.org/Home
+util.py
+NLTK is distributed under the Apache License
+http://www.apache.org/licenses/LICENSE-2.0
+
+PyGame
+Pete Shinners
+=============
+http://www.pygame.org
+PyGame is distributed under GNU LGPL version 2.1
+http://www.gnu.org/copyleft/lesser.html
 
 Python
 Python Software Foundation

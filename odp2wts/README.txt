@@ -1,32 +1,41 @@
-====================================================
-Open Document Presentation to Wiki-to-Speech utility
-====================================================
+================================================================
+ODP2WTS - Open Document Presentation to Wiki-to-Speech converter
+================================================================
 
-odp2wts.py is a utility program for converting the
-speaker notes of a .odp file into audio files
-wrapped in HTML to allow for web-based presentations
-with text-to-speech voice over.
+Wiki-to-Speech is a text-to-speech presentation system
 
-OS: Windows
+For the latest version, please check http://wikitospeech.org
 
-For the latest version, please check http://openallureds.org
+Installation
+============
+
+If you have unzipped the archive to read this README.txt file
+the application can be run from this same directory without 
+further installation.  
+
+Delete it to uninstall.
+
+Usage
+=====
+
+1. Prepare your presentation using Open Office / Libre Office or PowerPoint,
+adding the words you want the computer to speak in the Speaker Notes of each slide.
+
+2. Save to .odp.
+
+3. Save the slides as PNG image files.
+Open Office: Export to HTML, creating PNG image files for each slide.
+PowerPoint: Save as PNG, for every slide.
+
+4. Run ODP2WTS
 
 Dependencies
 ============
 
-BeautifulSoup
-http://www.crummy.com/software/BeautifulSoup/download/3.x/BeautifulSoup-3.0.8.tar.gz
-Version 3.0.8 was used during development of odp2wts.py
-(easy_install BeautifulSoup)
+These vary depending on the platform. For Mac:
 
-EasyGui
-http://easygui.sourceforge.net/
-
-lame.exe
-http://lame.sourceforge.net/
-
-sapi2wav.exe
-http://blog.hacker.dk/2008/07/text-to-speech-command-line-save-to-wav-whats-missing-in-textaloud/
+Say - the Mac text-to-speech utility, generates .aiff files
+sox - audio file conversion utility, converts .aiff files to .mp3 and .ogg format
 
 License
 =======
@@ -35,7 +44,6 @@ Copyright (c) 2011 John Graves
 
 MIT License.  See LICENSE.txt
 
-
-Contributors
-============
+Developer
+=========
 John Graves, <john.graves@aut.ac.nz>

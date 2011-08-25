@@ -9,34 +9,109 @@ Copyright (c) 2011 John Graves
 
 MIT License: see LICENSE.txt
 """
-from easygui import *
-from ConfigParser import ConfigParser
+__version__ = "0.1.8"
+
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
-from zipfile import ZipFile
-import sys
+from ConfigParser import ConfigParser
+import easygui
 import os
 import shutil
+import stat
 import subprocess
+import sys
+import webbrowser
+from zipfile import ZipFile
 
-# Utility functions
+## Obtain odpFile name and directory
+
+# Check for last .odp file in config file
+lastOdpFile = '~/*.odp'
+config = ConfigParser()
+try:
+    config.read('odp2wts.ini')
+    lastOdpFile = config.get("Files","lastOdpFile")
+except:
+    config.add_section("Files")
+    config.set("Files","lastOdpFile","")
+    with open('odp2wts.ini', 'wb') as configfile:
+        config.write(configfile)
+
+odpFilePath = easygui.fileopenbox(title="ODP2WTS Converter", msg="Select an .odp file",
+                              default=lastOdpFile, filetypes=None)
+if odpFilePath == None:
+    sys.exit()
+
+(odpFileDirectory, odpFile) = os.path.split(odpFilePath)
+(odpName, odpSuffix) = odpFile.split(".")
+
+## Find list of .png files
+
+# Create a subdirectory for generated files (if needed)
 def ensure_dir(d):
+    """Make a directory if it does not exist"""
     if not os.path.exists(d):
         os.makedirs(d)
+odpFileSubdirectory = odpFileDirectory+os.sep+odpName
+ensure_dir(odpFileSubdirectory)
 
-def getOdpName(odpFileWithPath):
-    (path, odpFile) = os.path.split(odpFileWithPath)
-    odpName = odpFile.replace(".odp","")
-    return (path, odpName)
+# Look for .png files (slide images) in the odpName subdirectory
+dir = os.listdir(odpFileSubdirectory)
+png = [file for file in dir if file.lower().endswith(".png")]
+
+# If no .png files found there ...
+if len(png)==0:
+    # ... look for .png files in odpFileDirectory and copy to odpName subdirectory
+    dir = os.listdir(odpFileDirectory)
+    png = [file for file in dir if file.lower().endswith(".png")]
+    # If still no .png files, request some.
+    if len(png)==0:
+        easygui.msgbox("Need some .png files for this presentation.")
+        sys.exit()
+    else:
+        for file in png:
+            shutil.copy(odpFileDirectory+os.sep+file, odpFileSubdirectory)
+
+# Find minimum value for slide number for linking to First Slide
+# Find maximum value for slide number for linking to Last Slide
+# Find imageFilePrefix, imageFileSuffix
+# Default values
+minNum = 0
+maxNum = 0
+imageFilePrefix = "img"
+imageFileSuffix="png"
+# Test contents of png list
+for file in png:
+    # Parse out file name stem (which includes number) and imageFileSuffix
+    (stem, imageFileSuffix) = file.split(".")
+
+    # Parse out just number (num) and imageFilePrefix
+    if stem.startswith("Slide"):
+        # PowerPoint Slide images are output to PNG with starting index of 1
+        imageFilePrefix = "Slide"
+        minNum=1
+        num = int(stem[5:])
+    else:
+        # ODP slide images are output to PNG with starting index of 0
+        imageFilePrefix = "img"
+        num = int(stem[3:])
+    if num>maxNum:
+        maxNum=num
+
+## Step 1 - parse the .odp file, prepare script.txt and .zip file
 
 def joinContents(textPList):
+    """Combine tagged XML into single string"""
     # item is list of all the XML for a single slide
+    joinedItems = ""
     if len(textPList)>0:
         textItems = []
         i = 0
         for textP in textPList:
             # break the XML into a list of tagged pieces (text:span)
             textAndTags = sum([item.contents for item in textP("text:span")],[])
+            if len(textAndTags)==0:
+                textAndTags = textP.contents
             justText = u""
             for item in textAndTags:
                 if type(item)==BeautifulSoup.Tag:
@@ -53,210 +128,252 @@ def joinContents(textPList):
         joinedItems = "\n".join(textItems)
     return joinedItems
 
-# User interface
-def main():
+if ((0 != len(odpFile)) and (os.path.exists(odpFilePath))):
+    # Save file name to config file
+    config.set("Files","lastOdpFile",odpFilePath)
+    with open('odp2wts.ini', 'wb') as configfile:
+        config.write(configfile)
 
-    # Check for Dropbox folder in config file and obtain if not found
-    config = ConfigParser()
-    try:
-        config.read('odp2wts.ini')
-        DROPBOX_FOLDER = config.get("Directory","DROPBOX_FOLDER")
-    except:
-        DROPBOX_FOLDER = diropenbox(msg=None
-        , title="Browse to Public Dropbox folder, then select OK"
-        , default=None
-        )
-        config.add_section("Directory")
-        config.set("Directory","DROPBOX_FOLDER",DROPBOX_FOLDER)
-        with open('odp2wts.ini', 'wb') as configfile:
-            config.write(configfile)
-
-    # Select an .odp file
-    odpFileWithPath = fileopenbox(msg=None
-        , title="Select an OpenOffice Presentation File"
-        , default="*.odp"
-        , filetypes=[".odp","ODP Files"]
-        )
-
-    # Convert file
-    if odpFileWithPath:
-        file = os.path.split(odpFileWithPath)
-        msg = "Convert " + file[1] + "\n(Conversion will run in the background.)"
-        title = "ODP to Wiki-to-Speech"
-        # show a Continue/Cancel dialog
-        if ccbox(msg, title):
-            odp2script(odpFileWithPath, DROPBOX_FOLDER)
-            convert(odpFileWithPath, DROPBOX_FOLDER)
-            makehtml(odpFileWithPath, DROPBOX_FOLDER)
-            msg = "Conversion complete"
-            msgbox(msg, title)
-        else:  # user chose Cancel
-            sys.exit(0)
-
-def odp2script(odpFileWithPath, DROPBOX_FOLDER):
-
-    # Extract speaker notes from .odp zip file
-    odp = ZipFile(odpFileWithPath,'r')
+    odpName = odpFile.replace(".odp","")
+    odp = ZipFile(odpFilePath,'r')
     f = odp.read(u'content.xml')
     soup = BeautifulStoneSoup(f)
     notes = soup.findAll(attrs={"presentation:class":"notes"})
     noteTextPLists = [item.findAll("text:p") for item in notes]
     noteText = [joinContents(noteTextPList) for noteTextPList in noteTextPLists]
+else:
+    sys.exit()
+
+# Create script.txt file
+scriptFile = open(odpFileSubdirectory+os.sep+'script.txt','w')
+onImg = minNum
+for item in noteText:
+    if onImg-minNum == 0: # first slide
+        # insert line with link to first slide image after parameter lines
+        # For example, noteText could start with [path=...]
+        lines = item.split("\n")
+        slideOnLine = -1
+        for linenum, line in enumerate(lines):
+            if len(line.strip())>0:
+                if line.startswith("["):
+                    scriptFile.write(line+"\n")
+                elif slideOnLine == -1:
+                    scriptFile.write(imageFilePrefix+str(onImg)+"."+imageFileSuffix+"\n")
+                    slideOnLine = linenum
+                    scriptFile.write(line+"\n")
+                else:
+                    scriptFile.write(line+"\n")
+            else:
+                scriptFile.write("\n")
+    else:
+        # Add a line with a link to each slide
+        scriptFile.write(imageFilePrefix+str(onImg)+"."+imageFileSuffix+"\n")
+        # followed by the voice over text for the slide
+        scriptFile.write(item+"\n")
+    scriptFile.write("\n")
+    onImg += 1
+scriptFile.close()
+
+# Collect script and image files into ZIP file
+outputFile = ZipFile(odpFileDirectory+os.sep+odpName+".zip",'w')
+savePath = os.getcwd()
+os.chdir(odpFileSubdirectory)
+outputFile.write("script.txt")
+for file in png:
+    outputFile.write(file)
+os.chdir(savePath)
+easygui.msgbox("Zipped script.txt and image files to "+odpFileDirectory+os.sep+odpName+".zip")
+
+## Step 2 - Make and run convert.bat
+
+# Make convert.bat to convert questionText into audio files
+f = open(odpFileDirectory+os.sep+"convert.bat","w")
+os.chmod(odpFileDirectory+os.sep+"convert.bat",stat.S_IRWXU)
+onImg = minNum
+for item in noteText:
 
     if sys.platform == "win32":
-        stem="Slide"
-        onImg = 1
+        # For Windows
+        f.write('sapi2wav.exe '+imageFilePrefix+str(onImg)+'.wav 1 -t "')
+        lines = item.split("\n")
+        for linenum, line in enumerate(lines):
+            if not line.startswith("["):
+                line.replace('"',' ').replace('`',' ').replace(';',' ')
+                if not line.startswith("#"):
+                    f.write(line+" ")
+            elif linenum>0:
+                break
+        f.write('"\n')
+        f.write('lame.exe -h '+imageFilePrefix+str(onImg)+'.wav '+ '"' + \
+                             odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+'.mp3"\n')
+        f.write('sox.exe '+imageFilePrefix+str(onImg)+'.wav '+ '"' + \
+                         odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+'.ogg"\n')
+        f.write('del '+imageFilePrefix+str(onImg)+'.wav\n')
     else:
-        stem="img"
-        onImg = 0
+        # For Mac OSX
+        f.write("/usr/bin/say -o "+imageFilePrefix+str(onImg)+'.aiff "')
+        lines = item.split("\n")
+        for linenum, line in enumerate(lines):
+            line.replace('"',' ').replace('`',' ').replace(';',' ')
+            if not line.startswith("["):
+                f.write(line+" ")
+            elif linenum>0:
+                break
+    #    f.write(item)
+        f.write('"\n')
+        f.write("~/bin/sox "+imageFilePrefix+str(onImg)+".aiff "+
+          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+".ogg\n")
+        f.write("~/bin/sox "+imageFilePrefix+str(onImg)+".aiff "+
+          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+".mp3\n")
+    onImg += 1
+f.close()
 
-    # Parse out name of odpFile without extension
-    (path, odpName) = getOdpName(odpFileWithPath)
+## Step 3 - create HTML wrapper
+maxImgHtml = imageFilePrefix + str(maxNum) + '.htm'
 
-    # Create script and batch files
-    scriptFile = open('script.txt','w')
+def writeHtmlHeader():
+    htmlFile.write('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"' + "\n")
+    htmlFile.write('"http://www.w3.org/TR/html4/transitional.dtd">' + "\n")
+    htmlFile.write("<html>\n<head>\n")
+    htmlFile.write('<meta HTTP-EQUIV=CONTENT-TYPE CONTENT="text/html; charset=utf-8">' + "\n")
+    htmlFile.write('<title>Wiki-to-Speech</title>\n</head>\n')
+    htmlFile.write('<body text="#000000" bgcolor="#FFFFFF" link="#000080" vlink="#0000CC" alink="#000080">' + "\n")
+    htmlFile.write('<center>' + "\n")
 
-    batchFile = open('convert.bat','w')
-    batchFile.write("echo off\n")
-    batchFile.write("echo Converting text to MP3 Files ...\n")
+for file in png:
 
-    # Add speaker notes
-    for item in noteText:
-        scriptFile.write(odpName+"/"+stem+str(onImg)+".PNG\n")
-        scriptFile.write(item)
-        scriptFile.write("\n\n")
+    # Parse out file name stem (which includes number)
+    stem = file.split(".")[0]
 
-        batchFile.write('sapi2wav.exe '+stem+str(onImg)+'.wav 1 -t "' + item + '"\n')
-        batchFile.write('lame.exe -h '+stem+str(onImg)+'.wav '+ \
-                         DROPBOX_FOLDER+os.sep+odpName+os.sep+stem+str(onImg)+'.mp3\n')
-        batchFile.write('del '+stem+str(onImg)+'.wav\n')
+    # Parse out just number (num)
+    if stem.startswith("Slide"):
+        number = stem[5:]
+    else:
+        number = stem[3:]
+    num = int(number)
 
-        onImg += 1
+    if num-minNum==0:
+        # Create first .htm file in same directory as odpFile
+        htmlFile = open(odpFileDirectory+os.sep+odpName+".htm","w")
+    else:
+        # Create subsequent .htm files in folder in same directory as odpFile
+        htmlFile = open(odpFileSubdirectory+os.sep+stem+".htm","w")
 
-    # Close files
-    scriptFile.close()
-    batchFile.close()
+    writeHtmlHeader()
 
-    print "Created script.txt"
-    print "Created convert.bat"
+    # First page and Back navigation
+    # First page
+    if num-minNum==0:
+        htmlFile.write("""First page Back """)
+    # Second page
+    elif num-minNum==1:
+        htmlFile.write("""<a href="../""" + odpName +""".htm">First page</a> <a href="../""" +
+                                            odpName +""".htm">Back</a> """)
+    # Rest of pages
+    else:
+        htmlFile.write("""<a href="../""" + odpName +""".htm">First page</a> <a href=""" + '"' +
+                        imageFilePrefix + str(num-1)+""".htm">Back</a> """)
 
+    # Continue and Last Page navigation
+    # Last page
+    if num==maxNum:
+        htmlFile.write('Continue Last page<br>\n')
+    # First page
+    elif num-minNum==0 and num+1==maxNum:
+        htmlFile.write( \
+            '<a href="'+
+            odpName+"/"+imageFilePrefix+str(num+1)+
+            '.htm">Continue</a> ')
+        htmlFile.write( \
+            '<a href="'+
+            odpName+"/"+maxImgHtml+
+            '">Last page</a><br>\n')
+    # Rest of pages
+    else:
+        htmlFile.write( \
+            '<a href="'+
+            imageFilePrefix + str(num+1) +
+            '.htm">Continue</a> ')
+        htmlFile.write( \
+            '<a href="' +
+            maxImgHtml +
+            '">Last page</a><br>\n')
 
-def convert(odpFileWithPath, DROPBOX_FOLDER):
+    # image src and link to next slide
+    # Last page which is not (also) the first page
+    if (num==maxNum and num-minNum>0):
+        # src but no link
+        htmlFile.write( \
+            '<img src="' +
+            file +
+            '" style="border:0px"><br>\n')
+    # Last page which is also the first page
+    elif (num==maxNum and num-minNum==0):
+        # src but no link
+        htmlFile.write( \
+            '<img src="' +
+            odpName+"/"+file +
+            '" style="border:0px"><br>\n')
+    # First page
+    elif num-minNum==0:
+        htmlFile.write( \
+            '<a href="' +
+            odpName+"/"+imageFilePrefix+str(num+1) +
+            '.htm">')
+        htmlFile.write( \
+            '<img src="' +
+            odpName +"/" + file +
+            '" style="border:0px"></a><br>\n')
+    # Rest of pages
+    else:
+        htmlFile.write( \
+            '<a href="' +
+            imageFilePrefix+str(num+1) +
+            '.htm">')
+        htmlFile.write( \
+            '<img src="' +
+            file +
+            '" style="border:0px"></a><br>\n')
 
-    # Move PNG file folder to DROPBOX_FOLDER
-    (path, odpName) = getOdpName(odpFileWithPath)
-    pathToPNG = path + '\\' + odpName
-    ensure_dir(DROPBOX_FOLDER)
-    try:
-        if os.path.exists(pathToPNG):
-            shutil.move(pathToPNG, DROPBOX_FOLDER)
-##        print "Shifted "+odpName+" directory with PNG files to "+DROPBOX_FOLDER
-    except:
-        msgbox("Unable to move folder \n"+pathToPNG+"\nto\n"+DROPBOX_FOLDER+\
-               "\n\nDelete the " + odpName +" folder there and try again.\n\n" + \
-               "NOTE: You may also need to press F5\nto refresh your browser window.", "Error")
-        sys.exit()
-##    except:
-##        dir = os.listdir(".")
-##        png = [file for file in dir if file.lower().endswith(".png")]
-##        for file in png:
-##            ensure_dir("static")
-##            ensure_dir("static/"+odpName)
-##            shutil.copy(file,"static/"+odpName)
-##        print "Copied "+stem+" PNG files to static/"+odpName+" directory"
+    # include audio
+    # First page
+    if num-minNum==0:
+        pathToAudio = odpName+'/'+stem
+    else:
+        pathToAudio = stem
+    # For Safari
+    htmlFile.write( \
+        '<p id="playaudio">' +
+        '<audio controls autoplay><source src="' +
+        pathToAudio +
+        '.mp3" />')
+    # For Firefox
+    htmlFile.write( \
+        '<source src="' +
+        pathToAudio +
+        '.ogg" />\n')
+    # For others
+    htmlFile.write( \
+        'Your browser does not support the <code>audio</code> element.\n</audio>\n')
+    htmlFile.write( \
+        '</p>\n')
+    # For Internet Explorer
+    htmlFile.write( \
+        '<!--[if lte IE 8]>\n' +
+        '<script>\n' +
+        'document.getElementById("playaudio").innerHTML=' + "'" +
+        '<embed src="' +
+        pathToAudio +
+        '.mp3" autostart="true">' + "'" + ';\n' +
+        '</script>\n' +
+        '<![endif]-->\n')
 
-    retcode = subprocess.call(['convert.bat',''])
-##    if retcode==0:
-##        print "Converted text to MP3 files in Dropbox "+odpName+" directory"
-##    else:
-##        print "Error in converting text to MP3 files in Dropbox "+odpName+" directory"
-##        sys.exit()
+    htmlFile.write('</center>' + "\n")
+    htmlFile.write('</body>\n</html>\n')
+    htmlFile.close()
 
-def makehtml(odpFileWithPath, DROPBOX_FOLDER):
-
-    (path, odpName) = getOdpName(odpFileWithPath)
-
-    # Write HTML wrappers
-    dir = os.listdir(DROPBOX_FOLDER+"\\"+odpName)
-    png = [file for file in dir if file.lower().endswith(".png")]
-    if len(png)==0:
-        print "Place .png and .mp3 files in Dropbox "+odpName+" directory"
-        sys.exit()
-
-    maxNum = 0
-    for file in png:
-        stem = file.split(".")[0]
-        if stem.startswith("Slide"):
-            number = stem[5:]
-        else:
-            number = stem[3:]
-        num = int(number)
-        if num>maxNum:
-            maxNum=num
-
-    def writeHtmlHeader():
-        htmlFile.write('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"' + "\n")
-        htmlFile.write('"http://www.w3.org/TR/html4/transitional.dtd">' + "\n")
-        htmlFile.write("<html>\n<head>\n")
-        htmlFile.write('<meta HTTP-EQUIV=CONTENT-TYPE CONTENT="text/html; charset=utf-8">' + "\n")
-        htmlFile.write('<title>Wiki-to-Speech</title>\n</head>\n')
-        htmlFile.write('<body text="#000000" bgcolor="#FFFFFF" link="#000080" vlink="#0000CC" alink="#000080">' + "\n")
-        htmlFile.write('<center>' + "\n")
-
-    offset = 0
-    for file in png:
-        print "Preparing HTML wrapper for "+file
-        stem = file.split(".")[0]
-        if stem.startswith("Slide"):
-            offset=1
-            number = stem[5:]
-            root = "Slide"
-        else:
-            number = stem[3:]
-            root = "img"
-        num = int(number)
-
-        maxImgHtml = root + str(maxNum) + '.htm'
-
-        # First slide is one directory above all other files
-        if num-offset==0:
-            htmlFile = open(DROPBOX_FOLDER+"\\" + odpName+ ".htm","w")
-            writeHtmlHeader()
-            if num==maxNum:
-                # htmlFile.write("""First page Back """)
-                # htmlFile.write("Continue Last page<br>\n")
-                htmlFile.write("""<img src=""" + '"' + odpName +'/' + file + '" style="border:0px"><br>' + "\n")
-            else:
-                htmlFile.write("""First page Back """)
-                htmlFile.write("""<a href=""" + '"' + odpName +"/"+ root + str(num+1)+""".htm">Continue</a> """)
-                htmlFile.write("""<a href=""" + '"' + odpName +"/" + maxImgHtml + '"' + """>Last page</a><br>""" + "\n")
-                htmlFile.write("""<a href=""" + '"' + odpName +"/" + root + str(num+1) + """.htm"><img src=""" + '"' + odpName +'/' + file + '" style="border:0px"></a><br>' + "\n")
-            htmlFile.write("""<embed src=""" + '"' + odpName +'/' + stem + '.mp3" autostart="true">' + "\n")
-
-        else:
-            # All subsequent pages
-            htmlFile = open(DROPBOX_FOLDER+"\\" + odpName +"\\" +stem+".htm","w")
-            writeHtmlHeader()
-            htmlFile.write("""<a href="../""" + odpName +""".htm">First page</a> """)
-            if num-offset==1:
-                htmlFile.write("""<a href="../""" + odpName +""".htm">Back</a> """)
-            else:
-                htmlFile.write("""<a href=""" + '"' + root + str(num-1) + """.htm">Back</a> """)
-            if num==maxNum:
-                htmlFile.write("""Continue Last page<br>\n""")
-                htmlFile.write("""<img src=""" + '"' + file + '" style="border:0px"><br>' + "\n")
-            else:
-                htmlFile.write("""<a href=""" + '"' + root + str(num+1) + """.htm">Continue</a> <a href=""" + '"' + maxImgHtml + '"' + \
-            """>Last page</a><br>""" + "\n")
-                htmlFile.write("""<a href=""" + '"' + root + str(num+1) + """.htm"><img src=""" + '"' + file + '" style="border:0px"></a><br>' + "\n")
-            htmlFile.write("""<embed src=""" + '"' + stem + '.mp3" autostart="true">' + "\n")
-
-        htmlFile.write('</center>' + "\n")
-        htmlFile.write('</body>\n</html>\n')
-        htmlFile.close()
-
-##    print "Done"
-
-if __name__ == '__main__':
-    main()
-
+os.chdir(odpFileDirectory)
+p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
+os.chdir(savePath)
+#p = subprocess.Popen("open "+odpFileDirectory+os.sep+odpName+".htm", shell=True).pid
+webbrowser.open_new_tab(odpFileDirectory+os.sep+odpName+".htm")
