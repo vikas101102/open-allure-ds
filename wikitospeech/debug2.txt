@@ -1,0 +1,44 @@
+test run at 25 Aug 2011 01:04
+questionMode is True
+Question 0------------------------------
+               tag: 
+        linkToShow: 
+  pathToImageFiles: 
+      questionText: Wiki-to-Speech has the ability to convert text on wiki pages into verbal interactions. This page demonstrates this ability. How is this helpful?
+       answerText0: It is engaging
+ responseSideLink0: 
+     responseText0: Yes. Making choices is more engaging than merely watching or listening.
+           action0: 0
+       answerText1: It is collaborative
+ responseSideLink1: 
+     responseText1: Yes. Wiki pages can be created and modified collaboratively.
+           action1: 0
+       answerText2: It is on-demand
+ responseSideLink2: 
+     responseText2: Yes. The interaction can take place at a convenient time and place.
+           action2: 0
+       answerText3: All of the above ...
+ responseSideLink3: 
+     responseText3: Correct.
+           action3: 1
+Question 1------------------------------
+               tag: 
+        linkToShow: 
+  pathToImageFiles: 
+      questionText: Wiki-to-Speech uses the computer's built in text-to-speech capabilities. Which computers have these capabilities?
+       answerText0: Mac
+ responseSideLink0: 
+     responseText0: Yes. Apple desktop and laptop computers can use a voice named Alex.
+           action0: 0
+       answerText1: Windows
+ responseSideLink1: 
+     responseText1: Yes. Windows computers can use a voice named Anna.
+           action1: 0
+       answerText2: Android phones
+ responseSideLink2: 
+     responseText2: Yes. Android has the Pico voices available for download.
+           action2: 0
+       answerText3: All of the above ...
+ responseSideLink3: 
+     responseText3: Correct.
+           action3: 1
