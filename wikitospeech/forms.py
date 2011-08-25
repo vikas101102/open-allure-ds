@@ -2,7 +2,7 @@
 import urllib
 
 def scriptInputFormWithErrorMessage(version, errorMessage):
-    return '''<html><head><title>Wiki-to-Speech</title></head>
+    return '''<html><head><title>Wiki-to-Speech {0}</title></head>
               <body><br><br><hr><br><center><form action="getScriptName" method="GET">
             Wiki-to-Speech Script:<br>
             <input type="text" name="name" size="80" /><br>
