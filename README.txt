@@ -11,24 +11,14 @@ Dependencies
 
 These may vary depending on the platform
 
-dragonfly
-http://code.google.com/p/dragonfly/
-
-Pygame
-http://www.pygame.org/download.shtml
-Version 1.9.1 was used during development of Open Allure
-
 BeautifulSoup
 http://www.crummy.com/software/BeautifulSoup/download/3.x/BeautifulSoup-3.0.8.tar.gz
 Version 3.0.8 was used during development of Open Allure
 (easy_install BeautifulSoup)
 
-NLTK
-http://www.nltk.org/download
-Steven Bird, <sb@csse.unimelb.edu.au>
+SoX Sound eXchange
+http://sourceforge.net/projects/sox/files/sox/14.3.2/sox-14.3.2-win32.exe/download
 
-buzhug
-http://buzhug.sourceforge.net/
 
 License
 =======
