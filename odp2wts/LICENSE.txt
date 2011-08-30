@@ -96,3 +96,10 @@ http://python.org
 http://www.python.org/psf/
 http://python.org/psf/license/
 
+SoX
+Sound eXchange
+==============
+http://sourceforge.net/projects/sox/
+Sox is distributed under the
+GNU General Public License (GPL),
+GNU Library or Lesser General Public License (LGPL)

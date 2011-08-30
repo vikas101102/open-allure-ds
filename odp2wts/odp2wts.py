@@ -11,7 +11,7 @@ MIT License: see LICENSE.txt
 
 20110825 Add version to title bar
 """
-__version__ = "0.1.9"
+__version__ = "0.1.10"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -196,7 +196,7 @@ for item in noteText:
 
     if sys.platform == "win32":
         # For Windows
-        f.write('sapi2wav.exe '+imageFilePrefix+str(onImg)+'.wav 1 -t "')
+        f.write('"'+savePath+os.sep+'sapi2wav.exe" '+imageFilePrefix+str(onImg)+'.wav 1 -t "')
         lines = item.split("\n")
         for linenum, line in enumerate(lines):
             if not line.startswith("["):
@@ -206,9 +206,9 @@ for item in noteText:
             elif linenum>0:
                 break
         f.write('"\n')
-        f.write('lame.exe -h '+imageFilePrefix+str(onImg)+'.wav '+ '"' + \
+        f.write('"'+savePath+os.sep+'lame.exe" -h '+imageFilePrefix+str(onImg)+'.wav '+ '"' + \
                              odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+'.mp3"\n')
-        f.write('sox.exe '+imageFilePrefix+str(onImg)+'.wav '+ '"' + \
+        f.write('"'+savePath+os.sep+'sox.exe" '+imageFilePrefix+str(onImg)+'.wav '+ '"' + \
                          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+'.ogg"\n')
         f.write('del '+imageFilePrefix+str(onImg)+'.wav\n')
     else:
