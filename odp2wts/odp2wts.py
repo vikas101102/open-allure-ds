@@ -10,6 +10,7 @@ Copyright (c) 2011 John Graves
 MIT License: see LICENSE.txt
 
 20110825 Add version to title bar
+20110901 Add direct to video output
 """
 __version__ = "0.1.12"
 
@@ -269,6 +270,10 @@ for i, file in enumerate(sortedOgg):
     catCommand += " -cat "+stem+".mp4"
     print(stem+".jpg")
     tenthsOfSeconds = int(math.floor(times[i]*10))
+    # If we are on the last slide, add enough frames
+    # to give audio time to finish
+    if sortedOgg[i]==sortedOgg[-1]:
+        tenthsOfSeconds += 20
     print(range(tenthsOfSeconds))
     # Make a symlink to the slide image for each second the audio runs
     for j in range(tenthsOfSeconds):
