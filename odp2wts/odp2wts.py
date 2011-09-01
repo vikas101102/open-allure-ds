@@ -11,12 +11,13 @@ MIT License: see LICENSE.txt
 
 20110825 Add version to title bar
 """
-__version__ = "0.1.10"
+__version__ = "0.1.12"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
 from ConfigParser import ConfigParser
 import easygui
+import math
 import os
 import shutil
 import stat
@@ -230,7 +231,64 @@ for item in noteText:
     onImg += 1
 f.close()
 
-## Step 3 - create HTML wrapper
+os.chdir(odpFileDirectory)
+p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
+
+## Step 3 - create makeVid.bat
+os.chdir(odpFileSubdirectory)
+dir = os.listdir(odpFileSubdirectory)
+ogg = [file for file in dir if file.lower().endswith(".ogg")]
+oggDict = {}
+for file in ogg:
+    oggDict[int(file[5:].split(".")[0])] = file
+sortedOgg = oggDict.values()
+print(sortedOgg)
+times = []
+for file in sortedOgg:
+    # soxi -D returns the duration in seconds of the audio file as a float
+    command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
+    process = subprocess.Popen(command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                universal_newlines=True)
+    output = process.communicate()
+    retcode = process.poll()
+    if retcode:
+        print "No time available"
+    times.append(float(output[0].strip()))
+print(times)
+# Create makeVid.bat in odpFileDirectory for Windows
+f = open(odpFileDirectory+os.sep+"makeVid.bat","w")
+os.chmod(odpFileDirectory+os.sep+"makeVid.bat",stat.S_IRWXU)
+f.write("if exist output.mp4 (del output.mp4)\n")
+catCommand = savePath+os.sep+"MP4Box"
+for i, file in enumerate(sortedOgg):
+    stem, suffix = file.split(".")
+    # Add the slide video to the list of videos to be concatenated
+    catCommand += " -cat "+stem+".mp4"
+    print(stem+".jpg")
+    tenthsOfSeconds = int(math.floor(times[i]*10))
+    print(range(tenthsOfSeconds))
+    # Make a symlink to the slide image for each second the audio runs
+    for j in range(tenthsOfSeconds):
+        f.write("mklink "+stem+'_'+str(j).zfill(3)+'.JPG '+stem+'.JPG\n')
+    # Convert the images to a video of that slide with voice over
+    # NOTE: Little trick here -- Windows wants to substitute the batch file name
+    #       into %0 so we use %1 and pass %0 as the first parameter
+    f.write(savePath+os.sep+"ffmpeg -i "+stem+'.mp3 -r 10 -i "'+stem+'_%13d.JPG" -ab 64k '+stem+".mp4\n")
+    # Delete the symlinks
+    for j in range(tenthsOfSeconds):
+        f.write("del "+stem+'_'+str(j).zfill(3)+'.JPG\n')
+# Add an output file name for the concatenation
+catCommand += " output.mp4\n"
+f.write(catCommand)
+# Delete all the single slide videos
+for file in sortedOgg:
+    stem, suffix = file.split(".")
+    f.write('del '+stem+'.mp4\n')
+f.close()
+
+## Step 4 - create HTML wrapper
 maxImgHtml = imageFilePrefix + str(maxNum) + '.htm'
 
 def writeHtmlHeader():
@@ -281,7 +339,7 @@ for file in png:
     if num==maxNum:
         htmlFile.write('Continue Last page<br>\n')
     # First page
-    elif num-minNum==0 and num+1==maxNum:
+    elif num-minNum==0:
         htmlFile.write( \
             '<a href="'+
             odpName+"/"+imageFilePrefix+str(num+1)+
@@ -374,8 +432,9 @@ for file in png:
     htmlFile.write('</body>\n</html>\n')
     htmlFile.close()
 
-os.chdir(odpFileDirectory)
-p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
+# Run the makeVid.bat file with %0 as the first parameter
+os.chdir(odpFileSubdirectory)
+p = subprocess.Popen([odpFileDirectory+os.sep+"makeVid.bat","%0"],shell=True).wait()
 os.chdir(savePath)
 #p = subprocess.Popen("open "+odpFileDirectory+os.sep+odpName+".htm", shell=True).pid
 webbrowser.open_new_tab(odpFileDirectory+os.sep+odpName+".htm")
