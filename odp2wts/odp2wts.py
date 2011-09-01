@@ -260,6 +260,7 @@ print(times)
 # Create makeVid.bat in odpFileDirectory for Windows
 f = open(odpFileDirectory+os.sep+"makeVid.bat","w")
 os.chmod(odpFileDirectory+os.sep+"makeVid.bat",stat.S_IRWXU)
+f.write("echo off\ncls\n")
 f.write("if exist output.mp4 (del output.mp4)\n")
 catCommand = savePath+os.sep+"MP4Box"
 for i, file in enumerate(sortedOgg):
