@@ -11,8 +11,9 @@ MIT License: see LICENSE.txt
 
 20110825 Add version to title bar
 20110901 Add direct to video output
+20110901 Switch to JPG, mklink with /h
 """
-__version__ = "0.1.12"
+__version__ = "0.1.13"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -49,7 +50,7 @@ if odpFilePath == None:
 (odpFileDirectory, odpFile) = os.path.split(odpFilePath)
 (odpName, odpSuffix) = odpFile.split(".")
 
-## Find list of .png files
+## Find list of .jpg files
 
 # Create a subdirectory for generated files (if needed)
 def ensure_dir(d):
@@ -59,21 +60,21 @@ def ensure_dir(d):
 odpFileSubdirectory = odpFileDirectory+os.sep+odpName
 ensure_dir(odpFileSubdirectory)
 
-# Look for .png files (slide images) in the odpName subdirectory
+# Look for .jpg files (slide images) in the odpName subdirectory
 dir = os.listdir(odpFileSubdirectory)
-png = [file for file in dir if file.lower().endswith(".png")]
+jpg = [file for file in dir if file.lower().endswith(".jpg")]
 
-# If no .png files found there ...
-if len(png)==0:
-    # ... look for .png files in odpFileDirectory and copy to odpName subdirectory
+# If no .jpg files found there ...
+if len(jpg)==0:
+    # ... look for .jpg files in odpFileDirectory and copy to odpName subdirectory
     dir = os.listdir(odpFileDirectory)
-    png = [file for file in dir if file.lower().endswith(".png")]
-    # If still no .png files, request some.
-    if len(png)==0:
-        easygui.msgbox("Need some .png files for this presentation.")
+    jpg = [file for file in dir if file.lower().endswith(".jpg")]
+    # If still no .jpg files, request some.
+    if len(jpg)==0:
+        easygui.msgbox("Need some .jpg files for this presentation.")
         sys.exit()
     else:
-        for file in png:
+        for file in jpg:
             shutil.copy(odpFileDirectory+os.sep+file, odpFileSubdirectory)
 
 # Find minimum value for slide number for linking to First Slide
@@ -83,20 +84,20 @@ if len(png)==0:
 minNum = 0
 maxNum = 0
 imageFilePrefix = "img"
-imageFileSuffix="png"
-# Test contents of png list
-for file in png:
+imageFileSuffix="jpg"
+# Test contents of jpg list
+for file in jpg:
     # Parse out file name stem (which includes number) and imageFileSuffix
     (stem, imageFileSuffix) = file.split(".")
 
     # Parse out just number (num) and imageFilePrefix
     if stem.startswith("Slide"):
-        # PowerPoint Slide images are output to PNG with starting index of 1
+        # PowerPoint Slide images are output to jpg with starting index of 1
         imageFilePrefix = "Slide"
         minNum=1
         num = int(stem[5:])
     else:
-        # ODP slide images are output to PNG with starting index of 0
+        # ODP slide images are output to jpg with starting index of 0
         imageFilePrefix = "img"
         num = int(stem[3:])
     if num>maxNum:
@@ -183,7 +184,7 @@ outputFile = ZipFile(odpFileDirectory+os.sep+odpName+".zip",'w')
 savePath = os.getcwd()
 os.chdir(odpFileSubdirectory)
 outputFile.write("script.txt")
-for file in png:
+for file in jpg:
     outputFile.write(file)
 os.chdir(savePath)
 easygui.msgbox("Zipped script.txt and image files to "+odpFileDirectory+os.sep+odpName+".zip")
@@ -241,7 +242,15 @@ dir = os.listdir(odpFileSubdirectory)
 ogg = [file for file in dir if file.lower().endswith(".ogg")]
 oggDict = {}
 for file in ogg:
-    oggDict[int(file[5:].split(".")[0])] = file
+    # Parse out file name stem (which includes number) and imageFileSuffix
+    (stem, audioFileSuffix) = file.split(".")
+
+    # Parse out just number (num) and imageFilePrefix
+    if stem.startswith("Slide"):
+        oggDict[int(file[5:].split(".")[0])] = file
+    else:
+        # imgXX.ogg
+        oggDict[int(file[3:].split(".")[0])] = file
 sortedOgg = oggDict.values()
 print(sortedOgg)
 times = []
@@ -277,7 +286,7 @@ for i, file in enumerate(sortedOgg):
     print(range(tenthsOfSeconds))
     # Make a symlink to the slide image for each second the audio runs
     for j in range(tenthsOfSeconds):
-        f.write("mklink "+stem+'_'+str(j).zfill(3)+'.JPG '+stem+'.JPG\n')
+        f.write("mklink /h "+stem+'_'+str(j).zfill(3)+'.JPG '+stem+'.JPG\n')
     # Convert the images to a video of that slide with voice over
     # NOTE: Little trick here -- Windows wants to substitute the batch file name
     #       into %0 so we use %1 and pass %0 as the first parameter
@@ -306,7 +315,7 @@ def writeHtmlHeader():
     htmlFile.write('<body text="#000000" bgcolor="#FFFFFF" link="#000080" vlink="#0000CC" alink="#000080">' + "\n")
     htmlFile.write('<center>' + "\n")
 
-for file in png:
+for file in jpg:
 
     # Parse out file name stem (which includes number)
     stem = file.split(".")[0]
