@@ -33,7 +33,7 @@ if sys.platform == "win32":
     imageFileSuffix = ".jpg"
 else:
     imageFileSuffix = ".png"
-    
+
 ## Obtain odpFile name and directory
 
 # Check for last .odp file in config file
@@ -312,9 +312,9 @@ else:
     # For Mac OSX
     # ffmpeg -i Slide1.mp3 -r 1 -i Slide1_%03d.png -ab 64k output.mp4
     f.write("clear\n")
-    f.write("if [ -f output.mp4 ]\n") 
-    f.write("then rm output.mp4\n") 
-    f.write("fi\n") 
+    f.write("if [ -f output.mp4 ]\n")
+    f.write("then rm output.mp4\n")
+    f.write("fi\n")
     catCommand = savePath+os.sep+"MP4Box"
     for i, file in enumerate(sortedOgg):
         stem, suffix = file.split(".")
@@ -327,7 +327,7 @@ else:
         if sortedOgg[i]==sortedOgg[-1]:
             tenthsOfSeconds += 20
         # Make a symlink to the slide image for each second the audio runs
-        for j in range(tenthsOfSeconds): 
+        for j in range(tenthsOfSeconds):
             # ln -s Slide2.png Slide2_001.png
             f.write("ln -s "+stem+'.png '+stem+'_'+str(j).zfill(4)+'.png\n')
         f.write(savePath+os.sep+"ffmpeg -i "+stem+'.mp3 -r 10 -i "'+stem+'_%04d.png" -ab 64k '+stem+".mp4\n")
@@ -491,8 +491,8 @@ for file in imageFileList:
 os.chdir(odpFileSubdirectory)
 if sys.platform == "win32":
     p = subprocess.Popen([odpFileDirectory+os.sep+"makeVid.bat","%0"],shell=True).wait()
+    webbrowser.open_new_tab(odpFileDirectory+os.sep+odpName+".htm")
 else:
     p = subprocess.Popen([odpFileDirectory+os.sep+"makeVid.bat"],shell=True).wait()
-#os.chdir(savePath)
-#p = subprocess.Popen("open "+odpFileDirectory+os.sep+odpName+".htm", shell=True).pid
-#webbrowser.open_new_tab(odpFileDirectory+os.sep+odpName+".htm")
+    p = subprocess.Popen("open "+odpFileDirectory+os.sep+odpName+".htm", shell=True).pid
+os.chdir(savePath)
