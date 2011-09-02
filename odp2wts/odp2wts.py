@@ -11,9 +11,10 @@ MIT License: see LICENSE.txt
 
 20110825 Add version to title bar
 20110901 Add direct to video output
-20110901 Switch to JPG, mklink with /h
+20110901 Switch to jpg, mklink with /h
+20110902 Switch to jpg for Windows and png for Mac
 """
-__version__ = "0.1.13"
+__version__ = "0.1.14"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -28,6 +29,11 @@ import sys
 import webbrowser
 from zipfile import ZipFile
 
+if sys.platform == "win32":
+    imageFileSuffix = ".jpg"
+else:
+    imageFileSuffix = ".png"
+    
 ## Obtain odpFile name and directory
 
 # Check for last .odp file in config file
@@ -62,19 +68,19 @@ ensure_dir(odpFileSubdirectory)
 
 # Look for .jpg files (slide images) in the odpName subdirectory
 dir = os.listdir(odpFileSubdirectory)
-jpg = [file for file in dir if file.lower().endswith(".jpg")]
+imageFileList = [file for file in dir if file.lower().endswith(imageFileSuffix)]
 
-# If no .jpg files found there ...
-if len(jpg)==0:
-    # ... look for .jpg files in odpFileDirectory and copy to odpName subdirectory
+# If no image files found there ...
+if len(imageFileList)==0:
+    # ... look for .imageFileList files in odpFileDirectory and copy to odpName subdirectory
     dir = os.listdir(odpFileDirectory)
-    jpg = [file for file in dir if file.lower().endswith(".jpg")]
-    # If still no .jpg files, request some.
-    if len(jpg)==0:
-        easygui.msgbox("Need some .jpg files for this presentation.")
+    imageFileList = [file for file in dir if file.lower().endswith(imageFileSuffix)]
+    # If still no image files, request some.
+    if len(imageFileList)==0:
+        easygui.msgbox("Need some slide image files for this presentation.\n.jpg for Windows or .png for Mac OSX.")
         sys.exit()
     else:
-        for file in jpg:
+        for file in imageFileList:
             shutil.copy(odpFileDirectory+os.sep+file, odpFileSubdirectory)
 
 # Find minimum value for slide number for linking to First Slide
@@ -83,10 +89,8 @@ if len(jpg)==0:
 # Default values
 minNum = 0
 maxNum = 0
-imageFilePrefix = "img"
-imageFileSuffix="jpg"
-# Test contents of jpg list
-for file in jpg:
+# Test contents of image file list
+for file in imageFileList:
     # Parse out file name stem (which includes number) and imageFileSuffix
     (stem, imageFileSuffix) = file.split(".")
 
@@ -97,7 +101,7 @@ for file in jpg:
         minNum=1
         num = int(stem[5:])
     else:
-        # ODP slide images are output to jpg with starting index of 0
+        # ODP slide images are output to img with starting index of 0
         imageFilePrefix = "img"
         num = int(stem[3:])
     if num>maxNum:
@@ -184,7 +188,7 @@ outputFile = ZipFile(odpFileDirectory+os.sep+odpName+".zip",'w')
 savePath = os.getcwd()
 os.chdir(odpFileSubdirectory)
 outputFile.write("script.txt")
-for file in jpg:
+for file in imageFileList:
     outputFile.write(file)
 os.chdir(savePath)
 easygui.msgbox("Zipped script.txt and image files to "+odpFileDirectory+os.sep+odpName+".zip")
@@ -270,38 +274,74 @@ print(times)
 # Create makeVid.bat in odpFileDirectory for Windows
 f = open(odpFileDirectory+os.sep+"makeVid.bat","w")
 os.chmod(odpFileDirectory+os.sep+"makeVid.bat",stat.S_IRWXU)
-f.write("echo off\ncls\n")
-f.write("if exist output.mp4 (del output.mp4)\n")
-catCommand = savePath+os.sep+"MP4Box"
-for i, file in enumerate(sortedOgg):
-    stem, suffix = file.split(".")
-    # Add the slide video to the list of videos to be concatenated
-    catCommand += " -cat "+stem+".mp4"
-    print(stem+".jpg")
-    tenthsOfSeconds = int(math.floor(times[i]*10))
-    # If we are on the last slide, add enough frames
-    # to give audio time to finish
-    if sortedOgg[i]==sortedOgg[-1]:
-        tenthsOfSeconds += 20
-    print(range(tenthsOfSeconds))
-    # Make a symlink to the slide image for each second the audio runs
-    for j in range(tenthsOfSeconds):
-        f.write("mklink /h "+stem+'_'+str(j).zfill(3)+'.JPG '+stem+'.JPG\n')
-    # Convert the images to a video of that slide with voice over
-    # NOTE: Little trick here -- Windows wants to substitute the batch file name
-    #       into %0 so we use %1 and pass %0 as the first parameter
-    f.write(savePath+os.sep+"ffmpeg -i "+stem+'.mp3 -r 10 -i "'+stem+'_%13d.JPG" -ab 64k '+stem+".mp4\n")
-    # Delete the symlinks
-    for j in range(tenthsOfSeconds):
-        f.write("del "+stem+'_'+str(j).zfill(3)+'.JPG\n')
-# Add an output file name for the concatenation
-catCommand += " output.mp4\n"
-f.write(catCommand)
-# Delete all the single slide videos
-for file in sortedOgg:
-    stem, suffix = file.split(".")
-    f.write('del '+stem+'.mp4\n')
-f.close()
+
+if sys.platform == "win32":
+    f.write("echo off\ncls\n")
+    f.write("if exist output.mp4 (del output.mp4)\n")
+    catCommand = savePath+os.sep+"MP4Box"
+    for i, file in enumerate(sortedOgg):
+        stem, suffix = file.split(".")
+        # Add the slide video to the list of videos to be concatenated
+        catCommand += " -cat "+stem+".mp4"
+        tenthsOfSeconds = int(math.floor(times[i]*10))
+        # If we are on the last slide, add enough frames
+        # to give audio time to finish
+        if sortedOgg[i]==sortedOgg[-1]:
+            tenthsOfSeconds += 20
+        print(range(tenthsOfSeconds))
+        # Make a symlink to the slide image for each second the audio runs
+        for j in range(tenthsOfSeconds):
+            f.write("mklink /h "+stem+'_'+str(j).zfill(3)+'.jpg '+stem+'.jpg\n')
+        # Convert the images to a video of that slide with voice over
+        # NOTE: Little trick here -- Windows wants to substitute the batch file name
+        #       into %0 so we use %1 and pass %0 as the first parameter
+        f.write(savePath+os.sep+"ffmpeg -i "+stem+'.mp3 -r 10 -i "'+stem+'_%13d.jpg" -ab 64k '+stem+".mp4\n")
+        # Delete the symlinks
+        for j in range(tenthsOfSeconds):
+            f.write("del "+stem+'_'+str(j).zfill(3)+'.jpg\n')
+    # Add an output file name for the concatenation
+    catCommand += " output.mp4\n"
+    f.write(catCommand)
+    # Delete all the single slide videos
+    for file in sortedOgg:
+        stem, suffix = file.split(".")
+        f.write('del '+stem+'.mp4\n')
+    f.close()
+
+else:
+    # For Mac OSX
+    # ffmpeg -i Slide1.mp3 -r 1 -i Slide1_%03d.png -ab 64k output.mp4
+    f.write("clear\n")
+    f.write("if [ -f output.mp4 ]\n") 
+    f.write("then rm output.mp4\n") 
+    f.write("fi\n") 
+    catCommand = savePath+os.sep+"MP4Box"
+    for i, file in enumerate(sortedOgg):
+        stem, suffix = file.split(".")
+        # Add the slide video to the list of videos to be concatenated
+        catCommand += " -cat "+stem+".mp4"
+        print(stem+".jpg")
+        tenthsOfSeconds = int(math.floor(times[i]*10))
+        # If we are on the last slide, add enough frames
+        # to give audio time to finish
+        if sortedOgg[i]==sortedOgg[-1]:
+            tenthsOfSeconds += 20
+        # Make a symlink to the slide image for each second the audio runs
+        for j in range(tenthsOfSeconds): 
+            # ln -s Slide2.png Slide2_001.png
+            f.write("ln -s "+stem+'.png '+stem+'_'+str(j).zfill(4)+'.png\n')
+        f.write(savePath+os.sep+"ffmpeg -i "+stem+'.mp3 -r 10 -i "'+stem+'_%04d.png" -ab 64k '+stem+".mp4\n")
+        # Delete the symlinks
+        for j in range(tenthsOfSeconds):
+            f.write("rm "+stem+'_'+str(j).zfill(4)+'.png\n')
+    # Add an output file name for the concatenation
+    catCommand += " output.mp4\n"
+    f.write(catCommand)
+    # Delete all the single slide videos
+    for file in sortedOgg:
+        stem, suffix = file.split(".")
+        f.write('rm '+stem+'.mp4\n')
+    f.close()
 
 ## Step 4 - create HTML wrapper
 maxImgHtml = imageFilePrefix + str(maxNum) + '.htm'
@@ -315,7 +355,7 @@ def writeHtmlHeader():
     htmlFile.write('<body text="#000000" bgcolor="#FFFFFF" link="#000080" vlink="#0000CC" alink="#000080">' + "\n")
     htmlFile.write('<center>' + "\n")
 
-for file in jpg:
+for file in imageFileList:
 
     # Parse out file name stem (which includes number)
     stem = file.split(".")[0]
@@ -449,7 +489,10 @@ for file in jpg:
 
 # Run the makeVid.bat file with %0 as the first parameter
 os.chdir(odpFileSubdirectory)
-p = subprocess.Popen([odpFileDirectory+os.sep+"makeVid.bat","%0"],shell=True).wait()
-os.chdir(savePath)
+if sys.platform == "win32":
+    p = subprocess.Popen([odpFileDirectory+os.sep+"makeVid.bat","%0"],shell=True).wait()
+else:
+    p = subprocess.Popen([odpFileDirectory+os.sep+"makeVid.bat"],shell=True).wait()
+#os.chdir(savePath)
 #p = subprocess.Popen("open "+odpFileDirectory+os.sep+odpName+".htm", shell=True).pid
-webbrowser.open_new_tab(odpFileDirectory+os.sep+odpName+".htm")
+#webbrowser.open_new_tab(odpFileDirectory+os.sep+odpName+".htm")
