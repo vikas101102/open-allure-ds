@@ -14,7 +14,7 @@ MIT License: see LICENSE.txt
 20110901 Switch to jpg, mklink with /h
 20110902 Switch to jpg for Windows and png for Mac
 """
-__version__ = "0.1.14"
+__version__ = "0.1.15"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -127,12 +127,15 @@ def joinContents(textPList):
                     justText = justText + " "
                 else:
                     # deal with single quote and double quotes and dashes
+                    # \u2018 LEFT SINGLE QUOTATION MARK
                     justText = justText + \
                                str(item.replace(u'\u2019',
                                                 u'\u0027').replace(u'\u201c',
                                                 u'\u0022').replace(u'\u201d',
                                                 u'\u0022').replace(u'\u2013',
-                                                u'\u002D'))
+                                                u'\u002D').replace(u'ï',
+                                                u'i').replace(u'\u2018',
+                                                u'\u0027'))
             textItems.append(justText)
         joinedItems = "\n".join(textItems)
     return joinedItems
@@ -238,7 +241,7 @@ for item in noteText:
 f.close()
 
 os.chdir(odpFileDirectory)
-p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
+#p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
 
 ## Step 3 - create makeVid.bat
 os.chdir(odpFileSubdirectory)
