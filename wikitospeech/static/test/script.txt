@@ -7,8 +7,8 @@ Some longer comments on slide two. We want to know whether the third slide will 
 
 [questions=on]
 Which next?
-Slide 3;;
-Or Slide 4;;;
+Slide 3;; You picked slide 3
+Or Slide 4;;; You selected slide 4
 
 
 Slide3.JPG

@@ -14,7 +14,7 @@ def scriptInputFormWithErrorMessage(version, errorMessage):
 def loading(name):
     return "Loading script: " + name + " ..."
 
-def showQuestion(q):
+def showQuestion(q, qnum):
     questionString = ""
     for questionText in q.questionTexts:
         questionString = questionString + " " + questionText
@@ -25,7 +25,7 @@ def showQuestion(q):
         if len(a.answerText)>0:
             if a.visited == False:
                 answerString = answerString + answerStringBase + \
-                     str(answerNumber) + '">' + a.answerText + "</a></td></tr>\n"
+                     str(answerNumber) + '?q=' + str(qnum) +'">' + a.answerText + "</a></td></tr>\n"
             else:
                 # Visited = True, Change text color to gray
                 answerString = answerString + answerStringBase + \
