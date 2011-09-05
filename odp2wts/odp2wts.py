@@ -241,7 +241,7 @@ for item in noteText:
 f.close()
 
 os.chdir(odpFileDirectory)
-#p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
+p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
 
 ## Step 3 - create makeVid.bat
 os.chdir(odpFileSubdirectory)
@@ -263,7 +263,10 @@ print(sortedOgg)
 times = []
 for file in sortedOgg:
     # soxi -D returns the duration in seconds of the audio file as a float
-    command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
+    if sys.platform == "win32":
+        command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
+    else:
+        command = [savePath+os.sep+"soxi_unix","-D",odpFileSubdirectory+os.sep+file]
     process = subprocess.Popen(command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
