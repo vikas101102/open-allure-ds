@@ -266,7 +266,7 @@ for file in sortedOgg:
     if sys.platform == "win32":
         command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
     else:
-        command = [savePath+os.sep+"soxi_unix","-D",odpFileSubdirectory+os.sep+file]
+        command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
     process = subprocess.Popen(command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
