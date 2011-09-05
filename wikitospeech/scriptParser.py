@@ -169,6 +169,8 @@ def parseText(text):
                             questionMode = False
                         continue
                     elif parameterName == "path":
+                        if(not parameterValue.endswith(os.sep)):
+                            parameterValue += os.sep
                         pathToImageFiles = parameterValue
                         question.pathToImageFiles = pathToImageFiles
                         continue
