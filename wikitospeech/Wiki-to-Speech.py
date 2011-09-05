@@ -21,7 +21,7 @@ import scriptParser
 import sys
 import voice
 
-__version__ = "0.1.12"
+__version__ = "0.1.15"
 
 if not os.path.exists('static'):
     os.makedirs('static')
@@ -63,32 +63,32 @@ class WelcomePage:
             return speakAndReturnForm()
     nextSlide.exposed = True
 
-    def nextSlideFromAnswer0(self):
-        return respondToAnswer(0)
+    def nextSlideFromAnswer0(self, q):
+        return respondToAnswer(0, q)
     nextSlideFromAnswer0.exposed = True
 
-    def nextSlideFromAnswer1(self):
-        return respondToAnswer(1)
+    def nextSlideFromAnswer1(self, q):
+        return respondToAnswer(1, q)
     nextSlideFromAnswer1.exposed = True
 
-    def nextSlideFromAnswer2(self):
-        return respondToAnswer(2)
+    def nextSlideFromAnswer2(self, q):
+        return respondToAnswer(2, q)
     nextSlideFromAnswer2.exposed = True
 
-    def nextSlideFromAnswer3(self):
-        return respondToAnswer(3)
+    def nextSlideFromAnswer3(self, q):
+        return respondToAnswer(3, q)
     nextSlideFromAnswer3.exposed = True
 
-    def nextSlideFromAnswer4(self):
-        return respondToAnswer(4)
+    def nextSlideFromAnswer4(self, q):
+        return respondToAnswer(4, q)
     nextSlideFromAnswer4.exposed = True
 
-    def nextSlideFromAnswer5(self):
-        return respondToAnswer(5)
+    def nextSlideFromAnswer5(self, q):
+        return respondToAnswer(5, q)
     nextSlideFromAnswer5.exposed = True
 
-    def nextSlideFromAnswer6(self):
-        return respondToAnswer(6)
+    def nextSlideFromAnswer6(self, q):
+        return respondToAnswer(6, q)
     nextSlideFromAnswer6.exposed = True
 
 seq = objects.Sequence()
@@ -130,11 +130,12 @@ def speakAndReturnForm():
         #return forms.showWebsite(seq.sequence[seq.onQuestion])
         return forms.showQuestionAndWebsite(seq.sequence[seq.onQuestion])
     else: # no match for linkToShow
-        return forms.showQuestion(seq.sequence[seq.onQuestion])
+        return forms.showQuestion(seq.sequence[seq.onQuestion], seq.onQuestion)
 
-def respondToAnswer(n):
+def respondToAnswer(n, q):
     clearQueue()
     response = ""
+    seq.onQuestion = int(q)
     if n<len(seq.sequence[seq.onQuestion].answers):
         # mark answer as visited
         seq.sequence[seq.onQuestion].answers[n].visited = True
@@ -152,7 +153,9 @@ def respondToAnswer(n):
             #TODO error recovery
         # move to whichever question comes next
         if seq.sequence[seq.onQuestion].answers[n].action != 0:
-            seq.onQuestion += seq.sequence[seq.onQuestion].answers[n].action
+            nextQ = seq.onQuestion + seq.sequence[seq.onQuestion].answers[n].action
+            if 0 <= nextQ < len(seq.sequence):
+                seq.onQuestion = nextQ
     if seq.onQuestion<len(seq.sequence):
         return speakAndReturnForm()
     else:
