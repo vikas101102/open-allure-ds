@@ -10,6 +10,7 @@
 # Licence:     MIT license
 #-------------------------------------------------------------------------------
 from BeautifulSoup import BeautifulSoup
+import htmlentitydefs
 import objects
 import os
 import re
