@@ -118,24 +118,31 @@ def joinContents(textPList):
         i = 0
         for textP in textPList:
             # break the XML into a list of tagged pieces (text:span)
-            textAndTags = sum([item.contents for item in textP("text:span")],[])
-            if len(textAndTags)==0:
-                textAndTags = textP.contents
-            justText = u""
-            for item in textAndTags:
-                if type(item)==BeautifulSoup.Tag:
-                    justText = justText + " "
+            textSpans = [item.contents for item in textP("text:span")]
+
+            # flatten list
+            textSpans1 = [item for sublist in textSpans for item in sublist]
+
+            # find the contents of these pieces if they are still tagged (text:s)
+            textSpans2 = []
+            for textSpan in textSpans1:
+                if type(textSpan)==BeautifulSoup.Tag:
+                    textSpans2.append(textSpan.text)
                 else:
-                    # deal with single quote and double quotes and dashes
-                    # \u2018 LEFT SINGLE QUOTATION MARK
-                    justText = justText + \
-                               str(item.replace(u'\u2019',
-                                                u'\u0027').replace(u'\u201c',
-                                                u'\u0022').replace(u'\u201d',
-                                                u'\u0022').replace(u'\u2013',
-                                                u'\u002D').replace(u'ï',
-                                                u'i').replace(u'\u2018',
-                                                u'\u0027'))
+                    textSpans2.append(unicode(textSpan))
+
+            justText = u""
+            for item in textSpans2:
+                # deal with single quote and double quotes and dashes
+                # \u2018 LEFT SINGLE QUOTATION MARK
+                justText = justText + " " + \
+                           str(item.replace(u'\u2019',
+                                            u'\u0027').replace(u'\u201c',
+                                            u'\u0022').replace(u'\u201d',
+                                            u'\u0022').replace(u'\u2013',
+                                            u'\u002D').replace(u'ï',
+                                            u'i').replace(u'\u2018',
+                                            u'\u0027'))
             textItems.append(justText)
         joinedItems = "\n".join(textItems)
     return joinedItems
@@ -241,7 +248,7 @@ for item in noteText:
 f.close()
 
 os.chdir(odpFileDirectory)
-p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
+#p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
 
 ## Step 3 - create makeVid.bat
 os.chdir(odpFileSubdirectory)
@@ -266,7 +273,7 @@ for file in sortedOgg:
     if sys.platform == "win32":
         command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
     else:
-        command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
+        command = [savePath+os.sep+"soxi_unix","-D",odpFileSubdirectory+os.sep+file]
     process = subprocess.Popen(command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -296,15 +303,28 @@ if sys.platform == "win32":
             tenthsOfSeconds += 20
         print(range(tenthsOfSeconds))
         # Make a symlink to the slide image for each second the audio runs
+        # Only 999 symlinks are allowed per image, so, if there are more
+        # than this number, we need to also make additional copies of the
+        # slide image to link to
         for j in range(tenthsOfSeconds):
-            f.write("mklink /h "+stem+'_'+str(j).zfill(3)+'.jpg '+stem+'.jpg\n')
+            if ((j > 0) and (j % 900 == 0)):
+                f.write("copy "+stem+'.jpg '+stem+str(j)+'.jpg\n')
+        extraStem = ""
+        for j in range(tenthsOfSeconds):
+            if ((j > 0) and (j % 900 == 0)):
+                extraStem = str(j)
+            f.write("mklink /h "+stem+'_'+str(j).zfill(5)+'.jpg '+stem+extraStem+'.jpg\n')
         # Convert the images to a video of that slide with voice over
         # NOTE: Little trick here -- Windows wants to substitute the batch file name
         #       into %0 so we use %1 and pass %0 as the first parameter
-        f.write(savePath+os.sep+"ffmpeg -i "+stem+'.mp3 -r 10 -i "'+stem+'_%13d.jpg" -ab 64k '+stem+".mp4\n")
+        f.write(savePath+os.sep+"ffmpeg -i "+stem+'.mp3 -r 10 -i "'+stem+'_%15d.jpg" -ab 64k '+stem+".mp4\n")
         # Delete the symlinks
         for j in range(tenthsOfSeconds):
-            f.write("del "+stem+'_'+str(j).zfill(3)+'.jpg\n')
+            f.write("del "+stem+'_'+str(j).zfill(5)+'.jpg\n')
+        # Delete any extra copies
+        for j in range(tenthsOfSeconds):
+            if ((j > 0) and (j % 900 == 0)):
+                f.write("del "+stem+str(j)+'.jpg\n')
     # Add an output file name for the concatenation
     catCommand += " output.mp4\n"
     f.write(catCommand)
@@ -335,11 +355,11 @@ else:
         # Make a symlink to the slide image for each second the audio runs
         for j in range(tenthsOfSeconds):
             # ln -s Slide2.png Slide2_001.png
-            f.write("ln -s "+stem+'.png '+stem+'_'+str(j).zfill(4)+'.png\n')
-        f.write(savePath+os.sep+"ffmpeg -i "+stem+'.mp3 -r 10 -i "'+stem+'_%04d.png" -ab 64k '+stem+".mp4\n")
+            f.write("ln -s "+stem+'.png '+stem+'_'+str(j).zfill(5)+'.png\n')
+        f.write(savePath+os.sep+"ffmpeg -i "+stem+'.mp3 -r 10 -i "'+stem+'_%05d.png" -ab 64k '+stem+".mp4\n")
         # Delete the symlinks
         for j in range(tenthsOfSeconds):
-            f.write("rm "+stem+'_'+str(j).zfill(4)+'.png\n')
+            f.write("rm "+stem+'_'+str(j).zfill(5)+'.png\n')
     # Add an output file name for the concatenation
     catCommand += " output.mp4\n"
     f.write(catCommand)
