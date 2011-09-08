@@ -248,7 +248,7 @@ for item in noteText:
 f.close()
 
 os.chdir(odpFileDirectory)
-#p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
+p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
 
 ## Step 3 - create makeVid.bat
 os.chdir(odpFileSubdirectory)
