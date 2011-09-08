@@ -6,9 +6,11 @@ Usage:
 """
 
 from setuptools import setup
+import os
+import stat
 
 APP = ['odp2wts.py']
-DATA_FILES = ['CHANGES.txt','ethics_notice.txt','README.txt','LICENSE.txt']
+DATA_FILES = ['CHANGES.txt','ethics_notice.txt','README.txt','LICENSE.txt','soxi','MP4Box','ffmpeg']
 OPTIONS = {'argv_emulation': True}
 
 setup(
@@ -17,3 +19,7 @@ setup(
     options={'py2app': OPTIONS},
     setup_requires=['py2app'],
 )
+
+os.chmod(os.getcwd()+os.sep+"dist/odp2wts.app/Contents/Resources/soxi",stat.S_IRWXU)
+os.chmod(os.getcwd()+os.sep+"dist/odp2wts.app/Contents/Resources/ffmpeg",stat.S_IRWXU)
+os.chmod(os.getcwd()+os.sep+"dist/odp2wts.app/Contents/Resources/MP4Box",stat.S_IRWXU)

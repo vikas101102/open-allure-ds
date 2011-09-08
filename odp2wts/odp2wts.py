@@ -13,8 +13,9 @@ MIT License: see LICENSE.txt
 20110901 Add direct to video output
 20110901 Switch to jpg, mklink with /h
 20110902 Switch to jpg for Windows and png for Mac
+20110907 More tweaks to joinContents
 """
-__version__ = "0.1.15"
+__version__ = "0.1.16"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -22,6 +23,7 @@ from ConfigParser import ConfigParser
 import easygui
 import math
 import os
+import os.path
 import shutil
 import stat
 import subprocess
@@ -56,7 +58,7 @@ if odpFilePath == None:
 (odpFileDirectory, odpFile) = os.path.split(odpFilePath)
 (odpName, odpSuffix) = odpFile.split(".")
 
-## Find list of .jpg files
+## Find list of .png or .jpg files
 
 # Create a subdirectory for generated files (if needed)
 def ensure_dir(d):
@@ -117,19 +119,26 @@ def joinContents(textPList):
         textItems = []
         i = 0
         for textP in textPList:
+            textSpans = []
             # break the XML into a list of tagged pieces (text:span)
-            textSpans = [item.contents for item in textP("text:span")]
+            for item in textP:
+                if type(item)==BeautifulSoup.Tag:
+                    textSpans.append([textS.contents for textS in textP("text:span")])
+                else:
+                    textSpans.append([item])
 
             # flatten list
             textSpans1 = [item for sublist in textSpans for item in sublist]
-
             # find the contents of these pieces if they are still tagged (text:s)
             textSpans2 = []
             for textSpan in textSpans1:
                 if type(textSpan)==BeautifulSoup.Tag:
                     textSpans2.append(textSpan.text)
                 else:
-                    textSpans2.append(unicode(textSpan))
+                    if type(textSpan)==type([]):
+                        textSpans2.append(unicode(textSpan[0]))
+                    else:
+                        textSpans2.append(unicode(textSpan))
 
             justText = u""
             for item in textSpans2:
@@ -270,10 +279,13 @@ print(sortedOgg)
 times = []
 for file in sortedOgg:
     # soxi -D returns the duration in seconds of the audio file as a float
-    if sys.platform == "win32":
+    if os.path.isfile(savePath+os.sep+"soxi"):
         command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
+    elif os.path.isfile(savePath+os.sep+"Contents/Resources/soxi"):
+        command = [savePath+os.sep+"Contents/Resources/soxi","-D",odpFileSubdirectory+os.sep+file]
     else:
-        command = [savePath+os.sep+"soxi_unix","-D",odpFileSubdirectory+os.sep+file]
+        command = ["soxi","-D",odpFileSubdirectory+os.sep+file]
+    print(command)
     process = subprocess.Popen(command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -291,7 +303,12 @@ os.chmod(odpFileDirectory+os.sep+"makeVid.bat",stat.S_IRWXU)
 if sys.platform == "win32":
     f.write("echo off\ncls\n")
     f.write("if exist output.mp4 (del output.mp4)\n")
-    catCommand = savePath+os.sep+"MP4Box"
+    if os.path.isfile(savePath+os.sep+"MP4Box"):
+        catCommand = savePath+os.sep+"MP4Box"
+    elif os.path.isfile(savePath+os.sep+"Contents/Resources/MP4Box"):
+        catCommand = savePath+os.sep+"Contents/Resources/MP4Box"
+    else:
+        catCommand = "MP4Box"
     for i, file in enumerate(sortedOgg):
         stem, suffix = file.split(".")
         # Add the slide video to the list of videos to be concatenated
