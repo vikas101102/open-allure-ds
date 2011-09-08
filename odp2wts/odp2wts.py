@@ -279,12 +279,15 @@ print(sortedOgg)
 times = []
 for file in sortedOgg:
     # soxi -D returns the duration in seconds of the audio file as a float
-    if os.path.isfile(savePath+os.sep+"soxi"):
+    if sys.platform == "win32":
         command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
-    elif os.path.isfile(savePath+os.sep+"Contents/Resources/soxi"):
-        command = [savePath+os.sep+"Contents/Resources/soxi","-D",odpFileSubdirectory+os.sep+file]
     else:
-        command = ["soxi","-D",odpFileSubdirectory+os.sep+file]
+        if os.path.isfile(savePath+os.sep+"soxi"):
+            command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
+        elif os.path.isfile(savePath+os.sep+"Contents/Resources/soxi"):
+            command = [savePath+os.sep+"Contents/Resources/soxi","-D",odpFileSubdirectory+os.sep+file]
+        else:
+            command = ["soxi","-D",odpFileSubdirectory+os.sep+file]
     print(command)
     process = subprocess.Popen(command,
                 stdout=subprocess.PIPE,
