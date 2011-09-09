@@ -262,7 +262,7 @@ for item in noteText:
 f.close()
 
 os.chdir(odpFileDirectory)
-p = subprocess.Popen(odpFileDirectory+os.sep+"convert.bat",shell=True).wait()
+p = subprocess.Popen('"'+odpFileDirectory+os.sep+'convert.bat"',shell=True).wait()
 
 ## Step 3 - create makeVid.bat
 os.chdir(odpFileSubdirectory)
@@ -316,6 +316,15 @@ f = open(odpFileDirectory+os.sep+"makeVid.bat","w")
 os.chmod(odpFileDirectory+os.sep+"makeVid.bat",stat.S_IRWXU)
 
 if sys.platform == "win32":
+    # find out if mklink is available
+    mklinkAvailable = False
+    if os.path.isfile("win32_mklink_test"):
+        subprocess.Popen(["del","win32_mklink_test"],shell=True)
+    p = subprocess.Popen(["mklink","/h","win32_mklink_test","convert.bat"],shell=True)
+    retcode = p.poll()
+    if not retcode:
+        mklinkAvailable = True
+        subprocess.Popen(["del","win32_mklink_test"],shell=True)
     f.write("echo off\ncls\n")
     f.write("if exist output.mp4 (del output.mp4)\n")
     if os.path.isfile(savePath+os.sep+"MP4Box.exe"):
@@ -343,7 +352,10 @@ if sys.platform == "win32":
         for j in range(tenthsOfSeconds):
             if ((j > 0) and (j % 900 == 0)):
                 extraStem = str(j)
-            f.write("mklink /h "+stem+'_'+str(j).zfill(5)+'.jpg '+stem+extraStem+'.jpg\n')
+            if mklinkAvailable:
+                f.write("mklink /h "+stem+'_'+str(j).zfill(5)+'.jpg '+stem+extraStem+'.jpg\n')
+            else:
+                f.write("copy "+stem+'.jpg '+stem+'_'+str(j).zfill(5)+'.jpg\n')
         # Convert the images to a video of that slide with voice over
         # NOTE: Little trick here -- Windows wants to substitute the batch file name
         #       into %0 so we use %1 and pass %0 as the first parameter
@@ -563,8 +575,8 @@ for file in imageFileList:
 # Run the makeVid.bat file with %0 as the first parameter
 os.chdir(odpFileSubdirectory)
 if sys.platform == "win32":
-    p = subprocess.Popen([odpFileDirectory+os.sep+"makeVid.bat","%0"],shell=True).wait()
-    webbrowser.open_new_tab(odpFileDirectory+os.sep+odpName+".htm")
+    p = subprocess.Popen([odpFileDirectory+os.sep+'makeVid.bat',"%0"],shell=True).wait()
+    webbrowser.open_new_tab(odpFileDirectory+os.sep+odpName+'.htm')
 else:
     p = subprocess.Popen([odpFileDirectory+os.sep+"makeVid.bat"],shell=True).wait()
     p = subprocess.Popen("open "+odpFileDirectory+os.sep+odpName+".htm", shell=True).pid
