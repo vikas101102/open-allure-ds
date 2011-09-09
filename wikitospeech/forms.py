@@ -114,7 +114,7 @@ answerString + \
 </html>
 """
 
-def showQuestionAndWebsite(q):
+def showQuestionAndWebsite(q, qnum):
     questionString = ""
     for questionText in q.questionTexts:
         questionString = questionString + " " + questionText
@@ -125,11 +125,11 @@ def showQuestionAndWebsite(q):
         if len(a.answerText)>0:
             if a.visited == False:
                 answerString = answerString + answerStringBase + \
-                     str(answerNumber) + '">' + a.answerText + "</a></td></tr>\n"
+                     str(answerNumber) + '?q=' + str(qnum) + '">' + a.answerText + "</a></td></tr>\n"
             else:
                 # Visited = True, Change text color to gray
                 answerString = answerString + answerStringBase + \
-                     str(answerNumber) + '"><span style="color:#CCCCCC">' + \
+                     str(answerNumber) + '?q=' + str(qnum) + '"><span style="color:#CCCCCC">' + \
                      a.answerText + "</span></a></td></tr>\n"
             answerNumber += 1
 
