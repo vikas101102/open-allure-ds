@@ -123,7 +123,11 @@ def joinContents(textPList):
             # break the XML into a list of tagged pieces (text:span)
             for item in textP:
                 if type(item)==BeautifulSoup.Tag:
-                    textSpans.append([textS.contents for textS in textP("text:span")])
+                    taggedText = [textS.contents for textS in textP("text:span")]
+                    if 0 == len(taggedText):
+                        # try the text:s tag
+                        taggedText = [textS.contents for textS in textP("text:s")]
+                    textSpans.append(taggedText)
                 else:
                     textSpans.append([item])
 
@@ -135,7 +139,7 @@ def joinContents(textPList):
                 if type(textSpan)==BeautifulSoup.Tag:
                     textSpans2.append(textSpan.text)
                 else:
-                    if type(textSpan)==type([]):
+                    if (type(textSpan)==type([]) and len(textSpan)>0):
                         textSpans2.append(unicode(textSpan[0]))
                     else:
                         textSpans2.append(unicode(textSpan))
@@ -280,6 +284,13 @@ times = []
 for file in sortedOgg:
     # soxi -D returns the duration in seconds of the audio file as a float
     if sys.platform == "win32":
+        # Unfortunately, there is a requirement that soxi (with an implict .exe)
+        # be the command to check audio file duration in Win32
+        # but soxi is the name of the unix version of this utility
+        # So we need to delete the (unix) file called soxi so the command line call
+        # to soxi will run soxi.exe
+        if os.path.isfile(savePath+os.sep+"soxi"):
+            os.remove(savePath+os.sep+"soxi")
         command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
     else:
         if os.path.isfile(savePath+os.sep+"soxi"):
@@ -306,10 +317,8 @@ os.chmod(odpFileDirectory+os.sep+"makeVid.bat",stat.S_IRWXU)
 if sys.platform == "win32":
     f.write("echo off\ncls\n")
     f.write("if exist output.mp4 (del output.mp4)\n")
-    if os.path.isfile(savePath+os.sep+"MP4Box"):
+    if os.path.isfile(savePath+os.sep+"MP4Box.exe"):
         catCommand = savePath+os.sep+"MP4Box"
-    elif os.path.isfile(savePath+os.sep+"Contents/Resources/MP4Box"):
-        catCommand = savePath+os.sep+"Contents/Resources/MP4Box"
     else:
         catCommand = "MP4Box"
     for i, file in enumerate(sortedOgg):
@@ -361,7 +370,15 @@ else:
     f.write("if [ -f output.mp4 ]\n")
     f.write("then rm output.mp4\n")
     f.write("fi\n")
-    catCommand = savePath+os.sep+"MP4Box"
+    if os.path.isfile(savePath+os.sep+"MP4Box"):
+        # for uncompiled run
+        catCommand = savePath+os.sep+"MP4Box"
+    elif os.path.isfile(savePath+os.sep+"Contents/Resources/MP4Box"):
+        # for compiled run
+        catCommand = savePath+os.sep+"Contents/Resources/MP4Box"
+    else:
+        # for when MP4Box is not distributed but is installed
+        catCommand = "MP4Box"
     for i, file in enumerate(sortedOgg):
         stem, suffix = file.split(".")
         # Add the slide video to the list of videos to be concatenated
