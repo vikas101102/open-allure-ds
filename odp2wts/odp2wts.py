@@ -14,8 +14,9 @@ MIT License: see LICENSE.txt
 20110901 Switch to jpg, mklink with /h
 20110902 Switch to jpg for Windows and png for Mac
 20110907 More tweaks to joinContents
+20110909 Allow over 20 slides in MP4Box to cat for Mac
 """
-__version__ = "0.1.16"
+__version__ = "0.1.17"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -372,17 +373,24 @@ else:
     f.write("fi\n")
     if os.path.isfile(savePath+os.sep+"MP4Box"):
         # for uncompiled run
-        catCommand = savePath+os.sep+"MP4Box"
+        catCommand = '"'+savePath+os.sep+'MP4Box"'
     elif os.path.isfile(savePath+os.sep+"Contents/Resources/MP4Box"):
         # for compiled run
-        catCommand = savePath+os.sep+"Contents/Resources/MP4Box"
+        catCommand = '"'+savePath+os.sep+'Contents/Resources/MP4Box"'
     else:
         # for when MP4Box is not distributed but is installed
         catCommand = "MP4Box"
+    # save another copy for subsequent cat lines if more than 20 slides
+    catCommand2 = catCommand
+    tempFilesToDelete = []
     for i, file in enumerate(sortedOgg):
         stem, suffix = file.split(".")
         # Add the slide video to the list of videos to be concatenated
         catCommand += " -cat "+stem+".mp4"
+        if ((i>0) and (i % 18 == 0)):
+            tempFilesToDelete.append("temp"+ str(i) +".mp4")
+            # add a temp.mp4 for output and then input on next line
+            catCommand += " temp" + str(i) +".mp4\n"+catCommand2+" -cat temp" + str(i) +".mp4"
         print(stem+".jpg")
         tenthsOfSeconds = int(math.floor(times[i]*10))
         # If we are on the last slide, add enough frames
@@ -393,7 +401,7 @@ else:
         for j in range(tenthsOfSeconds):
             # ln -s Slide2.png Slide2_001.png
             f.write("ln -s "+stem+'.png '+stem+'_'+str(j).zfill(5)+'.png\n')
-        f.write(savePath+os.sep+"ffmpeg -i "+stem+'.mp3 -r 10 -i "'+stem+'_%05d.png" -ab 64k '+stem+".mp4\n")
+        f.write('"'+savePath+os.sep+'ffmpeg" -i '+stem+'.mp3 -r 10 -i "'+stem+'_%05d.png" -ab 64k '+stem+".mp4\n")
         # Delete the symlinks
         for j in range(tenthsOfSeconds):
             f.write("rm "+stem+'_'+str(j).zfill(5)+'.png\n')
@@ -404,6 +412,8 @@ else:
     for file in sortedOgg:
         stem, suffix = file.split(".")
         f.write('rm '+stem+'.mp4\n')
+    for file in tempFilesToDelete:
+        f.write('rm '+file+"\n")
     f.close()
 
 ## Step 4 - create HTML wrapper
