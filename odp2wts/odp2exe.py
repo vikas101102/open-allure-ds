@@ -66,5 +66,4 @@ if __name__ == '__main__':
     if operator.lt(len(sys.argv), 2):
         sys.argv.append('py2exe')
     BuildApp().run() #Run generation
-    raw_input("Press any key to continue") #Pause to let user see that things ends
 
