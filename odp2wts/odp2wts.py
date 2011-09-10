@@ -15,8 +15,9 @@ MIT License: see LICENSE.txt
 20110902 Switch to jpg for Windows and png for Mac
 20110907 More tweaks to joinContents
 20110909 Allow over 20 slides in MP4Box to cat for Mac
+20110910 Coping with unavailable mklink in Windows and path names containing spaces
 """
-__version__ = "0.1.17"
+__version__ = "0.1.18"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -31,8 +32,35 @@ import subprocess
 import sys
 import webbrowser
 from zipfile import ZipFile
+import ctypes
+from ctypes import wintypes, windll
 
-if sys.platform == "win32":
+def ensure_dir(d):
+    """Make a directory if it does not exist"""
+    if not os.path.exists(d):
+        os.makedirs(d)
+
+# Find location of Windows common application data files for odp2wts.ini
+iniDirectory = None
+if sys.platform.startswith("win"):
+    CSIDL_COMMON_APPDATA = 35
+
+    _SHGetFolderPath = windll.shell32.SHGetFolderPathW
+    _SHGetFolderPath.argtypes = [wintypes.HWND,
+                                ctypes.c_int,
+                                wintypes.HANDLE,
+                                wintypes.DWORD, wintypes.LPCWSTR]
+
+
+    path_buf = wintypes.create_unicode_buffer(wintypes.MAX_PATH)
+    result = _SHGetFolderPath(0, CSIDL_COMMON_APPDATA, 0, 0, path_buf)
+    iniDirectory = path_buf.value+os.sep+"Wiki-to-Speech"
+else:
+    iniDirectory = os.path.expanduser('~')+os.sep+"Wiki-to-Speech"
+
+ensure_dir(iniDirectory)
+
+if sys.platform.startswith("win"):
     imageFileSuffix = ".jpg"
 else:
     imageFileSuffix = ".png"
@@ -43,13 +71,16 @@ else:
 lastOdpFile = '~/*.odp'
 config = ConfigParser()
 try:
-    config.read('odp2wts.ini')
+    config.read(iniDirectory+os.sep+'odp2wts.ini')
     lastOdpFile = config.get("Files","lastOdpFile")
 except:
     config.add_section("Files")
     config.set("Files","lastOdpFile","")
-    with open('odp2wts.ini', 'wb') as configfile:
+    with open(iniDirectory+os.sep+'odp2wts.ini', 'wb') as configfile:
         config.write(configfile)
+
+if not os.path.isfile(lastOdpFile):
+    lastOdpFile = None
 
 odpFilePath = easygui.fileopenbox(title="ODP2WTS Converter "+__version__, msg="Select an .odp file",
                               default=lastOdpFile, filetypes=None)
@@ -61,12 +92,8 @@ if odpFilePath == None:
 
 ## Find list of .png or .jpg files
 
-# Create a subdirectory for generated files (if needed)
-def ensure_dir(d):
-    """Make a directory if it does not exist"""
-    if not os.path.exists(d):
-        os.makedirs(d)
 odpFileSubdirectory = odpFileDirectory+os.sep+odpName
+# Create a subdirectory for generated files (if needed)
 ensure_dir(odpFileSubdirectory)
 
 # Look for .jpg files (slide images) in the odpName subdirectory
@@ -164,7 +191,7 @@ def joinContents(textPList):
 if ((0 != len(odpFile)) and (os.path.exists(odpFilePath))):
     # Save file name to config file
     config.set("Files","lastOdpFile",odpFilePath)
-    with open('odp2wts.ini', 'wb') as configfile:
+    with open(iniDirectory+os.sep+'odp2wts.ini', 'wb') as configfile:
         config.write(configfile)
 
     odpName = odpFile.replace(".odp","")
@@ -225,7 +252,7 @@ os.chmod(odpFileDirectory+os.sep+"convert.bat",stat.S_IRWXU)
 onImg = minNum
 for item in noteText:
 
-    if sys.platform == "win32":
+    if sys.platform.startswith("win"):
         # For Windows
         f.write('"'+savePath+os.sep+'sapi2wav.exe" '+imageFilePrefix+str(onImg)+'.wav 1 -t "')
         lines = item.split("\n")
@@ -284,7 +311,7 @@ print(sortedOgg)
 times = []
 for file in sortedOgg:
     # soxi -D returns the duration in seconds of the audio file as a float
-    if sys.platform == "win32":
+    if sys.platform.startswith("win"):
         # Unfortunately, there is a requirement that soxi (with an implict .exe)
         # be the command to check audio file duration in Win32
         # but soxi is the name of the unix version of this utility
@@ -315,7 +342,7 @@ print(times)
 f = open(odpFileDirectory+os.sep+"makeVid.bat","w")
 os.chmod(odpFileDirectory+os.sep+"makeVid.bat",stat.S_IRWXU)
 
-if sys.platform == "win32":
+if sys.platform.startswith("win"):
     # find out if mklink is available
     mklinkAvailable = False
     if os.path.isfile("win32_mklink_test"):
