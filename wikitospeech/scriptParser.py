@@ -5,7 +5,7 @@
 # Author:      John Graves
 #
 # Created:     17 April 2011
-# Modified:    19 August 2011
+# Modified:    13 September 2011
 # Copyright:   (c) John 2011
 # Licence:     MIT license
 #-------------------------------------------------------------------------------
@@ -14,6 +14,8 @@ import htmlentitydefs
 import objects
 import os
 import re
+import subprocess
+import sys
 import urllib
 from time import gmtime, strftime
 
@@ -137,6 +139,20 @@ def parseTxtFile(name):
         # No parsing of .txt
         return None
     text = f.readlines()
+    
+    if not sys.platform.startswith("win"):
+        # find slide images in .txt file and make symbolic links if possible
+        pngs = [item.strip() for item in text if item.endswith(".png\n")]
+        # script source directory
+        scriptDir, scriptFile = os.path.split(name)
+        savePath = os.getcwd()
+        os.chdir('static')
+        for png in pngs:
+            if os.path.isfile(png):
+                subprocess.Popen(["rm",png],shell=True)
+            subprocess.Popen(["ln","-s",scriptDir+os.sep+png,png])
+        os.chdir(savePath)
+        
     sequence = parseText(text)
     return sequence
 

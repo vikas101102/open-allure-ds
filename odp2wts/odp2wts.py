@@ -17,6 +17,7 @@ MIT License: see LICENSE.txt
 20110909 Allow over 20 slides in MP4Box to cat for Mac
 20110910 Coping with unavailable mklink in Windows and path names containing spaces
 20110913 Remove [] from script output and wrap ctypes import with win32 test
+20110913 Moved space to end of justText line
 """
 __version__ = "0.1.19"
 
@@ -180,14 +181,14 @@ def joinContents(textPList):
             for item in textSpans2:
                 # deal with single quote and double quotes and dashes
                 # \u2018 LEFT SINGLE QUOTATION MARK
-                justText = justText + " " + \
+                justText = justText + \
                            str(item.replace(u'\u2019',
                                             u'\u0027').replace(u'\u201c',
                                             u'\u0022').replace(u'\u201d',
                                             u'\u0022').replace(u'\u2013',
                                             u'\u002D').replace(u'ï',
                                             u'i').replace(u'\u2018',
-                                            u'\u0027'))
+                                            u'\u0027')) + " "
             textItems.append(justText)
         joinedItems = "\n".join(textItems)
     return joinedItems
