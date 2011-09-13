@@ -16,8 +16,9 @@ MIT License: see LICENSE.txt
 20110907 More tweaks to joinContents
 20110909 Allow over 20 slides in MP4Box to cat for Mac
 20110910 Coping with unavailable mklink in Windows and path names containing spaces
+20110913 Remove [] from script output and wrap ctypes import with win32 test
 """
-__version__ = "0.1.18"
+__version__ = "0.1.19"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -32,8 +33,6 @@ import subprocess
 import sys
 import webbrowser
 from zipfile import ZipFile
-import ctypes
-from ctypes import wintypes, windll
 
 def ensure_dir(d):
     """Make a directory if it does not exist"""
@@ -43,6 +42,8 @@ def ensure_dir(d):
 # Find location of Windows common application data files for odp2wts.ini
 iniDirectory = None
 if sys.platform.startswith("win"):
+    import ctypes
+    from ctypes import wintypes, windll
     CSIDL_COMMON_APPDATA = 35
 
     _SHGetFolderPath = windll.shell32.SHGetFolderPathW
@@ -56,7 +57,7 @@ if sys.platform.startswith("win"):
     result = _SHGetFolderPath(0, CSIDL_COMMON_APPDATA, 0, 0, path_buf)
     iniDirectory = path_buf.value+os.sep+"Wiki-to-Speech"
 else:
-    iniDirectory = os.path.expanduser('~')+os.sep+"Wiki-to-Speech"
+    iniDirectory = os.path.expanduser('~')+os.sep+".Wiki-to-Speech"
 
 ensure_dir(iniDirectory)
 
@@ -167,10 +168,13 @@ def joinContents(textPList):
                 if type(textSpan)==BeautifulSoup.Tag:
                     textSpans2.append(textSpan.text)
                 else:
-                    if (type(textSpan)==type([]) and len(textSpan)>0):
-                        textSpans2.append(unicode(textSpan[0]))
+                    if len(textSpan)>0:
+                        if type(textSpan)==type([]):
+                            textSpans2.append(unicode(textSpan[0]))
+                        else:
+                            textSpans2.append(unicode(textSpan))
                     else:
-                        textSpans2.append(unicode(textSpan))
+                        textSpans2.append("")
 
             justText = u""
             for item in textSpans2:
