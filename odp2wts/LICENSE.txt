@@ -1,6 +1,8 @@
-Open Allure
-===========
+Wiki-to-Speech
+Wiki-to-Speech from ODP (odp2wts)
+=================================
 http://openallureds.org
+http://wikitospeech.org
 
 The MIT License
 
@@ -62,32 +64,37 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE, DAMMIT.
 
-buzhug
+ffmpeg
 ======
-http://buzhug.sourceforge.net/
-buzhug is an Open Source software, published under the revised BSD licence
+http://ffmpeg.mplayerhq.hu/
+http://ffmpeg.mplayerhq.hu/legal.html
+FFmpeg is licensed under the GNU Lesser General Public License (LGPL) version 2.1
+or later. However, FFmpeg incorporates several optional parts and optimizations
+that are covered by the GNU General Public License (GPL) version 2 or later.
+If those parts get used the GPL applies to all of FFmpeg.
+FFmpeg is a trademark of Fabrice Bellard, originator of the FFmpeg project.
 
-ConfigObj
-Michael Foord
-=============
-http://www.voidspace.org.uk/python/configobj.html
-ConfigObj is distributed under the BSD License
-http://www.voidspace.org.uk/python/license.shtml
+lame
+====
+http://lame.sourceforge.net/download.php
+LAME is a high quality MPEG Audio Layer III (MP3) encoder licensed under the LGPL.
 
-NTLK
-Steven Bird
-===========
-http://www.nltk.org/Home
-util.py
-NLTK is distributed under the Apache License
-http://www.apache.org/licenses/LICENSE-2.0
+msvcr100.dll
+============
+msvcr100.dll is the Microsoft Visual C++ Redistributable dll
+needed for MP4Box. The dll letters spell this out.
 
-PyGame
-Pete Shinners
-=============
-http://www.pygame.org
-PyGame is distributed under GNU LGPL version 2.1
-http://www.gnu.org/copyleft/lesser.html
+MS = Microsoft
+V = Visual
+C = C++
+R = Redistributable
+
+MP4Box
+======
+http://gpac.wp.institut-telecom.fr/mp4box/
+GPAC is an Open Source multimedia framework for research and academic purposes.
+Licensing As of version 0.4.0 GPAC is licensed under the
+GNU Lesser General Public License.
 
 Python
 Python Software Foundation
