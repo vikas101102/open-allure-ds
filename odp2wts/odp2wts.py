@@ -18,8 +18,9 @@ MIT License: see LICENSE.txt
 20110910 Coping with unavailable mklink in Windows and path names containing spaces
 20110913 Remove [] from script output and wrap ctypes import with win32 test
 20110913 Moved space to end of justText line
+20110915 Added boilerplate script comments including version number
 """
-__version__ = "0.1.19"
+__version__ = "0.1.20"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -32,6 +33,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import time
 import webbrowser
 from zipfile import ZipFile
 
@@ -142,7 +144,29 @@ for file in imageFileList:
 ## Step 1 - parse the .odp file, prepare script.txt and .zip file
 
 def joinContents(textPList):
-    """Combine tagged XML into single string"""
+    """Combine tagged XML into single string
+
+Needs to handle this from PowerPoint:
+    <text:p text:style-name="a785" text:class-names="" text:cond-style-name="">
+     <text:span text:style-name="a783" text:class-names="">Voice over 1</text:span>
+     <text:span text:style-name="a784" text:class-names=""/>
+    </text:p>
+
+or worse, this:
+    <text:p text:style-name="a786" text:class-names="" text:cond-style-name="">
+     <text:span text:style-name="a783" text:class-names="">
+      Voice
+      <text:s text:c="1"/>
+     </text:span>
+     <text:span text:style-name="a784" text:class-names="">
+      over 1
+      <text:s text:c="1"/>
+      asdf
+     </text:span>
+     <text:span text:style-name="a785" text:class-names=""/>
+    </text:p>
+
+    """
     # item is list of all the XML for a single slide
     joinedItems = ""
     if len(textPList)>0:
@@ -153,29 +177,43 @@ def joinContents(textPList):
             # break the XML into a list of tagged pieces (text:span)
             for item in textP:
                 if type(item)==BeautifulSoup.Tag:
-                    taggedText = [textS.contents for textS in textP("text:span")]
-                    if 0 == len(taggedText):
-                        # try the text:s tag
-                        taggedText = [textS.contents for textS in textP("text:s")]
-                    textSpans.append(taggedText)
+                    tagContents = item.contents
+                    if type(tagContents)==type([]):
+                        for item2 in tagContents:
+                            if type(item2)==BeautifulSoup.Tag:
+                                textSpans.append([item2.contents])
+                            else:
+                                textSpans.append([item2])
+                    else:
+                        textSpans.append([tagContents])
                 else:
                     textSpans.append([item])
 
             # flatten list
             textSpans1 = [item for sublist in textSpans for item in sublist]
+            # clean up
+            textSpans1b = []
+            for item in textSpans1:
+                if type(item)==BeautifulSoup.NavigableString:
+                    textSpans1b.append(item)
+                elif type(item)==type([]):
+                    if len(item)==0:
+                        pass
+                    elif len(item)==1:
+                        textSpans1b.append(item[0])
+                    else:
+                        for itemInList in item:
+                            textSpans1b.append(itemInList)
             # find the contents of these pieces if they are still tagged (text:s)
             textSpans2 = []
-            for textSpan in textSpans1:
+            for textSpan in textSpans1b:
                 if type(textSpan)==BeautifulSoup.Tag:
                     textSpans2.append(textSpan.text)
                 else:
-                    if len(textSpan)>0:
-                        if type(textSpan)==type([]):
-                            textSpans2.append(unicode(textSpan[0]))
-                        else:
-                            textSpans2.append(unicode(textSpan))
+                    if (type(textSpan)==type([]) and len(textSpan)>0):
+                        textSpans2.append(unicode(textSpan[0]))
                     else:
-                        textSpans2.append("")
+                        textSpans2.append(unicode(textSpan))
 
             justText = u""
             for item in textSpans2:
@@ -211,6 +249,23 @@ else:
 
 # Create script.txt file
 scriptFile = open(odpFileSubdirectory+os.sep+'script.txt','w')
+scriptFile.write("""#[path=]
+#
+#     Script created with Wiki-to-Speech version """+__version__+
+"\n#     http://wikitospeech.org\n"+
+"#     Date: "+time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())+"""
+#
+#     Title:
+#     Author:
+#
+#     Wiki-to-Speech Slide show version
+#     http://
+#
+#     Wiki-to-Speech Video version
+#     http://
+#
+#     Wiki-to-Speech script:
+""")
 onImg = minNum
 for item in noteText:
     if onImg-minNum == 0: # first slide
@@ -312,7 +367,6 @@ for file in ogg:
         # imgXX.ogg
         oggDict[int(file[3:].split(".")[0])] = file
 sortedOgg = oggDict.values()
-print(sortedOgg)
 times = []
 for file in sortedOgg:
     # soxi -D returns the duration in seconds of the audio file as a float
@@ -332,7 +386,6 @@ for file in sortedOgg:
             command = [savePath+os.sep+"Contents/Resources/soxi","-D",odpFileSubdirectory+os.sep+file]
         else:
             command = ["soxi","-D",odpFileSubdirectory+os.sep+file]
-    print(command)
     process = subprocess.Popen(command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -342,7 +395,6 @@ for file in sortedOgg:
     if retcode:
         print "No time available"
     times.append(float(output[0].strip()))
-print(times)
 # Create makeVid.bat in odpFileDirectory for Windows
 f = open(odpFileDirectory+os.sep+"makeVid.bat","w")
 os.chmod(odpFileDirectory+os.sep+"makeVid.bat",stat.S_IRWXU)
@@ -352,11 +404,12 @@ if sys.platform.startswith("win"):
     mklinkAvailable = False
     if os.path.isfile("win32_mklink_test"):
         subprocess.Popen(["del","win32_mklink_test"],shell=True)
-    p = subprocess.Popen(["mklink","/h","win32_mklink_test","convert.bat"],shell=True)
-    retcode = p.poll()
-    if not retcode:
+    os.chdir(odpFileDirectory)
+    subprocess.Popen(["mklink","/h","win32_mklink_test","convert.bat"],shell=True).wait()
+    if os.path.isfile("win32_mklink_test"):
         mklinkAvailable = True
         subprocess.Popen(["del","win32_mklink_test"],shell=True)
+
     f.write("echo off\ncls\n")
     f.write("if exist output.mp4 (del output.mp4)\n")
     if os.path.isfile(savePath+os.sep+"MP4Box.exe"):
@@ -372,7 +425,6 @@ if sys.platform.startswith("win"):
         # to give audio time to finish
         if sortedOgg[i]==sortedOgg[-1]:
             tenthsOfSeconds += 20
-        print(range(tenthsOfSeconds))
         # Make a symlink to the slide image for each second the audio runs
         # Only 999 symlinks are allowed per image, so, if there are more
         # than this number, we need to also make additional copies of the
@@ -435,7 +487,6 @@ else:
             tempFilesToDelete.append("temp"+ str(i) +".mp4")
             # add a temp.mp4 for output and then input on next line
             catCommand += " temp" + str(i) +".mp4\n"+catCommand2+" -cat temp" + str(i) +".mp4"
-        print(stem+".jpg")
         tenthsOfSeconds = int(math.floor(times[i]*10))
         # If we are on the last slide, add enough frames
         # to give audio time to finish
