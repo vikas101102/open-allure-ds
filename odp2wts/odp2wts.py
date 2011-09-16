@@ -17,7 +17,6 @@ MIT License: see LICENSE.txt
 20110909 Allow over 20 slides in MP4Box to cat for Mac
 20110910 Coping with unavailable mklink in Windows and path names containing spaces
 20110913 Remove [] from script output and wrap ctypes import with win32 test
-20110913 Moved space to end of justText line
 20110915 Added boilerplate script comments including version number
 20110916 Read Unicode
 """
@@ -108,7 +107,7 @@ imageFileList = [file for file in dir if file.lower().endswith(imageFileSuffix)]
 
 # If no image files found there ...
 if len(imageFileList)==0:
-    # ... look for .imageFileList files in odpFileDirectory and copy to odpName subdirectory
+    # ... look for image files in odpFileDirectory and copy to odpName subdirectory
     dir = os.listdir(odpFileDirectory)
     imageFileList = [file for file in dir if file.lower().endswith(imageFileSuffix)]
     # If still no image files, request some.
@@ -125,7 +124,9 @@ if len(imageFileList)==0:
 # Default values
 minNum = 0
 maxNum = 0
+wrongStem = False
 # Test contents of image file list
+print imageFileList
 for file in imageFileList:
     # Parse out file name stem (which includes number) and imageFileSuffix
     (stem, imageFileSuffix) = file.split(".")
@@ -136,13 +137,20 @@ for file in imageFileList:
         imageFilePrefix = "Slide"
         minNum=1
         num = int(stem[5:])
-    else:
+    elif stem.startswith("img"):
         # ODP slide images are output to img with starting index of 0
         imageFilePrefix = "img"
         num = int(stem[3:])
+    else:
+        wrongStem = True
     if num>maxNum:
         maxNum=num
 
+if wrongStem:
+    easygui.msgbox("Need slide image files for this presentation\n"+
+    "with consistent stem: Slide* or img*\n\nCheck in "+odpFileSubdirectory)
+    sys.exit()
+        
 ## Step 1 - parse the .odp file, prepare script.txt and .zip file
 
 def joinContents(textPList):
@@ -336,10 +344,10 @@ for item in noteText:
                 break
     #    f.write(item)
         f.write('"\n')
-        f.write("~/bin/sox "+imageFilePrefix+str(onImg)+".aiff "+
-          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+".ogg\n")
-        f.write("~/bin/sox "+imageFilePrefix+str(onImg)+".aiff "+
-          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+".mp3\n")
+        f.write("~/bin/sox "+imageFilePrefix+str(onImg)+'.aiff "'+
+          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+'.ogg"\n')
+        f.write("~/bin/sox "+imageFilePrefix+str(onImg)+'.aiff "'+
+          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+'.mp3"\n')
     onImg += 1
 f.close()
 
@@ -390,6 +398,7 @@ for file in sortedOgg:
     if retcode:
         print "No time available"
     times.append(float(output[0].strip()))
+    
 # Create makeVid.bat in odpFileDirectory for Windows
 f = open(odpFileDirectory+os.sep+"makeVid.bat","w")
 os.chmod(odpFileDirectory+os.sep+"makeVid.bat",stat.S_IRWXU)
@@ -652,10 +661,10 @@ for file in imageFileList:
 
 # Run the makeVid.bat file with %0 as the first parameter
 os.chdir(odpFileSubdirectory)
-if sys.platform == "win32":
+if sys.platform.startswith("win"):
     p = subprocess.Popen([odpFileDirectory+os.sep+'makeVid.bat',"%0"],shell=True).wait()
     webbrowser.open_new_tab(odpFileDirectory+os.sep+odpName+'.htm')
 else:
     p = subprocess.Popen([odpFileDirectory+os.sep+"makeVid.bat"],shell=True).wait()
-    p = subprocess.Popen("open "+odpFileDirectory+os.sep+odpName+".htm", shell=True).pid
+    p = subprocess.Popen('open "'+odpFileDirectory+os.sep+odpName+'.htm"', shell=True).pid
 os.chdir(savePath)
