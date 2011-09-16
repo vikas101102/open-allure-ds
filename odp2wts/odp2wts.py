@@ -19,12 +19,14 @@ MIT License: see LICENSE.txt
 20110913 Remove [] from script output and wrap ctypes import with win32 test
 20110913 Moved space to end of justText line
 20110915 Added boilerplate script comments including version number
+20110916 Read Unicode
 """
-__version__ = "0.1.20"
+__version__ = "0.1.21"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
 from ConfigParser import ConfigParser
+import codecs
 import easygui
 import math
 import os
@@ -219,14 +221,7 @@ or worse, this:
             for item in textSpans2:
                 # deal with single quote and double quotes and dashes
                 # \u2018 LEFT SINGLE QUOTATION MARK
-                justText = justText + \
-                           str(item.replace(u'\u2019',
-                                            u'\u0027').replace(u'\u201c',
-                                            u'\u0022').replace(u'\u201d',
-                                            u'\u0022').replace(u'\u2013',
-                                            u'\u002D').replace(u'ï',
-                                            u'i').replace(u'\u2018',
-                                            u'\u0027')) + " "
+                justText = justText + item + u" "
             textItems.append(justText)
         joinedItems = "\n".join(textItems)
     return joinedItems
@@ -248,7 +243,7 @@ else:
     sys.exit()
 
 # Create script.txt file
-scriptFile = open(odpFileSubdirectory+os.sep+'script.txt','w')
+scriptFile = codecs.open(odpFileSubdirectory+os.sep+'script.txt', encoding='utf-8', mode='w+')
 scriptFile.write("""#[path=]
 #
 #     Script created with Wiki-to-Speech version """+__version__+
@@ -307,7 +302,7 @@ easygui.msgbox("Zipped script.txt and image files to "+odpFileDirectory+os.sep+o
 ## Step 2 - Make and run convert.bat
 
 # Make convert.bat to convert questionText into audio files
-f = open(odpFileDirectory+os.sep+"convert.bat","w")
+f = codecs.open(odpFileDirectory+os.sep+"convert.bat", encoding='utf-8', mode='w+')
 os.chmod(odpFileDirectory+os.sep+"convert.bat",stat.S_IRWXU)
 onImg = minNum
 for item in noteText:
@@ -537,10 +532,10 @@ for file in imageFileList:
 
     if num-minNum==0:
         # Create first .htm file in same directory as odpFile
-        htmlFile = open(odpFileDirectory+os.sep+odpName+".htm","w")
+        htmlFile = codecs.open(odpFileDirectory+os.sep+odpName+".htm", encoding='utf-8', mode='w+')
     else:
         # Create subsequent .htm files in folder in same directory as odpFile
-        htmlFile = open(odpFileSubdirectory+os.sep+stem+".htm","w")
+        htmlFile = codecs.open(odpFileSubdirectory+os.sep+stem+".htm", encoding='utf-8', mode='w+')
 
     writeHtmlHeader()
 
