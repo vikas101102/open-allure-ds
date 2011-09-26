@@ -34,7 +34,7 @@ import scriptParser
 import sys
 import voice
 
-__version__ = "0.1.19"
+__version__ = "0.1.21"
 
 if not os.path.exists('static'):
     os.makedirs('static')

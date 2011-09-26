@@ -140,20 +140,20 @@ def parseTxtFile(name):
         return None
     text = f.readlines()
     
-    if not sys.platform.startswith("win"):
-        # find slide images in .txt file and make symbolic links if possible
-        pngs = [item.strip() for item in text if item.endswith(".png\n")]
-        # script source directory
-        scriptDir, scriptFile = os.path.split(name)
-        savePath = os.getcwd()
-        os.chdir('static')
-        staticDir = os.listdir(".")
-        pngsInStatic = [file for file in staticDir if file.endswith(".png")]
-        for png in pngs:
-            if png in pngsInStatic:
-                subprocess.Popen(["rm",png])
-            subprocess.Popen(["ln","-s",scriptDir+os.sep+png,png])
-        os.chdir(savePath)
+#     if not sys.platform.startswith("win"):
+#         # find slide images in .txt file and make symbolic links if possible
+#         pngs = [item.strip() for item in text if item.endswith(".png\n")]
+#         # script source directory
+#         scriptDir, scriptFile = os.path.split(name)
+#         savePath = os.getcwd()
+#         os.chdir('static')
+#         staticDir = os.listdir(".")
+#         pngsInStatic = [file for file in staticDir if file.endswith(".png")]
+#         for png in pngs:
+#             if png in pngsInStatic:
+#                 subprocess.Popen(["rm",png])
+#             subprocess.Popen(["ln","-s",scriptDir+os.sep+png,png])
+#         os.chdir(savePath)
         
     sequence = parseText(text)
     return sequence
@@ -303,4 +303,4 @@ def dumpSequence(seq, questionMode):
         f.close()
 
 if __name__ == "__main__":
-    parseTxtFile("20110819b.txt")
+    parseTxtFile("script.txt")
