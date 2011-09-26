@@ -19,8 +19,21 @@ MIT License: see LICENSE.txt
 20110913 Remove [] from script output and wrap ctypes import with win32 test
 20110915 Added boilerplate script comments including version number
 20110916 Read Unicode
+20110917 Write out bits of Question/Answer/Response
+
+img1.png > img1.htm > img1.mp3
+[questions=on] 
+How many slides have we seen? > q/img1q1.htm > q/img1q1.mp3
+One ;; > q/img1q1a1.mp3 
+Two ;; > q/img1q1a1.mp3
+
+What slide is next? > q/img1q2.htm > q/img1q2.mp3
+Third ;; > q/img1q2a1.mp3
+Fourth; No, just the third. > q/img1q2a2.mp3, > q/img1q2r2.mp3
+
+[questions=off] 
 """
-__version__ = "0.1.21"
+__version__ = "0.1.22"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -31,6 +44,7 @@ import math
 import os
 import os.path
 import shutil
+import scriptParser
 import stat
 import subprocess
 import sys
@@ -307,17 +321,11 @@ for file in imageFileList:
 os.chdir(savePath)
 easygui.msgbox("Zipped script.txt and image files to "+odpFileDirectory+os.sep+odpName+".zip")
 
-## Step 2 - Make and run convert.bat
-
-# Make convert.bat to convert questionText into audio files
-f = codecs.open(odpFileDirectory+os.sep+"convert.bat", encoding='utf-8', mode='w+')
-os.chmod(odpFileDirectory+os.sep+"convert.bat",stat.S_IRWXU)
-onImg = minNum
-for item in noteText:
-
+## Step 2 - Sequence script and make and run convert.bat
+def convertItem(f,item,onImgStr):
     if sys.platform.startswith("win"):
         # For Windows
-        f.write('"'+savePath+os.sep+'sapi2wav.exe" '+imageFilePrefix+str(onImg)+'.wav 1 -t "')
+        f.write('"'+savePath+os.sep+'sapi2wav.exe" '+imageFilePrefix+onImgStr+'.wav 1 -t "')
         lines = item.split("\n")
         for linenum, line in enumerate(lines):
             if not line.startswith("["):
@@ -327,14 +335,14 @@ for item in noteText:
             elif linenum>0:
                 break
         f.write('"\n')
-        f.write('"'+savePath+os.sep+'lame.exe" -h '+imageFilePrefix+str(onImg)+'.wav '+ '"' + \
-                             odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+'.mp3"\n')
-        f.write('"'+savePath+os.sep+'sox.exe" '+imageFilePrefix+str(onImg)+'.wav '+ '"' + \
-                         odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+'.ogg"\n')
-        f.write('del '+imageFilePrefix+str(onImg)+'.wav\n')
+        f.write('"'+savePath+os.sep+'lame.exe" -h '+imageFilePrefix+onImgStr+'.wav '+ '"' + \
+                             odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.mp3"\n')
+        f.write('"'+savePath+os.sep+'sox.exe" '+imageFilePrefix+onImgStr+'.wav '+ '"' + \
+                         odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.ogg"\n')
+        f.write('del '+imageFilePrefix+onImgStr+'.wav\n')
     else:
         # For Mac OSX
-        f.write("/usr/bin/say -o "+imageFilePrefix+str(onImg)+'.aiff "')
+        f.write("/usr/bin/say -o "+imageFilePrefix+onImgStr+'.aiff "')
         lines = item.split("\n")
         for linenum, line in enumerate(lines):
             line.replace('"',' ').replace('`',' ').replace(';',' ')
@@ -344,15 +352,362 @@ for item in noteText:
                 break
     #    f.write(item)
         f.write('"\n')
-        f.write("~/bin/sox "+imageFilePrefix+str(onImg)+'.aiff "'+
-          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+'.ogg"\n')
-        f.write("~/bin/sox "+imageFilePrefix+str(onImg)+'.aiff "'+
-          odpFileSubdirectory+os.sep+imageFilePrefix+str(onImg)+'.mp3"\n')
-    onImg += 1
-f.close()
+        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
+          odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.ogg"\n')
+        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
+          odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.mp3"\n')
+        f.write("rm "+imageFilePrefix+onImgStr+'.aiff\n')
 
+def writeHtmlHeader(htmlFile):
+    htmlFile.write('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"' + "\n")
+    htmlFile.write('"http://www.w3.org/TR/html4/transitional.dtd">' + "\n")
+    htmlFile.write("<html>\n<head>\n")
+    htmlFile.write('<meta HTTP-EQUIV=CONTENT-TYPE CONTENT="text/html; charset=utf-8">' + "\n")
+    htmlFile.write('<title>Wiki-to-Speech</title>\n')
+
+def writeHtmlHeader2(htmlFile):
+    htmlFile.write('</head>\n')
+    htmlFile.write('<body text="#000000" bgcolor="#FFFFFF" link="#000080" vlink="#0000CC" alink="#000080">' + "\n")
+    htmlFile.write('<center>' + "\n")
+
+def writeHtmlFileNavigation(htmlFile, questionFileNames,  maxNum, position):
+    # First page and Back navigation
+    # First page
+    if position==0:
+        htmlFile.write("""First page Back """)
+    # Second page
+    elif position==1:
+        htmlFile.write("""<a href="../""" + odpName +""".htm">First page</a> <a href="../""" +
+                                            odpName +""".htm">Back</a> """)
+    # Rest of pages
+    else:
+        htmlFile.write("""<a href="../""" + odpName +""".htm">First page</a> <a href=""" + '"' +
+                        questionFileNames[position-1]+""".htm">Back</a> """)
+
+    # Continue and Last Page navigation
+    # Last page
+    if position==maxNum:
+        htmlFile.write('Continue Last page<br>\n')
+    # First page
+    elif position==0:
+        htmlFile.write( \
+            '<a href="'+
+            odpName+"/"+questionFileNames[position+1]+
+            '.htm">Continue</a> ')
+        htmlFile.write( \
+            '<a href="'+
+            odpName+"/"+questionFileNames[-1]+
+            '.htm">Last page</a><br>\n')
+    # Rest of pages
+    else:
+        htmlFile.write( \
+            '<a href="'+
+            questionFileNames[position+1]+
+            '.htm">Continue</a> ')
+        htmlFile.write( \
+            '<a href="' +
+            questionFileNames[-1] +
+            '.htm">Last page</a><br>\n')
+
+def writeHtmlJavascript(htmlFile,
+                        questionFileNames,
+                        question,
+                        position,
+                        audioFileTimes):
+    """
+        <script language="javascript" type="text/javascript">
+        function respond0()
+        {
+            document.getElementById('a0').innerHTML = 'Third'
+            document.getElementById('a0').style.color = 'grey';
+            location.href = "img3.htm"
+        }
+        function respond1()
+        {
+            document.getElementById('a1').innerHTML = 'Fourth'
+            document.getElementById('a1').style.color = 'grey';
+            document.getElementById('playaudio').innerHTML = '<audio controls autoplay><source src="img2q2r1.mp3" /><source src="img2q2r1.ogg" />Your browser does not support the <code>audio</code> element.</audio>'
+            var t=setTimeout("advance1()",2000);
+        }
+        function advance1() {
+            location.href = "img3.htm"
+        }
+
+    </script>
+    """
+    htmlFile.write('<script language="javascript" type="text/javascript">\n')
+    for answerNum, answer in enumerate(question.answers):
+        if len(answer.answerText)>0:
+            htmlFile.write('function respond'+
+                str(answerNum)+
+                '()\n{\n')
+            htmlFile.write('    document.getElementById("a'+
+                str(answerNum)+'").innerHTML = "'+
+                answer.answerText+
+                '";\n')
+            htmlFile.write('    document.getElementById("a'+
+                str(answerNum)+
+                '").style.color = "grey";\n')
+
+            if len(answer.responseText)>0:
+                if position==0:
+                    pathToAudio = odpName+'/'+questionFileNames[position]+'r'+str(answerNum)
+                else:
+                    pathToAudio = questionFileNames[position]+'r'+str(answerNum)
+
+                htmlFile.write( \
+                    "    document.getElementById('playaudio').innerHTML=" +
+                    "'<audio controls autoplay><source src=" +
+                    '"' + pathToAudio +
+                    '.mp3" />')
+                htmlFile.write('<source src="' +
+                    pathToAudio +
+                    '.ogg" />')
+                htmlFile.write( \
+                    "Your browser does not support the <code>audio</code> element.</audio>';\n")
+                if answer.action > 0:
+                    htmlFile.write('    var t=setTimeout("advance'+
+                    str(answerNum)+
+                    '()",'+
+                    str(audioFileTimes[pathToAudio]+1000)+
+                    ');\n')
+            elif answer.action > 0:
+                htmlFile.write("    advance"+
+                    str(answerNum)+
+                    '();\n')
+            htmlFile.write('}\n')
+
+            if answer.action > 0:
+                htmlFile.write('function advance'+
+                    str(answerNum)+
+                    '()\n{\n')
+                htmlFile.write('    location.href="'+
+                    questionFileNames[position+answer.action]+
+                    '.htm";\n}\n')
+    htmlFile.write('</script>\n')
+
+
+def makeConvert(sequence):
+    # Make list of question file names for navigation
+    questionFileNames = []
+    onImg = minNum
+    onImgStr = str(onImg)
+    onQ = 0
+    for question in sequence:
+        if len(question.answers)==0:
+            questionFileNames.append(imageFilePrefix+onImgStr)
+            onImg += 1
+            onImgStr = str(onImg)
+            onQ = 0
+        else:
+            onQ += 1
+            questionFileNames.append(imageFilePrefix+onImgStr+"q"+str(onQ))
+    maxNum = len(questionFileNames)-1
+
+    # Make convert.bat to convert questionText into audio files
+    f = codecs.open(odpFileDirectory+os.sep+"convert.bat", encoding='utf-8', mode='w+')
+    os.chmod(odpFileDirectory+os.sep+"convert.bat",stat.S_IRWXU)
+    onImg = minNum
+    onImgStr = str(onImg)
+    onQ = 0
+    for position, question in enumerate(sequence):
+
+        # write convert.bat
+        if len(question.answers)==0:
+            convertItem(f," ".join(question.questionTexts),onImgStr)
+            onImg += 1
+            onImgStr = str(onImg)
+            onQ = 0
+        else:
+            onQ += 1
+            convertItem(f," ".join(question.questionTexts),onImgStr+"q"+str(onQ))
+            onAns = 0
+            for answer in question.answers:
+                convertItem(f,answer.answerText,onImgStr+"q"+str(onQ)+"a"+str(onAns))
+                if len(answer.responseText)>0:
+                    convertItem(f,answer.responseText,onImgStr+"q"+str(onQ)+"r"+str(onAns))
+                onAns += 1
+    f.close()
+
+def fetchAudioFileTimes():
+    os.chdir(odpFileSubdirectory)
+    dir = os.listdir(odpFileSubdirectory)
+    ogg = [file for file in dir if file.lower().endswith(".ogg")]
+    oggDict = {}
+
+    for file in ogg:
+        # Parse out file name stem
+        (stem, audioFileSuffix) = file.split(".")
+        # soxi -D returns the duration in seconds of the audio file as a float
+        if sys.platform.startswith("win"):
+            # Unfortunately, there is a requirement that soxi (with an implict .exe)
+            # be the command to check audio file duration in Win32
+            # but soxi is the name of the unix version of this utility
+            # So we need to delete the (unix) file called soxi so the command line call
+            # to soxi will run soxi.exe
+            if os.path.isfile(savePath+os.sep+"soxi"):
+                os.remove(savePath+os.sep+"soxi")
+            command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
+        else:
+            if os.path.isfile(savePath+os.sep+"soxi"):
+                command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
+            elif os.path.isfile(savePath+os.sep+"Contents/Resources/soxi"):
+                command = [savePath+os.sep+"Contents/Resources/soxi","-D",odpFileSubdirectory+os.sep+file]
+            else:
+                command = ["soxi","-D",odpFileSubdirectory+os.sep+file]
+        process = subprocess.Popen(command,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    universal_newlines=True)
+        output = process.communicate()
+        retcode = process.poll()
+        if retcode:
+            print "No time available"
+        oggDict[stem]=int(float(output[0].strip())*1000)
+    return oggDict
+
+def writeHtml(sequence, audioFileTimes):
+
+    # Make list of question file names for navigation
+    questionFileNames = []
+    onImg = minNum
+    onImgStr = str(onImg)
+    onQ = 0
+    for question in sequence:
+        if len(question.answers)==0:
+            questionFileNames.append(imageFilePrefix+onImgStr)
+            onImg += 1
+            onImgStr = str(onImg)
+            onQ = 0
+        else:
+            onQ += 1
+            questionFileNames.append(imageFilePrefix+onImgStr+"q"+str(onQ))
+    maxNum = len(questionFileNames)-1
+
+    onImg = minNum
+    onImgStr = str(onImg)
+    onQ = 0
+    for position, question in enumerate(sequence):
+
+        if position==0:
+            # Create first .htm file in same directory as odpFile
+            htmlFile = codecs.open(odpFileDirectory+os.sep+odpName+".htm", encoding='utf-8', mode='w+')
+        else:
+            # Create subsequent .htm files in folder in same directory as odpFile
+            htmlFile = codecs.open(odpFileSubdirectory+os.sep+questionFileNames[position]+".htm", encoding='utf-8', mode='w+')
+
+        writeHtmlHeader(htmlFile)
+
+        if len(question.answers)==0:
+            writeHtmlHeader2(htmlFile)
+            writeHtmlFileNavigation(htmlFile, questionFileNames,  maxNum, position)
+        else:
+            writeHtmlJavascript(htmlFile, questionFileNames, question, position,
+                                audioFileTimes)
+            writeHtmlHeader2(htmlFile)
+            writeHtmlFileNavigation(htmlFile, questionFileNames, maxNum, position)
+
+        if len(question.answers)==0:
+            # image src and link to next slide
+            # Last page which is not (also) the first page
+            if (position==maxNum and position>0):
+                # src but no link
+                htmlFile.write( \
+                    '<img src="' +
+                    questionFileNames[position] + '.' + imageFileSuffix +
+                    '" style="border:0px"><br>\n')
+            # Last page which is also the first page
+            elif (position==maxNum and position==0):
+                # src but no link
+                htmlFile.write( \
+                    '<img src="' +
+                    odpName+"/"+questionFileNames[position] + '.' + imageFileSuffix +
+                    '" style="border:0px"><br>\n')
+            # First page
+            elif position==0:
+                htmlFile.write( \
+                    '<a href="' +
+                    odpName+"/"+questionFileNames[position+1] +
+                    '.htm">')
+                htmlFile.write( \
+                    '<img src="' +
+                    odpName +"/" + questionFileNames[position] + '.' + imageFileSuffix +
+                    '" style="border:0px"></a><br>\n')
+            # Rest of pages
+            else:
+                htmlFile.write( \
+                    '<a href="' +
+                    questionFileNames[position+1] +
+                    '.htm">')
+                htmlFile.write( \
+                    '<img src="' +
+                    questionFileNames[position] + '.' + imageFileSuffix +
+                    '" style="border:0px"></a><br>\n')
+
+        else:
+            htmlFile.write("""<br><br><hr><br><center>
+<table width="400" style="text-align:left"><tbody>
+<tr><td>""")
+            htmlFile.write(" ".join(question.questionTexts)+ "</td></tr>\n" )
+
+            for answerNumber, answer in enumerate(question.answers):
+                if len(answer.answerText)>0:
+                    htmlFile.write('<tr><td><div id="a'+
+                    str(answerNumber)+
+                    '"><a href="javascript:respond'+
+                    str(answerNumber)+
+                    '();">'+
+                    answer.answerText +
+                    '</a></div></td></tr>\n')
+            htmlFile.write("""</tbody>
+</table>
+</center><br><hr>""")
+
+        # include audio
+        # First page
+        if position==0:
+            pathToAudio = odpName+'/'+questionFileNames[position]
+        else:
+            pathToAudio = questionFileNames[position]
+        # For Safari
+        htmlFile.write( \
+            '<p id="playaudio">' +
+            '<audio controls autoplay><source src="' +
+            pathToAudio +
+            '.mp3" />')
+        # For Firefox
+        htmlFile.write( \
+            '<source src="' +
+            pathToAudio +
+            '.ogg" />\n')
+        # For others
+        htmlFile.write( \
+            'Your browser does not support the <code>audio</code> element.\n</audio>\n')
+        htmlFile.write( \
+            '</p>\n')
+        # For Internet Explorer
+        htmlFile.write( \
+            '<!--[if lte IE 8]>\n' +
+            '<script>\n' +
+            'document.getElementById("playaudio").innerHTML=' + "'" +
+            '<embed src="' +
+            pathToAudio +
+            '.mp3" autostart="true">' + "'" + ';\n' +
+            '</script>\n' +
+            '<![endif]-->\n')
+
+        htmlFile.write('</center>' + "\n")
+        htmlFile.write('</body>\n</html>\n')
+        htmlFile.close()
+
+
+sequence = scriptParser.parseTxtFile(odpFileSubdirectory+os.sep+"script.txt")
+makeConvert(sequence)
 os.chdir(odpFileDirectory)
 p = subprocess.Popen('"'+odpFileDirectory+os.sep+'convert.bat"',shell=True).wait()
+audioFileTimes = fetchAudioFileTimes()
+writeHtml(sequence, audioFileTimes)
+
 
 ## Step 3 - create makeVid.bat
 os.chdir(odpFileSubdirectory)
@@ -365,10 +720,14 @@ for file in ogg:
 
     # Parse out just number (num) and imageFilePrefix
     if stem.startswith("Slide"):
-        oggDict[int(file[5:].split(".")[0])] = file
+        numberPart = file[5:].split(".")[0]
+        if numberPart.isdigit():
+            oggDict[int(numberPart)] = file
     else:
         # imgXX.ogg
-        oggDict[int(file[3:].split(".")[0])] = file
+        numberPart = file[3:].split(".")[0]
+        if numberPart.isdigit():
+            oggDict[int(file[3:].split(".")[0])] = file
 sortedOgg = oggDict.values()
 times = []
 for file in sortedOgg:
@@ -515,150 +874,6 @@ else:
         f.write('rm '+file+"\n")
     f.close()
 
-## Step 4 - create HTML wrapper
-maxImgHtml = imageFilePrefix + str(maxNum) + '.htm'
-
-def writeHtmlHeader():
-    htmlFile.write('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"' + "\n")
-    htmlFile.write('"http://www.w3.org/TR/html4/transitional.dtd">' + "\n")
-    htmlFile.write("<html>\n<head>\n")
-    htmlFile.write('<meta HTTP-EQUIV=CONTENT-TYPE CONTENT="text/html; charset=utf-8">' + "\n")
-    htmlFile.write('<title>Wiki-to-Speech</title>\n</head>\n')
-    htmlFile.write('<body text="#000000" bgcolor="#FFFFFF" link="#000080" vlink="#0000CC" alink="#000080">' + "\n")
-    htmlFile.write('<center>' + "\n")
-
-for file in imageFileList:
-
-    # Parse out file name stem (which includes number)
-    stem = file.split(".")[0]
-
-    # Parse out just number (num)
-    if stem.startswith("Slide"):
-        number = stem[5:]
-    else:
-        number = stem[3:]
-    num = int(number)
-
-    if num-minNum==0:
-        # Create first .htm file in same directory as odpFile
-        htmlFile = codecs.open(odpFileDirectory+os.sep+odpName+".htm", encoding='utf-8', mode='w+')
-    else:
-        # Create subsequent .htm files in folder in same directory as odpFile
-        htmlFile = codecs.open(odpFileSubdirectory+os.sep+stem+".htm", encoding='utf-8', mode='w+')
-
-    writeHtmlHeader()
-
-    # First page and Back navigation
-    # First page
-    if num-minNum==0:
-        htmlFile.write("""First page Back """)
-    # Second page
-    elif num-minNum==1:
-        htmlFile.write("""<a href="../""" + odpName +""".htm">First page</a> <a href="../""" +
-                                            odpName +""".htm">Back</a> """)
-    # Rest of pages
-    else:
-        htmlFile.write("""<a href="../""" + odpName +""".htm">First page</a> <a href=""" + '"' +
-                        imageFilePrefix + str(num-1)+""".htm">Back</a> """)
-
-    # Continue and Last Page navigation
-    # Last page
-    if num==maxNum:
-        htmlFile.write('Continue Last page<br>\n')
-    # First page
-    elif num-minNum==0:
-        htmlFile.write( \
-            '<a href="'+
-            odpName+"/"+imageFilePrefix+str(num+1)+
-            '.htm">Continue</a> ')
-        htmlFile.write( \
-            '<a href="'+
-            odpName+"/"+maxImgHtml+
-            '">Last page</a><br>\n')
-    # Rest of pages
-    else:
-        htmlFile.write( \
-            '<a href="'+
-            imageFilePrefix + str(num+1) +
-            '.htm">Continue</a> ')
-        htmlFile.write( \
-            '<a href="' +
-            maxImgHtml +
-            '">Last page</a><br>\n')
-
-    # image src and link to next slide
-    # Last page which is not (also) the first page
-    if (num==maxNum and num-minNum>0):
-        # src but no link
-        htmlFile.write( \
-            '<img src="' +
-            file +
-            '" style="border:0px"><br>\n')
-    # Last page which is also the first page
-    elif (num==maxNum and num-minNum==0):
-        # src but no link
-        htmlFile.write( \
-            '<img src="' +
-            odpName+"/"+file +
-            '" style="border:0px"><br>\n')
-    # First page
-    elif num-minNum==0:
-        htmlFile.write( \
-            '<a href="' +
-            odpName+"/"+imageFilePrefix+str(num+1) +
-            '.htm">')
-        htmlFile.write( \
-            '<img src="' +
-            odpName +"/" + file +
-            '" style="border:0px"></a><br>\n')
-    # Rest of pages
-    else:
-        htmlFile.write( \
-            '<a href="' +
-            imageFilePrefix+str(num+1) +
-            '.htm">')
-        htmlFile.write( \
-            '<img src="' +
-            file +
-            '" style="border:0px"></a><br>\n')
-
-    # include audio
-    # First page
-    if num-minNum==0:
-        pathToAudio = odpName+'/'+stem
-    else:
-        pathToAudio = stem
-    # For Safari
-    htmlFile.write( \
-        '<p id="playaudio">' +
-        '<audio controls autoplay><source src="' +
-        pathToAudio +
-        '.mp3" />')
-    # For Firefox
-    htmlFile.write( \
-        '<source src="' +
-        pathToAudio +
-        '.ogg" />\n')
-    # For others
-    htmlFile.write( \
-        'Your browser does not support the <code>audio</code> element.\n</audio>\n')
-    htmlFile.write( \
-        '</p>\n')
-    # For Internet Explorer
-    htmlFile.write( \
-        '<!--[if lte IE 8]>\n' +
-        '<script>\n' +
-        'document.getElementById("playaudio").innerHTML=' + "'" +
-        '<embed src="' +
-        pathToAudio +
-        '.mp3" autostart="true">' + "'" + ';\n' +
-        '</script>\n' +
-        '<![endif]-->\n')
-
-    htmlFile.write('</center>' + "\n")
-    htmlFile.write('</body>\n</html>\n')
-    htmlFile.close()
-
 # Run the makeVid.bat file with %0 as the first parameter
 os.chdir(odpFileSubdirectory)
 if sys.platform.startswith("win"):
@@ -668,3 +883,5 @@ else:
     p = subprocess.Popen([odpFileDirectory+os.sep+"makeVid.bat"],shell=True).wait()
     p = subprocess.Popen('open "'+odpFileDirectory+os.sep+odpName+'.htm"', shell=True).pid
 os.chdir(savePath)
+
+
