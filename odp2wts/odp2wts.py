@@ -22,16 +22,16 @@ MIT License: see LICENSE.txt
 20110917 Write out bits of Question/Answer/Response
 
 img1.png > img1.htm > img1.mp3
-[questions=on] 
+[questions=on]
 How many slides have we seen? > q/img1q1.htm > q/img1q1.mp3
-One ;; > q/img1q1a1.mp3 
+One ;; > q/img1q1a1.mp3
 Two ;; > q/img1q1a1.mp3
 
 What slide is next? > q/img1q2.htm > q/img1q2.mp3
 Third ;; > q/img1q2a1.mp3
 Fourth; No, just the third. > q/img1q2a2.mp3, > q/img1q2r2.mp3
 
-[questions=off] 
+[questions=off]
 """
 __version__ = "0.1.22"
 
@@ -164,7 +164,7 @@ if wrongStem:
     easygui.msgbox("Need slide image files for this presentation\n"+
     "with consistent stem: Slide* or img*\n\nCheck in "+odpFileSubdirectory)
     sys.exit()
-        
+
 ## Step 1 - parse the .odp file, prepare script.txt and .zip file
 
 def joinContents(textPList):
@@ -510,23 +510,39 @@ def makeConvert(sequence):
     onImg = minNum
     onImgStr = str(onImg)
     onQ = 0
+    oggList = []
     for position, question in enumerate(sequence):
 
         # write convert.bat
         if len(question.answers)==0:
             convertItem(f," ".join(question.questionTexts),onImgStr)
+            oggList.append(onImgStr)
             onImg += 1
             onImgStr = str(onImg)
             onQ = 0
         else:
             onQ += 1
             convertItem(f," ".join(question.questionTexts),onImgStr+"q"+str(onQ))
+            oggList.append(onImgStr+"q"+str(onQ))
             onAns = 0
             for answer in question.answers:
                 convertItem(f,answer.answerText,onImgStr+"q"+str(onQ)+"a"+str(onAns))
+                oggList.append(onImgStr+"q"+str(onQ)+"a"+str(onAns))
                 if len(answer.responseText)>0:
                     convertItem(f,answer.responseText,onImgStr+"q"+str(onQ)+"r"+str(onAns))
+                    oggList.append(onImgStr+"q"+str(onQ)+"r"+str(onAns))
                 onAns += 1
+
+    # Write concatenation of all .ogg files into all.ogg
+    f.write('cd "'+odpFileSubdirectory+'"\n')
+    if sys.platform.startswith("win"):
+        f.write('"'+savePath+os.sep+'sox.exe" ')
+    else:
+        f.write("~/bin/sox ")
+    for item in oggList:
+        f.write(imageFilePrefix+item+".ogg ")
+        f.write('"'+savePath+os.sep+'silence.ogg" ')
+    f.write("all.ogg\n")
     f.close()
 
 def fetchAudioFileTimes():
@@ -757,7 +773,7 @@ for file in sortedOgg:
     if retcode:
         print "No time available"
     times.append(float(output[0].strip()))
-    
+
 # Create makeVid.bat in odpFileDirectory for Windows
 f = open(odpFileDirectory+os.sep+"makeVid.bat","w")
 os.chmod(odpFileDirectory+os.sep+"makeVid.bat",stat.S_IRWXU)
