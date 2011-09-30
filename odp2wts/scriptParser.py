@@ -5,11 +5,12 @@
 # Author:      John Graves
 #
 # Created:     17 April 2011
-# Modified:    13 September 2011
+# Modified:    29 September 2011
 # Copyright:   (c) John 2011
 # Licence:     MIT license
 #-------------------------------------------------------------------------------
 from BeautifulSoup import BeautifulSoup
+import codecs
 import htmlentitydefs
 import objects
 import os
@@ -120,7 +121,7 @@ def parseHtml(name):
         else:
             return None
 
-    f = open('debug.txt','w')
+    f = codecs.open('debug.txt', encoding='utf-8',mode='w')
     f.write("test run at " + strftime("%d %b %Y %H:%M", gmtime()) + "\n")
     f.write(str(type(urlText))+ "\n")
     f.write(str(len(urlText))+ "\n")
@@ -134,12 +135,12 @@ def parseHtml(name):
 def parseTxtFile(name):
     # open txt file
     try:
-        f = open(name)
+        f = codecs.open(name, encoding='utf-8')
     except:
         # No parsing of .txt
         return None
     text = f.readlines()
-    
+
 #     if not sys.platform.startswith("win"):
 #         # find slide images in .txt file and make symbolic links if possible
 #         pngs = [item.strip() for item in text if item.endswith(".png\n")]
@@ -154,7 +155,7 @@ def parseTxtFile(name):
 #                 subprocess.Popen(["rm",png])
 #             subprocess.Popen(["ln","-s",scriptDir+os.sep+png,png])
 #         os.chdir(savePath)
-        
+
     sequence = parseText(text)
     return sequence
 
@@ -285,7 +286,7 @@ def parseText(text):
 
 def dumpSequence(seq, questionMode):
     if True:
-        f = open('debug2.txt','w')
+        f = codecs.open('debug2.txt', encoding='utf-8', mode='w')
         f.write("test run at " + strftime("%d %b %Y %H:%M", gmtime()))
         f.write("\nquestionMode is "+ str(questionMode))
         for i, q in enumerate(seq.sequence):
