@@ -33,11 +33,11 @@ Fourth; No, just the third. > q/img1q2a2.mp3, > q/img1q2r2.mp3
 
 [questions=off]
 """
-__version__ = "0.1.22"
+__version__ = "0.1.24"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
-from ConfigParser import ConfigParser
+from configobj import ConfigObj
 import codecs
 import easygui
 import math
@@ -88,15 +88,15 @@ else:
 
 # Check for last .odp file in config file
 lastOdpFile = '~/*.odp'
-config = ConfigParser()
 try:
-    config.read(iniDirectory+os.sep+'odp2wts.ini')
-    lastOdpFile = config.get("Files","lastOdpFile")
+    config = ConfigObj(iniDirectory+os.sep+'odp2wts.ini'),
+    lastOdpFile = config['Files']['lastOdpFile']
 except:
-    config.add_section("Files")
-    config.set("Files","lastOdpFile","")
-    with open(iniDirectory+os.sep+'odp2wts.ini', 'wb') as configfile:
-        config.write(configfile)
+    config = ConfigObj()
+    config.filename = iniDirectory+os.sep+'odp2wts.ini'
+    config['Files'] = {}
+    config['Files']['lastOdpFile'] = lastOdpFile
+    config.write()
 
 if not os.path.isfile(lastOdpFile):
     lastOdpFile = None
@@ -250,9 +250,8 @@ or worse, this:
 
 if ((0 != len(odpFile)) and (os.path.exists(odpFilePath))):
     # Save file name to config file
-    config.set("Files","lastOdpFile",odpFilePath)
-    with open(iniDirectory+os.sep+'odp2wts.ini', 'wb') as configfile:
-        config.write(configfile)
+    config['Files']['lastOdpFile'] = lastOdpFile
+    config.write()
 
     odpName = odpFile.replace(".odp","")
     odp = ZipFile(odpFilePath,'r')
@@ -342,7 +341,23 @@ def convertItem(f,item,onImgStr):
         f.write('del '+imageFilePrefix+onImgStr+'.wav\n')
     else:
         # For Mac OSX
-        f.write("/usr/bin/say -o "+imageFilePrefix+onImgStr+'.aiff "')
+#         f.write("/usr/bin/say -o "+imageFilePrefix+onImgStr+'.aiff "')
+#         lines = item.split("\n")
+#         for linenum, line in enumerate(lines):
+#             line.replace('"',' ').replace('`',' ').replace(';',' ')
+#             if not line.startswith("["):
+#                 f.write(line+" ")
+#             elif linenum>0:
+#                 break
+#     #    f.write(item)
+#         f.write('"\n')
+#         f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
+#           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.ogg"\n')
+#         f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
+#           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.mp3"\n')
+#         f.write("rm "+imageFilePrefix+onImgStr+'.aiff\n')
+        
+        f.write("swift -n Marta -e utf-8 -m text -o "+imageFilePrefix+onImgStr+'.wav "')
         lines = item.split("\n")
         for linenum, line in enumerate(lines):
             line.replace('"',' ').replace('`',' ').replace(';',' ')
@@ -352,17 +367,17 @@ def convertItem(f,item,onImgStr):
                 break
     #    f.write(item)
         f.write('"\n')
-        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
+        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.wav "'+
           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.ogg"\n')
-        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
+        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.wav "'+
           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.mp3"\n')
-        f.write("rm "+imageFilePrefix+onImgStr+'.aiff\n')
+        f.write("rm "+imageFilePrefix+onImgStr+'.wav\n')
 
 def writeHtmlHeader(htmlFile):
     htmlFile.write('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"' + "\n")
     htmlFile.write('"http://www.w3.org/TR/html4/transitional.dtd">' + "\n")
     htmlFile.write("<html>\n<head>\n")
-    htmlFile.write('<meta HTTP-EQUIV=CONTENT-TYPE CONTENT="text/html; charset=utf-8">' + "\n")
+    htmlFile.write('<meta http-equiv="Content-Type" content="text/html; charset=utf-8">' + "\n")
     htmlFile.write('<title>Wiki-to-Speech</title>\n')
 
 def writeHtmlHeader2(htmlFile):
@@ -541,7 +556,10 @@ def makeConvert(sequence):
         f.write("~/bin/sox ")
     for item in oggList:
         f.write(imageFilePrefix+item+".ogg ")
-        f.write('"'+savePath+os.sep+'silence.ogg" ')
+        if sys.platform.startswith("win"):
+            f.write('"'+savePath+os.sep+'silence.ogg" ')
+        else:
+            f.write('"'+savePath+os.sep+'silence22kHz.ogg" ')
     f.write("all.ogg\n")
     f.close()
 

@@ -10,7 +10,8 @@ import os
 import stat
 
 APP = ['odp2wts.py']
-DATA_FILES = ['CHANGES.txt','ethics_notice.txt','README.txt','LICENSE.txt','soxi','MP4Box','ffmpeg']
+DATA_FILES = ['CHANGES.txt','ethics_notice.txt',
+'README.txt','LICENSE.txt','soxi','MP4Box','ffmpeg','silence22kHz.ogg']
 OPTIONS = {'argv_emulation': True}
 
 setup(
