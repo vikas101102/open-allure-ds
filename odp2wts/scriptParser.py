@@ -270,6 +270,8 @@ def parseText(text):
     if len(question.questionTexts)>0:
         seq.sequence.append(question)
 
+    # dumpSequence(seq, questionMode)
+
     # second pass to match responseSideLinks to tags and adjust actions
     tags = [ question.tag.lower() for question in seq.sequence ]
     for qnum, question in enumerate( seq.sequence ):
@@ -277,7 +279,7 @@ def parseText(text):
             if answer.responseSideLink != "":
                 if answer.responseSideLink.lower() in tags:
                     # remove link
-                    answer.action = tags.index(answer.responseSideLink) - qnum
+                    answer.action = tags.index(answer.responseSideLink.lower()) - qnum
                     answer.responseSideLink = ""
 
     dumpSequence(seq, questionMode)
