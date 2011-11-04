@@ -139,7 +139,7 @@ def parseTxtFile(name):
         # No parsing of .txt
         return None
     text = f.readlines()
-    
+
     if not sys.platform.startswith("win"):
         # find slide images in .txt file and make symbolic links if possible
         pngs = [item.strip() for item in text if item.endswith(".png\n")]
@@ -154,7 +154,7 @@ def parseTxtFile(name):
                 subprocess.Popen(["rm",png])
             subprocess.Popen(["ln","-s",scriptDir+os.sep+png,png])
         os.chdir(savePath)
-        
+
     sequence = parseText(text)
     return sequence
 
@@ -188,7 +188,7 @@ def parseText(text):
                             questionMode = False
                         continue
                     elif parameterName == "path":
-                        if(not parameterValue.endswith(os.sep)):
+                        if((not parameterValue.endswith(os.sep) or (not parameterValue.endswith("\\")))):
                             parameterValue += os.sep
                         pathToImageFiles = parameterValue
                         question.pathToImageFiles = pathToImageFiles

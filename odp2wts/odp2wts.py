@@ -33,11 +33,11 @@ Fourth; No, just the third. > q/img1q2a2.mp3, > q/img1q2r2.mp3
 
 [questions=off]
 """
-__version__ = "0.1.24"
+__version__ = "0.1.25"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
-from configobj import ConfigObj
+from ConfigParser import ConfigParser
 import codecs
 import easygui
 import math
@@ -88,15 +88,15 @@ else:
 
 # Check for last .odp file in config file
 lastOdpFile = '~/*.odp'
+config = ConfigParser()
 try:
-    config = ConfigObj(iniDirectory+os.sep+'odp2wts.ini'),
-    lastOdpFile = config['Files']['lastOdpFile']
+    config.read(iniDirectory+os.sep+'odp2wts.ini')
+    lastOdpFile = config.get("Files","lastOdpFile")
 except:
-    config = ConfigObj()
-    config.filename = iniDirectory+os.sep+'odp2wts.ini'
-    config['Files'] = {}
-    config['Files']['lastOdpFile'] = lastOdpFile
-    config.write()
+    config.add_section("Files")
+    config.set("Files","lastOdpFile","")
+    with open(iniDirectory+os.sep+'odp2wts.ini', 'wb') as configfile:
+        config.write(configfile)
 
 if not os.path.isfile(lastOdpFile):
     lastOdpFile = None
@@ -250,8 +250,9 @@ or worse, this:
 
 if ((0 != len(odpFile)) and (os.path.exists(odpFilePath))):
     # Save file name to config file
-    config['Files']['lastOdpFile'] = lastOdpFile
-    config.write()
+    config.set("Files","lastOdpFile",odpFilePath)
+    with open(iniDirectory+os.sep+'odp2wts.ini', 'wb') as configfile:
+        config.write(configfile)
 
     odpName = odpFile.replace(".odp","")
     odp = ZipFile(odpFilePath,'r')
@@ -341,23 +342,7 @@ def convertItem(f,item,onImgStr):
         f.write('del '+imageFilePrefix+onImgStr+'.wav\n')
     else:
         # For Mac OSX
-#         f.write("/usr/bin/say -o "+imageFilePrefix+onImgStr+'.aiff "')
-#         lines = item.split("\n")
-#         for linenum, line in enumerate(lines):
-#             line.replace('"',' ').replace('`',' ').replace(';',' ')
-#             if not line.startswith("["):
-#                 f.write(line+" ")
-#             elif linenum>0:
-#                 break
-#     #    f.write(item)
-#         f.write('"\n')
-#         f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
-#           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.ogg"\n')
-#         f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
-#           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.mp3"\n')
-#         f.write("rm "+imageFilePrefix+onImgStr+'.aiff\n')
-        
-        f.write("swift -n Marta -e utf-8 -m text -o "+imageFilePrefix+onImgStr+'.wav "')
+        f.write("/usr/bin/say -o "+imageFilePrefix+onImgStr+'.aiff "')
         lines = item.split("\n")
         for linenum, line in enumerate(lines):
             line.replace('"',' ').replace('`',' ').replace(';',' ')
@@ -367,17 +352,17 @@ def convertItem(f,item,onImgStr):
                 break
     #    f.write(item)
         f.write('"\n')
-        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.wav "'+
+        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.ogg"\n')
-        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.wav "'+
+        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.mp3"\n')
-        f.write("rm "+imageFilePrefix+onImgStr+'.wav\n')
+        f.write("rm "+imageFilePrefix+onImgStr+'.aiff\n')
 
 def writeHtmlHeader(htmlFile):
     htmlFile.write('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"' + "\n")
     htmlFile.write('"http://www.w3.org/TR/html4/transitional.dtd">' + "\n")
     htmlFile.write("<html>\n<head>\n")
-    htmlFile.write('<meta http-equiv="Content-Type" content="text/html; charset=utf-8">' + "\n")
+    htmlFile.write('<meta HTTP-EQUIV=CONTENT-TYPE CONTENT="text/html; charset=utf-8">' + "\n")
     htmlFile.write('<title>Wiki-to-Speech</title>\n')
 
 def writeHtmlHeader2(htmlFile):
@@ -431,38 +416,41 @@ def writeHtmlJavascript(htmlFile,
                         audioFileTimes):
     """
         <script language="javascript" type="text/javascript">
+        var t;
         function respond0()
         {
-            document.getElementById('a0').innerHTML = 'Third'
-            document.getElementById('a0').style.color = 'grey';
-            location.href = "img3.htm"
+            clearTimeout(t)
+            document.getElementById("a0").innerHTML = "Separators of plus and quotes";
+            document.getElementById("a0").style.color = "grey";
+            document.getElementById('playaudio').innerHTML='<audio controls autoplay><source src="img8q1r0.mp3" /><source src="img8q1r0.ogg" />Your browser does not support the <code>audio</code> element.</audio><!--[if lte IE 8]><embed src="img8q1r0.mp3" autostart="true"><![endif]-->';
         }
         function respond1()
         {
-            document.getElementById('a1').innerHTML = 'Fourth'
-            document.getElementById('a1').style.color = 'grey';
-            document.getElementById('playaudio').innerHTML = '<audio controls autoplay><source src="img2q2r1.mp3" /><source src="img2q2r1.ogg" />Your browser does not support the <code>audio</code> element.</audio>'
-            var t=setTimeout("advance1()",2000);
+            clearTimeout(t)
+            document.getElementById('playaudio').innerHTML='<audio controls autoplay><source src="img8q1r1.mp3" /><source src="img8q1r1.ogg" />Your browser does not support the <code>audio</code> element.</audio><!--[if lte IE 8]><embed src="img8q1r1.mp3" autostart="true"><![endif]-->';
+            t=setTimeout("advance1()",12762);
         }
-        function advance1() {
-            location.href = "img3.htm"
+        function advance1()
+        {
+            location.href="img8q2.htm";
         }
 
     </script>
     """
-    htmlFile.write('<script language="javascript" type="text/javascript">\n')
+    htmlFile.write('<script language="javascript" type="text/javascript">\nvar t;\n')
     for answerNum, answer in enumerate(question.answers):
         if len(answer.answerText)>0:
             htmlFile.write('function respond'+
                 str(answerNum)+
-                '()\n{\n')
-            htmlFile.write('    document.getElementById("a'+
-                str(answerNum)+'").innerHTML = "'+
-                answer.answerText+
-                '";\n')
-            htmlFile.write('    document.getElementById("a'+
-                str(answerNum)+
-                '").style.color = "grey";\n')
+                '()\n{\n    clearTimeout(t);\n')
+            if not answer.action > 0:
+                htmlFile.write('    document.getElementById("a'+
+                    str(answerNum)+'").innerHTML = "'+
+                    answer.answerText+
+                    '";\n')
+                htmlFile.write('    document.getElementById("a'+
+                    str(answerNum)+
+                    '").style.color = "grey";\n')
 
             if len(answer.responseText)>0:
                 if position==0:
@@ -479,9 +467,12 @@ def writeHtmlJavascript(htmlFile,
                     pathToAudio +
                     '.ogg" />')
                 htmlFile.write( \
-                    "Your browser does not support the <code>audio</code> element.</audio>';\n")
+                    "<embed src=" +
+                    '"' + pathToAudio +
+                    '.mp3' +
+                    '" autostart="true"></audio>' + "';\n")
                 if answer.action > 0:
-                    htmlFile.write('    var t=setTimeout("advance'+
+                    htmlFile.write('    t=setTimeout("advance'+
                     str(answerNum)+
                     '()",'+
                     str(audioFileTimes[pathToAudio]+1000)+
@@ -556,10 +547,7 @@ def makeConvert(sequence):
         f.write("~/bin/sox ")
     for item in oggList:
         f.write(imageFilePrefix+item+".ogg ")
-        if sys.platform.startswith("win"):
-            f.write('"'+savePath+os.sep+'silence.ogg" ')
-        else:
-            f.write('"'+savePath+os.sep+'silence22kHz.ogg" ')
+        f.write('"'+savePath+os.sep+'silence.ogg" ')
     f.write("all.ogg\n")
     f.close()
 
