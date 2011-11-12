@@ -250,7 +250,7 @@ or worse, this:
 
 if ((0 != len(odpFile)) and (os.path.exists(odpFilePath))):
     # Save file name to config file
-    config['Files']['lastOdpFile'] = lastOdpFile
+    config['Files']['lastOdpFile'] = odpFilePath
     config.write()
 
     odpName = odpFile.replace(".odp","")
@@ -341,23 +341,7 @@ def convertItem(f,item,onImgStr):
         f.write('del '+imageFilePrefix+onImgStr+'.wav\n')
     else:
         # For Mac OSX
-#         f.write("/usr/bin/say -o "+imageFilePrefix+onImgStr+'.aiff "')
-#         lines = item.split("\n")
-#         for linenum, line in enumerate(lines):
-#             line.replace('"',' ').replace('`',' ').replace(';',' ')
-#             if not line.startswith("["):
-#                 f.write(line+" ")
-#             elif linenum>0:
-#                 break
-#     #    f.write(item)
-#         f.write('"\n')
-#         f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
-#           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.ogg"\n')
-#         f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
-#           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.mp3"\n')
-#         f.write("rm "+imageFilePrefix+onImgStr+'.aiff\n')
-        
-        f.write("swift -n Marta -e utf-8 -m text -o "+imageFilePrefix+onImgStr+'.wav "')
+        f.write("/usr/bin/say -o "+imageFilePrefix+onImgStr+'.aiff "')
         lines = item.split("\n")
         for linenum, line in enumerate(lines):
             line.replace('"',' ').replace('`',' ').replace(';',' ')
@@ -367,11 +351,27 @@ def convertItem(f,item,onImgStr):
                 break
     #    f.write(item)
         f.write('"\n')
-        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.wav "'+
+        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.ogg"\n')
-        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.wav "'+
+        f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.mp3"\n')
-        f.write("rm "+imageFilePrefix+onImgStr+'.wav\n')
+        f.write("rm "+imageFilePrefix+onImgStr+'.aiff\n')
+        
+#         f.write("swift -n Marta -e utf-8 -m text -o "+imageFilePrefix+onImgStr+'.wav "')
+#         lines = item.split("\n")
+#         for linenum, line in enumerate(lines):
+#             line.replace('"',' ').replace('`',' ').replace(';',' ')
+#             if not line.startswith("["):
+#                 f.write(line+" ")
+#             elif linenum>0:
+#                 break
+#     #    f.write(item)
+#         f.write('"\n')
+#         f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.wav "'+
+#           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.ogg"\n')
+#         f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.wav "'+
+#           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.mp3"\n')
+#         f.write("rm "+imageFilePrefix+onImgStr+'.wav\n')
 
 def writeHtmlHeader(htmlFile):
     htmlFile.write('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"' + "\n")
@@ -492,7 +492,7 @@ def writeHtmlJavascript(htmlFile,
                     '();\n')
             htmlFile.write('}\n')
 
-            if answer.action > 0:
+            if (answer.action > 0 and position+answer.action < len(questionFileNames)):
                 htmlFile.write('function advance'+
                     str(answerNum)+
                     '()\n{\n')
