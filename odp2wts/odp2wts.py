@@ -20,6 +20,15 @@ MIT License: see LICENSE.txt
 20110915 Added boilerplate script comments including version number
 20110916 Read Unicode
 20110917 Write out bits of Question/Answer/Response
+20111118 Show image along with question. Requires slide with comment first.
+         Example:
+            Comment on Slide4
+            [questions=on]
+            Question for slide 4:
+            Answer 1 ; Response 1
+            [questions=off]
+
+         NOTE: last slide must not have questions
 
 img1.png > img1.htm > img1.mp3
 [questions=on]
@@ -33,7 +42,7 @@ Fourth; No, just the third. > q/img1q2a2.mp3, > q/img1q2r2.mp3
 
 [questions=off]
 """
-__version__ = "0.1.25"
+__version__ = "0.1.26"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -667,8 +676,14 @@ def writeHtml(sequence, audioFileTimes):
                     '" style="border:0px"></a><br>\n')
 
         else:
-            htmlFile.write("""<br><br><hr><br><center>
-<table width="400" style="text-align:left"><tbody>
+            htmlFile.write("<br><br><hr><br><center>\n")
+            if len(question.linkToShow)>0:
+                # src but no link
+                htmlFile.write( \
+                    '<img src="' +
+                    question.linkToShow +
+                    '" style="border:0px"><br>\n')
+            htmlFile.write("""<table width="400" style="text-align:left"><tbody>
 <tr><td>""")
             htmlFile.write(" ".join(question.questionTexts)+ "</td></tr>\n" )
 
