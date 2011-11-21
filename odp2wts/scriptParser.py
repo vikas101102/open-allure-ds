@@ -282,7 +282,7 @@ def parseText(text):
                     answer.action = tags.index(answer.responseSideLink.lower()) - qnum
                     answer.responseSideLink = ""
 
-    dumpSequence(seq, questionMode)
+    #dumpSequence(seq, questionMode)
 
     return seq.sequence
 

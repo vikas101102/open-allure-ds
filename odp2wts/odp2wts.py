@@ -41,8 +41,10 @@ Third ;; > q/img1q2a1.mp3
 Fourth; No, just the third. > q/img1q2a2.mp3, > q/img1q2r2.mp3
 
 [questions=off]
+
+20111121 Turn off debug2.txt and put quotes around calls in makeVid.bat
 """
-__version__ = "0.1.26"
+__version__ = "0.1.27"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -813,7 +815,7 @@ if sys.platform.startswith("win"):
     f.write("echo off\ncls\n")
     f.write("if exist output.mp4 (del output.mp4)\n")
     if os.path.isfile(savePath+os.sep+"MP4Box.exe"):
-        catCommand = savePath+os.sep+"MP4Box"
+        catCommand = '"'+savePath+os.sep+'MP4Box"'
     else:
         catCommand = "MP4Box"
     for i, file in enumerate(sortedOgg):
@@ -843,7 +845,7 @@ if sys.platform.startswith("win"):
         # Convert the images to a video of that slide with voice over
         # NOTE: Little trick here -- Windows wants to substitute the batch file name
         #       into %0 so we use %1 and pass %0 as the first parameter
-        f.write(savePath+os.sep+"ffmpeg -i "+stem+'.mp3 -r 10 -i "'+stem+'_%15d.jpg" -ab 64k '+stem+".mp4\n")
+        f.write('"'+savePath+os.sep+'ffmpeg" -i '+stem+'.mp3 -r 10 -i "'+stem+'_%15d.jpg" -ab 64k '+stem+".mp4\n")
         # Delete the symlinks
         for j in range(tenthsOfSeconds):
             f.write("del "+stem+'_'+str(j).zfill(5)+'.jpg\n')

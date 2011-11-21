@@ -4,7 +4,7 @@
 
 Var ALREADY_INSTALLED ; variable - no {} needed, just $
 
-!define WIKI_TO_SPEECH_VERSION "0.1.18" ; define - ${} needed
+!define WIKI_TO_SPEECH_VERSION "0.1.27" ; define - ${} needed
 
 !define MUI_ICON "D:\open-allure-ds\odp2wts\openallure_32x32.ico"
 !define UMUI_LEFTIMAGE_BMP "D:\open-allure-ds\odp2wts\openallure_left.bmp"
