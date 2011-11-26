@@ -7,7 +7,8 @@ def scriptInputFormWithErrorMessage(version, errorMessage):
             Wiki-to-Speech Script:<br>
             <input type="text" name="name" size="80" /><br>
             <input type="submit" value="Open"/><br><br>
-            <small>Version {0}</small><br>
+            <small>Version {0}<br>
+            Enter <i>exit</i> to stop localhost server</small><br>
             <italic>{1}</italic>
             </form></center><br><hr></body></html>'''.format(version, errorMessage)
 

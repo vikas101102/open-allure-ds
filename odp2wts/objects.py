@@ -14,7 +14,8 @@ class Question(object):
         self.answers = []
         self.language = ""
         self.linkToShow = ""
-        self.pathToImageFiles= ""
+        self.pathToImageFiles = ""
+        self.sourceLink = "" # For citations
 
 class Answer(object):
     """Object containing an answer with optional response"""
