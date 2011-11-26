@@ -44,6 +44,8 @@ def parseScript(name):
     if name.startswith("http"):
         if name.find("etherpad")>0:
             sequence = parseEtherpad(name)
+        elif name.find("titanpad")>0:
+            sequence = parseEtherpad(name)
         else:
             sequence = parseHtml(name)
     else:

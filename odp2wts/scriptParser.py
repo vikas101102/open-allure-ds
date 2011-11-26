@@ -5,7 +5,7 @@
 # Author:      John Graves
 #
 # Created:     17 April 2011
-# Modified:    29 September 2011
+# Modified:    12 November 2011
 # Copyright:   (c) John 2011
 # Licence:     MIT license
 #-------------------------------------------------------------------------------
@@ -182,6 +182,7 @@ def parseText(text):
                 if equalsAt>1: # set parameters
                     parameterName = line[1:equalsAt].strip().lower()
                     parameterValue = line[equalsAt+1:line.find("]")].strip().lower()
+                    parameterValueOrig = line[equalsAt+1:line.find("]")].strip()
                     if parameterName == "questions":
                         if parameterValue == "on":
                             questionMode = True
@@ -193,6 +194,9 @@ def parseText(text):
                             parameterValue += os.sep
                         pathToImageFiles = parameterValue
                         question.pathToImageFiles = pathToImageFiles
+                        continue
+                    elif parameterName == "source":
+                        question.sourceLink = parameterValueOrig # Need to preserve case for YouTube video IDs
                         continue
                 else: # question tag
                     question.tag = line[1:line.find("]")]

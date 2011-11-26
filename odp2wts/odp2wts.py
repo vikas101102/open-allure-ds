@@ -32,8 +32,10 @@ Third ;; > q/img1q2a1.mp3
 Fourth; No, just the third. > q/img1q2a2.mp3, > q/img1q2r2.mp3
 
 [questions=off]
+
+20111112 If script has [Source=http:// ...] add this link to the question page
 """
-__version__ = "0.1.25"
+__version__ = "0.1.26"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -483,7 +485,7 @@ def writeHtmlJavascript(htmlFile,
                     '();\n')
             htmlFile.write('}\n')
 
-            if answer.action > 0:
+            if (answer.action > 0 and position+answer.action < len(questionFileNames)):
                 htmlFile.write('function advance'+
                     str(answerNum)+
                     '()\n{\n')
@@ -665,6 +667,11 @@ def writeHtml(sequence, audioFileTimes):
                     '<img src="' +
                     questionFileNames[position] + '.' + imageFileSuffix +
                     '" style="border:0px"></a><br>\n')
+   
+            # Add source link, if any
+            if 0<len(question.sourceLink):
+                htmlFile.write( \
+                    '<a href="' + question.sourceLink + '">' + question.sourceLink + '</a><br>\n')
 
         else:
             htmlFile.write("""<br><br><hr><br><center>
