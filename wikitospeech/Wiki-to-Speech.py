@@ -21,6 +21,7 @@ http://aucklandunitarian.pagekite.me/Test20110819b which has [path=pathToImageFi
 20110825 Add __version__ to title
 20110909 Added question number to showQuestion (so going back should work)
 20110913 Make symbolic links from static directory to location of script.txt png images
+20111126 Titanpad in addition to iEtherpad. Jump to 0.1.26 to sync with odp2wts (SlideSpeech)
 """
 import cherrypy
 import os.path
@@ -34,7 +35,7 @@ import scriptParser
 import sys
 import voice
 
-__version__ = "0.1.21"
+__version__ = "0.1.26"
 
 if not os.path.exists('static'):
     os.makedirs('static')
