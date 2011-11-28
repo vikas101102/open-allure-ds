@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Name:        wts2app.py
-# Purpose:     Compile Wiki-to-Speech.py into Mac OSX Application
+# Name:        ss2app.py
+# Purpose:     Compile SlideSpeech.py into Mac OSX Application
 #
 # Author:      John Graves
 #
@@ -21,7 +21,7 @@ import sys
 
 class BuildApp:
     def __init__(self):
-        self.APP = ['Wiki-to-Speech.py']
+        self.APP = ['SlideSpeech.py']
         self.DATA_FILES = ['CHANGES.txt','ethics_notice.txt','README.txt','LICENSE.txt']
         self.OPTIONS = {'argv_emulation': True, 'iconfile': 'slidespeech.icns',}
         #Dist directory

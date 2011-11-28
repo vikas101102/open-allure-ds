@@ -2,11 +2,12 @@
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        odp2app.py
-# Purpose:     Compile odp2wts.py into Mac OSX Application
+# Purpose:     Compile odp2ss.py into Mac OSX Application
 #
 # Author:      John Graves
 #
 # Created:     26 November 2011
+# Modified:    28 November 2011
 # Copyright:   (c) John Graves 2011
 # License:     MIT License
 #-------------------------------------------------------------------------------
@@ -21,10 +22,10 @@ import sys
 
 class BuildApp:
     def __init__(self):
-        self.APP = ['odp2wts.py']
+        self.APP = ['odp2ss.py']
         self.DATA_FILES = ['CHANGES.txt','ethics_notice.txt',
         'README.txt','LICENSE.txt','soxi','MP4Box','ffmpeg','silence22kHz.ogg']
-        self.OPTIONS = {'argv_emulation': True}
+        self.OPTIONS = {'argv_emulation': True, 'iconfile': 'slidespeech.icns',}
         #Dist directory
         self.dist_dir ='dist'
 
@@ -47,6 +48,6 @@ if __name__ == '__main__':
         sys.argv.append('py2app')
     BuildApp().run() #Run generation
     raw_input("Press any key to continue") #Pause to let user see that things ends
-    os.chmod(os.getcwd()+os.sep+"dist/odp2wts.app/Contents/Resources/soxi",stat.S_IRWXU)
-    os.chmod(os.getcwd()+os.sep+"dist/odp2wts.app/Contents/Resources/ffmpeg",stat.S_IRWXU)
-    os.chmod(os.getcwd()+os.sep+"dist/odp2wts.app/Contents/Resources/MP4Box",stat.S_IRWXU)
+    os.chmod(os.getcwd()+os.sep+"dist/odp2ss.app/Contents/Resources/soxi",stat.S_IRWXU)
+    os.chmod(os.getcwd()+os.sep+"dist/odp2ss.app/Contents/Resources/ffmpeg",stat.S_IRWXU)
+    os.chmod(os.getcwd()+os.sep+"dist/odp2ss.app/Contents/Resources/MP4Box",stat.S_IRWXU)
