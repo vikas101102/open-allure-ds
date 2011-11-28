@@ -602,13 +602,16 @@ def fetchAudioFileTimes():
             if os.path.isfile(savePath+os.sep+"soxi"):
                 os.remove(savePath+os.sep+"soxi")
             command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
-        else:
+        elif sys.platform.startswith("darwin"):
             if os.path.isfile(savePath+os.sep+"soxi"):
                 command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
             elif os.path.isfile(savePath+os.sep+"Contents/Resources/soxi"):
                 command = [savePath+os.sep+"Contents/Resources/soxi","-D",odpFileSubdirectory+os.sep+file]
             else:
                 command = ["soxi","-D",odpFileSubdirectory+os.sep+file]
+        else :
+            command = ["soxi","-D",odpFileSubdirectory+os.sep+file]
+        print command
         process = subprocess.Popen(command,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
@@ -806,13 +809,15 @@ for file in sortedOgg:
         if os.path.isfile(savePath+os.sep+"soxi"):
             os.remove(savePath+os.sep+"soxi")
         command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
-    else:
+    elif sys.platform.startswith("darwin"):
         if os.path.isfile(savePath+os.sep+"soxi"):
             command = [savePath+os.sep+"soxi","-D",odpFileSubdirectory+os.sep+file]
         elif os.path.isfile(savePath+os.sep+"Contents/Resources/soxi"):
             command = [savePath+os.sep+"Contents/Resources/soxi","-D",odpFileSubdirectory+os.sep+file]
         else:
             command = ["soxi","-D",odpFileSubdirectory+os.sep+file]
+    else:
+        command = ["soxi","-D",odpFileSubdirectory+os.sep+file]
     process = subprocess.Popen(command,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -888,7 +893,7 @@ if sys.platform.startswith("win"):
         f.write('del '+stem+'.mp4\n')
     f.close()
 
-else:
+elif sys.platform.startswith("darwin"):
     # For Mac OSX
     # ffmpeg -i Slide1.mp3 -r 1 -i Slide1_%03d.png -ab 64k output.mp4
     f.write("clear\n")
@@ -935,6 +940,54 @@ else:
     for file in sortedOgg:
         stem, suffix = file.split(".")
         f.write('rm '+stem+'.mp4\n')
+    for file in tempFilesToDelete:
+        f.write('rm '+file+"\n")
+    f.close()
+
+else:
+    # For Linux
+    # ffmpeg -i Slide1.mp3 -r 1 -i Slide1_%03d.png -ab 64k output.mp4
+    f.write("clear\n")
+    f.write("if [ -f output.mp4 ]\n")
+    f.write("then rm output.mp4\n")
+    f.write("fi\n")
+
+    # We need to do this:
+    #   cat img0.avi img1.avi > output.avi
+    #   mencoder output.avi -o final.avi -forceidx -ovc copy -oac copy
+    catCommand = "cat "
+    catCommand2= "cat "
+
+    # save another copy for subsequent cat lines if more than 20 slides
+    tempFilesToDelete = []
+    for i, file in enumerate(sortedOgg):
+        stem, suffix = file.split(".")
+        # Add the slide video to the list of videos to be concatenated
+        catCommand += " " + stem+".avi"
+        if ((i>0) and (i % 18 == 0)):
+            tempFilesToDelete.append("temp"+ str(i) +".avi")
+            # add a temp.mp4 for output and then input on next line
+            catCommand += " temp" + str(i) +".avi\n"+catCommand2+" temp" + str(i) +".avi"
+        tenthsOfSeconds = int(math.floor(times[i]*10))
+        # If we are on the last slide, add enough frames
+        # to give audio time to finish
+        if sortedOgg[i]==sortedOgg[-1]:
+            tenthsOfSeconds += 20
+        # Make a symlink to the slide image for each second the audio runs
+        for j in range(tenthsOfSeconds):
+            # ln -s Slide2.png Slide2_001.png
+            f.write("ln -s "+stem+'.png '+stem+'_'+str(j).zfill(5)+'.png\n')
+        f.write('ffmpeg -i '+stem+'.mp3 -r 10 -i "'+stem+'_%05d.png" -ab 64k '+stem+".avi\n")
+        # Delete the symlinks
+        for j in range(tenthsOfSeconds):
+            f.write("rm "+stem+'_'+str(j).zfill(5)+'.png\n')
+    # Add an output file name for the concatenation
+    catCommand += " > output.avi\n mencoder output.avi -o final.avi -forceidx -ovc copy -oac copy\n"
+    f.write(catCommand)
+    # Delete all the single slide videos
+    for file in sortedOgg:
+        stem, suffix = file.split(".")
+        f.write('rm '+stem+'.avi\n')
     for file in tempFilesToDelete:
         f.write('rm '+file+"\n")
     f.close()
