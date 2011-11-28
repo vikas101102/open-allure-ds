@@ -60,7 +60,12 @@ class Voice( object ):
             return
 
         else:
-            subprocess.Popen( ['espeak', '"' + phrase + '"' ] )
+            f = open('debug3.txt','w')
+            f.write("test run at " + strftime("%d %b %Y %H:%M", gmtime()) + "\n"+phrase)
+            f.close()
+
+            proc = subprocess.Popen( ['espeak', '"' + phrase + '"' ] )
+            proc.wait()
 
 
 def testVoice():
