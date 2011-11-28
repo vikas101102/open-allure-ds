@@ -352,7 +352,7 @@ def convertItem(f,item,onImgStr):
         f.write('"'+savePath+os.sep+'sox.exe" '+imageFilePrefix+onImgStr+'.wav '+ '"' + \
                          odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.ogg"\n')
         f.write('del '+imageFilePrefix+onImgStr+'.wav\n')
-    else:
+    elif sys.platform.startswith("darwin"):
         # For Mac OSX
         f.write("/usr/bin/say -o "+imageFilePrefix+onImgStr+'.aiff "')
         lines = item.split("\n")
@@ -369,6 +369,24 @@ def convertItem(f,item,onImgStr):
         f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.mp3"\n')
         f.write("rm "+imageFilePrefix+onImgStr+'.aiff\n')
+        
+    else:
+        # For Linux
+        f.write("/usr/bin/espeak -w "+imageFilePrefix+onImgStr+'.wav "')
+        lines = item.split("\n")
+        for linenum, line in enumerate(lines):
+            line.replace('"',' ').replace('`',' ').replace(';',' ')
+            if not line.startswith("["):
+                f.write(line+" ")
+            elif linenum>0:
+                break
+    #    f.write(item)
+        f.write('"\n')
+        f.write("/usr/bin/sox "+imageFilePrefix+onImgStr+'.wav "'+
+          odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.ogg"\n')
+        f.write("/usr/bin/sox "+imageFilePrefix+onImgStr+'.wav "'+
+          odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.mp3"\n')
+        # f.write("rm "+imageFilePrefix+onImgStr+'.wav\n')
 
 def writeHtmlHeader(htmlFile):
     htmlFile.write('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"' + "\n")
@@ -555,8 +573,10 @@ def makeConvert(sequence):
     f.write('cd "'+odpFileSubdirectory+'"\n')
     if sys.platform.startswith("win"):
         f.write('"'+savePath+os.sep+'sox.exe" ')
-    else:
+    elif sys.platform.startswith("darwin"):
         f.write("~/bin/sox ")
+    else:
+        f.write("/usr/bin/sox ")
     for item in oggList:
         f.write(imageFilePrefix+item+".ogg ")
         f.write('"'+savePath+os.sep+'silence.ogg" ')
