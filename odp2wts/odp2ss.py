@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-odp2wts.py
+odp2ss.py
 a component of SlideSpeech.py
 
 Extract speaker notes from .odp file and prepare script.txt for SlideSpeech
@@ -75,7 +75,7 @@ def ensure_dir(d):
     if not os.path.exists(d):
         os.makedirs(d)
 
-# Find location of Windows common application data files for odp2wts.ini
+# Find location of Windows common application data files for odp2ss.ini
 iniDirectory = None
 if sys.platform.startswith("win"):
     import ctypes
@@ -108,12 +108,12 @@ else:
 lastOdpFile = '~/*.odp'
 config = ConfigParser()
 try:
-    config.read(iniDirectory+os.sep+'odp2wts.ini')
+    config.read(iniDirectory+os.sep+'odp2ss.ini')
     lastOdpFile = config.get("Files","lastOdpFile")
 except:
     config.add_section("Files")
     config.set("Files","lastOdpFile","")
-    with open(iniDirectory+os.sep+'odp2wts.ini', 'wb') as configfile:
+    with open(iniDirectory+os.sep+'odp2ss.ini', 'wb') as configfile:
         config.write(configfile)
 
 if not os.path.isfile(lastOdpFile):
@@ -269,7 +269,7 @@ or worse, this:
 if ((0 != len(odpFile)) and (os.path.exists(odpFilePath))):
     # Save file name to config file
     config.set("Files","lastOdpFile",odpFilePath)
-    with open(iniDirectory+os.sep+'odp2wts.ini', 'wb') as configfile:
+    with open(iniDirectory+os.sep+'odp2ss.ini', 'wb') as configfile:
         config.write(configfile)
 
     odpName = odpFile.replace(".odp","")

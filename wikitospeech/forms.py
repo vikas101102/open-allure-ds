@@ -2,15 +2,16 @@
 import urllib
 
 def scriptInputFormWithErrorMessage(version, errorMessage):
-    return '''<html><head><title>Wiki-to-Speech {0}</title></head>
+    return '''<html><head><title>SlideSpeech {0}</title></head>
               <body><br><br><hr><br><center><form action="getScriptName" method="GET">
-            Wiki-to-Speech Script:<br>
+            SlideSpeech Script:<br>
             <input type="text" name="name" size="80" /><br>
             <input type="submit" value="Open"/><br><br>
-            <small>Version {0}<br>
-            Enter <i>exit</i> to stop localhost server</small><br>
-            <italic>{1}</italic>
-            </form></center><br><hr></body></html>'''.format(version, errorMessage)
+            </form>
+            <small>Version {0}<br><form action="SlideSpeech_Exit_Complete" method="GET">
+            <input type="submit" value="Exit"/><br><br>
+            </form><br>
+            <italic>{1}</italic></center><br><hr></body></html>'''.format(version, errorMessage)
 
 def loading(name):
     return "Loading script: " + name + " ..."
