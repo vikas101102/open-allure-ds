@@ -50,8 +50,9 @@ Fourth; No, just the third. > q/img1q2a2.mp3, > q/img1q2r2.mp3
     ffmpeg
     mencode
     espeak
+20111205 Allow for direct script and image creation from PowerPoint files
 """
-__version__ = "0.1.28"
+__version__ = "0.1.30"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -67,6 +68,8 @@ import stat
 import subprocess
 import sys
 import time
+if sys.platform.startswith("win"):
+    import win32com.client
 import webbrowser
 from zipfile import ZipFile
 
@@ -105,7 +108,10 @@ else:
 ## Obtain odpFile name and directory
 
 # Check for last .odp file in config file
-lastOdpFile = '~/*.odp'
+if sys.platform.startswith("win"):
+    lastOdpFile = '~/*.ppt*'
+else:
+    lastOdpFile = '~/*.odp'
 config = ConfigParser()
 try:
     config.read(iniDirectory+os.sep+'odp2ss.ini')
@@ -119,36 +125,83 @@ except:
 if not os.path.isfile(lastOdpFile):
     lastOdpFile = None
 
-odpFilePath = easygui.fileopenbox(title="SlideSpeech from ODP Converter "+__version__, msg="Select an .odp file",
+if sys.platform.startswith("win"):
+    odpFilePath = easygui.fileopenbox(title="SlideSpeech from PPT Converter "+__version__, msg="Select a .ppt file",
                               default=lastOdpFile, filetypes=None)
+else:
+    odpFilePath = easygui.fileopenbox(title="SlideSpeech from ODP Converter "+__version__, msg="Select an .odp file",
+                              default=lastOdpFile, filetypes=None)
+
 if odpFilePath == None:
     sys.exit()
 
 (odpFileDirectory, odpFile) = os.path.split(odpFilePath)
 (odpName, odpSuffix) = odpFile.split(".")
 
-## Find list of .png or .jpg files
+## Find or create list of .png or .jpg files
 
 odpFileSubdirectory = odpFileDirectory+os.sep+odpName
 # Create a subdirectory for generated files (if needed)
 ensure_dir(odpFileSubdirectory)
 
-# Look for .jpg files (slide images) in the odpName subdirectory
-dir = os.listdir(odpFileSubdirectory)
-imageFileList = [file for file in dir if file.lower().endswith(imageFileSuffix)]
+scriptAndImagesCreated = False
+if sys.platform.startswith("win") and odpSuffix.startswith("ppt"):
+    # create .jpg files
+    slideNotes = []
+    Application = win32com.client.Dispatch("PowerPoint.Application")
+    Application.Visible = True
+    Presentation = Application.Presentations.Open(odpFilePath)
+    onSlide = 0
+    for Slide in Presentation.Slides:
+         imageName = "Slide" + str(onSlide) + ".jpg"
+         onSlide += 1
+         Slide.Export(odpFileSubdirectory+os.sep+imageName,"JPG",800,600)
 
-# If no image files found there ...
-if len(imageFileList)==0:
-    # ... look for image files in odpFileDirectory and copy to odpName subdirectory
-    dir = os.listdir(odpFileDirectory)
+         for Shape in Slide.NotesPage.Shapes:
+            if Shape.HasTextFrame:
+                if Shape.TextFrame.HasText:
+                    text = Shape.TextFrame.TextRange.Text
+                    if not text.isdigit():
+                        slideNotes.append(text)
+    Application.Quit()
+
+    # Look for .jpg files (slide images) in the odpName subdirectory
+    dir = os.listdir(odpFileSubdirectory)
     imageFileList = [file for file in dir if file.lower().endswith(imageFileSuffix)]
-    # If still no image files, request some.
+
+    outFile = open(odpFileSubdirectory+os.sep+"script.txt","w")
+    onSlide = 0
+    for item in slideNotes:
+        imageName = "Slide" + str(onSlide) + ".jpg\n"
+        onSlide += 1
+        outFile.write(imageName)
+        outFile.write(item + "\n\n")
+    outFile.close()
+
+    if ((0 != len(odpFile)) and (os.path.exists(odpFilePath))):
+        # Save file name to config file
+        config.set("Files","lastOdpFile",odpFilePath)
+        with open(iniDirectory+os.sep+'odp2ss.ini', 'wb') as configfile:
+            config.write(configfile)
+
+    scriptAndImagesCreated = True
+else:
+    # Look for .jpg files (slide images) in the odpName subdirectory
+    dir = os.listdir(odpFileSubdirectory)
+    imageFileList = [file for file in dir if file.lower().endswith(imageFileSuffix)]
+
+    # If no image files found there ...
     if len(imageFileList)==0:
-        easygui.msgbox("Need some slide image files for this presentation.\n.jpg for Windows or .png for Mac OSX.")
-        sys.exit()
-    else:
-        for file in imageFileList:
-            shutil.copy(odpFileDirectory+os.sep+file, odpFileSubdirectory)
+        # ... look for image files in odpFileDirectory and copy to odpName subdirectory
+        dir = os.listdir(odpFileDirectory)
+        imageFileList = [file for file in dir if file.lower().endswith(imageFileSuffix)]
+        # If still no image files, request some.
+        if len(imageFileList)==0:
+            easygui.msgbox("Need some slide image files for this presentation.\n.jpg for Windows or .png for Mac OSX.")
+            sys.exit()
+        else:
+            for file in imageFileList:
+                shutil.copy(odpFileDirectory+os.sep+file, odpFileSubdirectory)
 
 # Find minimum value for slide number for linking to First Slide
 # Find maximum value for slide number for linking to Last Slide
@@ -157,17 +210,16 @@ if len(imageFileList)==0:
 minNum = 0
 maxNum = 0
 wrongStem = False
-# Test contents of image file list
-print imageFileList
+
 for file in imageFileList:
     # Parse out file name stem (which includes number) and imageFileSuffix
     (stem, imageFileSuffix) = file.split(".")
 
     # Parse out just number (num) and imageFilePrefix
     if stem.startswith("Slide"):
-        # PowerPoint Slide images are output to jpg with starting index of 1
+        # PowerPoint Slide images are output to jpg with starting index of 0
         imageFilePrefix = "Slide"
-        minNum=1
+        minNum=0
         num = int(stem[5:])
     elif stem.startswith("img"):
         # ODP slide images are output to img with starting index of 0
@@ -183,151 +235,152 @@ if wrongStem:
     "with consistent stem: Slide* or img*\n\nCheck in "+odpFileSubdirectory)
     sys.exit()
 
-## Step 1 - parse the .odp file, prepare script.txt and .zip file
+if not scriptAndImagesCreated:
+    ## Step 1 - parse the .odp file, prepare script.txt and .zip file
 
-def joinContents(textPList):
-    """Combine tagged XML into single string
+    def joinContents(textPList):
+        """Combine tagged XML into single string
 
-Needs to handle this from PowerPoint:
-    <text:p text:style-name="a785" text:class-names="" text:cond-style-name="">
-     <text:span text:style-name="a783" text:class-names="">Voice over 1</text:span>
-     <text:span text:style-name="a784" text:class-names=""/>
-    </text:p>
+    Needs to handle this from PowerPoint:
+        <text:p text:style-name="a785" text:class-names="" text:cond-style-name="">
+         <text:span text:style-name="a783" text:class-names="">Voice over 1</text:span>
+         <text:span text:style-name="a784" text:class-names=""/>
+        </text:p>
 
-or worse, this:
-    <text:p text:style-name="a786" text:class-names="" text:cond-style-name="">
-     <text:span text:style-name="a783" text:class-names="">
-      Voice
-      <text:s text:c="1"/>
-     </text:span>
-     <text:span text:style-name="a784" text:class-names="">
-      over 1
-      <text:s text:c="1"/>
-      asdf
-     </text:span>
-     <text:span text:style-name="a785" text:class-names=""/>
-    </text:p>
+    or worse, this:
+        <text:p text:style-name="a786" text:class-names="" text:cond-style-name="">
+         <text:span text:style-name="a783" text:class-names="">
+          Voice
+          <text:s text:c="1"/>
+         </text:span>
+         <text:span text:style-name="a784" text:class-names="">
+          over 1
+          <text:s text:c="1"/>
+          asdf
+         </text:span>
+         <text:span text:style-name="a785" text:class-names=""/>
+        </text:p>
 
-    """
-    # item is list of all the XML for a single slide
-    joinedItems = ""
-    if len(textPList)>0:
-        textItems = []
-        i = 0
-        for textP in textPList:
-            textSpans = []
-            # break the XML into a list of tagged pieces (text:span)
-            for item in textP:
-                if type(item)==BeautifulSoup.Tag:
-                    tagContents = item.contents
-                    if type(tagContents)==type([]):
-                        for item2 in tagContents:
-                            if type(item2)==BeautifulSoup.Tag:
-                                textSpans.append([item2.contents])
-                            else:
-                                textSpans.append([item2])
+        """
+        # item is list of all the XML for a single slide
+        joinedItems = ""
+        if len(textPList)>0:
+            textItems = []
+            i = 0
+            for textP in textPList:
+                textSpans = []
+                # break the XML into a list of tagged pieces (text:span)
+                for item in textP:
+                    if type(item)==BeautifulSoup.Tag:
+                        tagContents = item.contents
+                        if type(tagContents)==type([]):
+                            for item2 in tagContents:
+                                if type(item2)==BeautifulSoup.Tag:
+                                    textSpans.append([item2.contents])
+                                else:
+                                    textSpans.append([item2])
+                        else:
+                            textSpans.append([tagContents])
                     else:
-                        textSpans.append([tagContents])
-                else:
-                    textSpans.append([item])
+                        textSpans.append([item])
 
-            # flatten list
-            textSpans1 = [item for sublist in textSpans for item in sublist]
-            # clean up
-            textSpans1b = []
-            for item in textSpans1:
-                if type(item)==BeautifulSoup.NavigableString:
-                    textSpans1b.append(item)
-                elif type(item)==type([]):
-                    if len(item)==0:
-                        pass
-                    elif len(item)==1:
-                        textSpans1b.append(item[0])
+                # flatten list
+                textSpans1 = [item for sublist in textSpans for item in sublist]
+                # clean up
+                textSpans1b = []
+                for item in textSpans1:
+                    if type(item)==BeautifulSoup.NavigableString:
+                        textSpans1b.append(item)
+                    elif type(item)==type([]):
+                        if len(item)==0:
+                            pass
+                        elif len(item)==1:
+                            textSpans1b.append(item[0])
+                        else:
+                            for itemInList in item:
+                                textSpans1b.append(itemInList)
+                # find the contents of these pieces if they are still tagged (text:s)
+                textSpans2 = []
+                for textSpan in textSpans1b:
+                    if type(textSpan)==BeautifulSoup.Tag:
+                        textSpans2.append(textSpan.text)
                     else:
-                        for itemInList in item:
-                            textSpans1b.append(itemInList)
-            # find the contents of these pieces if they are still tagged (text:s)
-            textSpans2 = []
-            for textSpan in textSpans1b:
-                if type(textSpan)==BeautifulSoup.Tag:
-                    textSpans2.append(textSpan.text)
-                else:
-                    if (type(textSpan)==type([]) and len(textSpan)>0):
-                        textSpans2.append(unicode(textSpan[0]))
-                    else:
-                        textSpans2.append(unicode(textSpan))
+                        if (type(textSpan)==type([]) and len(textSpan)>0):
+                            textSpans2.append(unicode(textSpan[0]))
+                        else:
+                            textSpans2.append(unicode(textSpan))
 
-            justText = u""
-            for item in textSpans2:
-                # deal with single quote and double quotes and dashes
-                # \u2018 LEFT SINGLE QUOTATION MARK
-                justText = justText + item + u" "
-            textItems.append(justText)
-        joinedItems = "\n".join(textItems)
-    return joinedItems
+                justText = u""
+                for item in textSpans2:
+                    # deal with single quote and double quotes and dashes
+                    # \u2018 LEFT SINGLE QUOTATION MARK
+                    justText = justText + item + u" "
+                textItems.append(justText)
+            joinedItems = "\n".join(textItems)
+        return joinedItems
 
-if ((0 != len(odpFile)) and (os.path.exists(odpFilePath))):
-    # Save file name to config file
-    config.set("Files","lastOdpFile",odpFilePath)
-    with open(iniDirectory+os.sep+'odp2ss.ini', 'wb') as configfile:
-        config.write(configfile)
+    if ((0 != len(odpFile)) and (os.path.exists(odpFilePath))):
+        # Save file name to config file
+        config.set("Files","lastOdpFile",odpFilePath)
+        with open(iniDirectory+os.sep+'odp2ss.ini', 'wb') as configfile:
+            config.write(configfile)
 
-    odpName = odpFile.replace(".odp","")
-    odp = ZipFile(odpFilePath,'r')
-    f = odp.read(u'content.xml')
-    soup = BeautifulStoneSoup(f)
-    notes = soup.findAll(attrs={"presentation:class":"notes"})
-    noteTextPLists = [item.findAll("text:p") for item in notes]
-    noteText = [joinContents(noteTextPList) for noteTextPList in noteTextPLists]
-else:
-    sys.exit()
-
-# Create script.txt file
-scriptFile = codecs.open(odpFileSubdirectory+os.sep+'script.txt', encoding='utf-8', mode='w+')
-scriptFile.write("""#[path=]
-#
-#     Script created with SlideSpeech from ODP version """+__version__+
-"\n#     http://slidespeech.org\n"+
-"#     Date: "+time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())+"""
-#
-#     Title:
-#     Author:
-#
-#     SlideSpeech Slide show version
-#     http://
-#
-#     SlideSpeech Video version
-#     http://
-#
-#     SlideSpeech script:
-""")
-onImg = minNum
-for item in noteText:
-    if onImg-minNum == 0: # first slide
-        # insert line with link to first slide image after parameter lines
-        # For example, noteText could start with [path=...]
-        lines = item.split("\n")
-        slideOnLine = -1
-        for linenum, line in enumerate(lines):
-            if len(line.strip())>0:
-                if line.startswith("["):
-                    scriptFile.write(line+"\n")
-                elif slideOnLine == -1:
-                    scriptFile.write(imageFilePrefix+str(onImg)+"."+imageFileSuffix+"\n")
-                    slideOnLine = linenum
-                    scriptFile.write(line+"\n")
-                else:
-                    scriptFile.write(line+"\n")
-            else:
-                scriptFile.write("\n")
+        odpName = odpFile.replace(".odp","")
+        odp = ZipFile(odpFilePath,'r')
+        f = odp.read(u'content.xml')
+        soup = BeautifulStoneSoup(f)
+        notes = soup.findAll(attrs={"presentation:class":"notes"})
+        noteTextPLists = [item.findAll("text:p") for item in notes]
+        noteText = [joinContents(noteTextPList) for noteTextPList in noteTextPLists]
     else:
-        # Add a line with a link to each slide
-        scriptFile.write(imageFilePrefix+str(onImg)+"."+imageFileSuffix+"\n")
-        # followed by the voice over text for the slide
-        scriptFile.write(item+"\n")
-    scriptFile.write("\n")
-    onImg += 1
-scriptFile.close()
+        sys.exit()
+
+    # Create script.txt file
+    scriptFile = codecs.open(odpFileSubdirectory+os.sep+'script.txt', encoding='utf-8', mode='w+')
+    scriptFile.write("""#[path=]
+    #
+    #     Script created with SlideSpeech from ODP version """+__version__+
+    "\n#     http://slidespeech.org\n"+
+    "#     Date: "+time.strftime("%a, %d %b %Y %H:%M:%S", time.localtime())+"""
+    #
+    #     Title:
+    #     Author:
+    #
+    #     SlideSpeech Slide show version
+    #     http://
+    #
+    #     SlideSpeech Video version
+    #     http://
+    #
+    #     SlideSpeech script:
+    """)
+    onImg = minNum
+    for item in noteText:
+        if onImg-minNum == 0: # first slide
+            # insert line with link to first slide image after parameter lines
+            # For example, noteText could start with [path=...]
+            lines = item.split("\n")
+            slideOnLine = -1
+            for linenum, line in enumerate(lines):
+                if len(line.strip())>0:
+                    if line.startswith("["):
+                        scriptFile.write(line+"\n")
+                    elif slideOnLine == -1:
+                        scriptFile.write(imageFilePrefix+str(onImg)+"."+imageFileSuffix+"\n")
+                        slideOnLine = linenum
+                        scriptFile.write(line+"\n")
+                    else:
+                        scriptFile.write(line+"\n")
+                else:
+                    scriptFile.write("\n")
+        else:
+            # Add a line with a link to each slide
+            scriptFile.write(imageFilePrefix+str(onImg)+"."+imageFileSuffix+"\n")
+            # followed by the voice over text for the slide
+            scriptFile.write(item+"\n")
+        scriptFile.write("\n")
+        onImg += 1
+    scriptFile.close()
 
 # Collect script and image files into ZIP file
 outputFile = ZipFile(odpFileDirectory+os.sep+odpName+".zip",'w')
@@ -375,7 +428,7 @@ def convertItem(f,item,onImgStr):
         f.write("~/bin/sox "+imageFilePrefix+onImgStr+'.aiff "'+
           odpFileSubdirectory+os.sep+imageFilePrefix+onImgStr+'.mp3"\n')
         f.write("rm "+imageFilePrefix+onImgStr+'.aiff\n')
-        
+
     else:
         # For Linux
         f.write("/usr/bin/espeak -w "+imageFilePrefix+onImgStr+'.wav "')
@@ -617,7 +670,7 @@ def fetchAudioFileTimes():
                 command = ["soxi","-D",odpFileSubdirectory+os.sep+file]
         else :
             command = ["soxi","-D",odpFileSubdirectory+os.sep+file]
-        print command
+
         process = subprocess.Popen(command,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
@@ -706,7 +759,7 @@ def writeHtml(sequence, audioFileTimes):
                     '<img src="' +
                     questionFileNames[position] + '.' + imageFileSuffix +
                     '" style="border:0px"></a><br>\n')
-   
+
             # Add source link, if any
             if 0<len(question.sourceLink):
                 htmlFile.write( \
