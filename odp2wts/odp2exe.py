@@ -2,10 +2,11 @@
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
 # Name:        odp2exe.py
-# Purpose:     Compile odp2wts.py into Windows .exe
+# Purpose:     Compile odp2ss.py into Windows .exe
 # Author:      John Graves
 #
 # Created:     1 September 2011
+# Modified:    29 November 2011
 # Copyright:   (c) John Graves 2011
 # License:     MIT License
 #
@@ -22,7 +23,7 @@ import sys
 
 class BuildApp:
     def __init__(self):
-        self.APP = ['odp2wts.py']
+        self.APP = ['odp2ss.py']
         self.DATA_FILES = ['CHANGES.txt',
                        'ethics_notice.txt',
                        'README.txt',
@@ -32,6 +33,7 @@ class BuildApp:
                        'ffmpeg.exe',
                        'js32.dll',
                        'sapi2wav.exe',
+                       'silence.ogg',
                        'sox.exe',
                        'soxi.exe',
                        'pthreadgc2.dll',
@@ -44,6 +46,7 @@ class BuildApp:
                                               "tk85.dll",
                                               "tcl85.dll"],
                              "bundle_files" : 1,
+
                            }
         #Dist directory
         self.dist_dir ='dist'
