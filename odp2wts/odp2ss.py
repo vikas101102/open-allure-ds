@@ -148,7 +148,11 @@ scriptAndImagesCreated = False
 if sys.platform.startswith("win") and odpSuffix.startswith("ppt"):
     # create .jpg files
     slideNotes = []
-    Application = win32com.client.Dispatch("PowerPoint.Application")
+    try:
+        Application = win32com.client.Dispatch("PowerPoint.Application")
+    except:
+        easygui.msgbox("PowerPoint not available.")
+        sys.exit()
     Application.Visible = True
     Presentation = Application.Presentations.Open(odpFilePath)
     onSlide = 0
