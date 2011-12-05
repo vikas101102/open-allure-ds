@@ -24,7 +24,7 @@ import sys
 class BuildApp:
     def __init__(self):
         self.APP = ['odp2ss.py']
-        self.DATA_FILES = ['CHANGES.txt',
+        self.DATA_FILES = [(".",['CHANGES.txt',
                        'ethics_notice.txt',
                        'README.txt',
                        'LICENSE.txt',
@@ -41,7 +41,7 @@ class BuildApp:
                        'zlib1.dll',
                        '_tkinter.pyd',
                        'tcl85.dll',
-                       'tk85.dll']
+                       'tk85.dll']),]
         self.OPTIONS = { "dll_excludes": ["POWRPROF.dll",
                                               "tk85.dll",
                                               "tcl85.dll"],
