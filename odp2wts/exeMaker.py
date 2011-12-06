@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Name:        odp2exe.py
-# Purpose:     Compile odp2ss.py into Windows .exe
+# Name:        exeMaker.py
+# Purpose:     Compile SlideSpeechConverter.py into Windows .exe
 # Author:      John Graves
 #
 # Created:     1 September 2011
-# Modified:    29 November 2011
+# Modified:    6 December 2011
 # Copyright:   (c) John Graves 2011
 # License:     MIT License
 #
-# Usage:       python odp2exe.py
+# Usage:       python exeMaker.py
 #-------------------------------------------------------------------------------
 
 from setuptools import setup
@@ -23,7 +23,7 @@ import sys
 
 class BuildApp:
     def __init__(self):
-        self.APP = ['odp2ss.py']
+        self.APP = ['SlideSpeechConverter.py']
         self.DATA_FILES = [(".",['CHANGES.txt',
                        'ethics_notice.txt',
                        'README.txt',

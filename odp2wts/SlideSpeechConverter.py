@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 """
-odp2ss.py
+SlideSpeechConverter.py
 a component of SlideSpeech.py
 
-Extract speaker notes from .odp file and prepare script.txt for SlideSpeech
+Extract speaker notes from .odp or .ppt file
+Prepare script.txt for SlideSpeech
+Prepare convert.bat to generate audio via text-to-speech
+Output HTML wrappers for slide images and audio
+Prepare makeVid.bat to generate video
 
 Copyright (c) 2011 John Graves
 
@@ -51,6 +55,7 @@ Fourth; No, just the third. > q/img1q2a2.mp3, > q/img1q2r2.mp3
     mencode
     espeak
 20111205 Allow for direct script and image creation from PowerPoint files
+20111206 Renamed SlideSpeech Converter
 """
 __version__ = "0.1.30"
 
