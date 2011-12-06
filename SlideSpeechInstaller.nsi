@@ -4,15 +4,15 @@
 
 Var ALREADY_INSTALLED ; variable - no {} needed, just $
 
-!define WIKI_TO_SPEECH_VERSION "0.1.27" ; define - ${} needed
+!define SLIDESPEECH_VERSION "0.1.30" ; define - ${} needed
 
-!define MUI_ICON "D:\open-allure-ds\odp2wts\openallure_32x32.ico"
+!define MUI_ICON "D:\open-allure-ds\odp2wts\slidespeech.ico"
 !define UMUI_LEFTIMAGE_BMP "D:\open-allure-ds\odp2wts\openallure_left.bmp"
 
 ; Welcome
-!define MUI_PAGE_HEADER_TEXT "Wiki-to-Speech from ODP"
-!define MUI_WELCOMEPAGE_TITLE "Wiki-to-Speech from ODP v.${WIKI_TO_SPEECH_VERSION}"
-!define MUI_WELCOMEPAGE_TEXT "Wiki-to-Speech from ODP turns your presentation \
+!define MUI_PAGE_HEADER_TEXT "SlideSpeech"
+!define MUI_WELCOMEPAGE_TITLE "SlideSpeech v.${SLIDESPEECH_VERSION}"
+!define MUI_WELCOMEPAGE_TEXT "SlideSpeech turns your presentation \
 into a slide show with voice over and a video. \
 \r\n\r\nClick Next to start installation."
 !insertmacro MUI_PAGE_WELCOME
@@ -27,10 +27,10 @@ into a slide show with voice over and a video. \
 !insertmacro MUI_PAGE_INSTFILES
 
 ; Finish
-!define MUI_FINISHPAGE_TITLE "Wiki-to-Speech from ODP should now be ready to use"
+!define MUI_FINISHPAGE_TITLE "SlideSpeech should now be ready to use"
 !define MUI_FINISHPAGE_TEXT "See on-line documentation for details."
-!define MUI_FINISHPAGE_LINK "Wiki-to-Speech Documentation"
-!define MUI_FINISHPAGE_LINK_LOCATION "http://code.google.com/p/wiki-to-speech/wiki/Resources"
+!define MUI_FINISHPAGE_LINK "SlideSpeech Documentation"
+!define MUI_FINISHPAGE_LINK_LOCATION "http://code.google.com/p/slidespeech/wiki/Resources"
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstall
@@ -44,15 +44,15 @@ into a slide show with voice over and a video. \
 ;--------------------------------
 
 ; The name of the installer
-Name "Wiki-to-Speech from ODP"
+Name "SlideSpeech Installer"
 
 ; The file to write
-OutFile "Wiki-to-Speech-from-ODP-win-${WIKI_TO_SPEECH_VERSION}.exe"
+OutFile "SlideSpeech-win-${SLIDESPEECH_VERSION}.exe"
 
 ; Default installation directory
-InstallDir "$PROGRAMFILES\Wiki-to-Speech-from-ODP"
+InstallDir "$PROGRAMFILES\SlideSpeech"
 ; The text to prompt the user to enter a directory
-DirText "Please choose the directory where you would like Wiki-to-Speech from ODP installed."
+DirText "Please choose the directory where you would like SlideSpeech installed."
 ;ShowInstDetails show
 ;ShowUnInstDetails show
 
@@ -85,13 +85,14 @@ Section ""
   CreateDirectory $INSTDIR
   SetOutPath "$INSTDIR"
 
-  File "D:\open-allure-ds\odp2wts\openallure_32x32.ico"
+  File "D:\open-allure-ds\odp2wts\slidespeech.ico"
 
   File /r "D:\open-allure-ds\odp2wts\dist\*.*"
+  File /r "D:\open-allure-ds\wikitospeech\dist\*.*"
 
   ; http://osdir.com/ml/python.db.pysqlite.user/2005-05/msg00040.html (can be missing)
   ; http://nsis.sourceforge.net/Docs/AppendixB.html
-  IfFileExists "$INSTDIR\odp2wts.exe" 0 new_installation ; continue if true, else jump to new_installation label
+  IfFileExists "$INSTDIR\odp2ss.exe" 0 new_installation ; continue if true, else jump to new_installation label
     StrCpy $ALREADY_INSTALLED 1 ;set to non-zero value if already installed
   new_installation: ; already installed stays as initialised
 
@@ -101,15 +102,21 @@ Section ""
   SetOutPath $INSTDIR
   ;Create shortcuts etc
   ;create desktop shortcut
-  CreateShortCut "$DESKTOP\Wiki-to-Speech from ODP.lnk" \
-                 "$INSTDIR\odp2wts.exe" "" \
-                 "$INSTDIR\openallure_32x32.ico"
+  CreateShortCut "$DESKTOP\SlideSpeech Converter.lnk" \
+                 "$INSTDIR\SlideSpeechConverter.exe" "" \
+                 "$INSTDIR\slidespeech.ico"
+  CreateShortCut "$DESKTOP\SlideSpeech.lnk" \
+                 "$INSTDIR\SlideSpeech.exe" "" \
+                 "$INSTDIR\slidespeech.ico"
 
-  CreateDirectory "$SMPROGRAMS\Wiki-to-Speech"
-  CreateShortCut "$SMPROGRAMS\Wiki-to-Speech\Wiki-to-Speech from ODP.lnk" \
-                 "$INSTDIR\odp2wts.exe" "" \
-                 "$INSTDIR\openallure_32x32.ico"
-  CreateShortCut "$SMPROGRAMS\Wiki-to-Speech\Uninstall.lnk" \
+  CreateDirectory "$SMPROGRAMS\SlideSpeech"
+  CreateShortCut "$SMPROGRAMS\SlideSpeech\SlideSpeech Converter.lnk" \
+                 "$INSTDIR\SlideSpeechConverter.exe" "" \
+                 "$INSTDIR\slidespeech.ico"
+  CreateShortCut "$SMPROGRAMS\SlideSpeech\SlideSpeech.lnk" \
+                 "$INSTDIR\SlideSpeech.exe" "" \
+                 "$INSTDIR\slidespeech.ico"
+  CreateShortCut "$SMPROGRAMS\SlideSpeech\Uninstall.lnk" \
                  "$INSTDIR\Uninstall.exe" "" \
                  "$INSTDIR\uninstall.exe" 0
   ;Create uninstaller
@@ -124,9 +131,10 @@ SectionEnd ; end the section
 Section "Uninstall"
 
   RMDir /r /REBOOTOK $INSTDIR
-  RMDir /r /REBOOTOK "$PROFILE\Wiki-to-Speech"
-  RMDir /r "$SMPROGRAMS\Wiki-to-Speech"
-  Delete "$DESKTOP\Wiki-to-Speech from ODP.lnk"
+  RMDir /r /REBOOTOK "$PROFILE\SlideSpeech"
+  RMDir /r "$SMPROGRAMS\SlideSpeech"
+  Delete "$DESKTOP\SlideSpeech Converter.lnk"
+  Delete "$DESKTOP\SlideSpeech.lnk"
 
 SectionEnd
 

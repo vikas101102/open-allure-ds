@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-ss2exe.py
+exeMaker.py
 a component of SlideSpeech.py
 
 Creates SlideSpeech.exe for Windows
