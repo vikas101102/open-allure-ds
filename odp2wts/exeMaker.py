@@ -29,7 +29,7 @@ class BuildApp:
                        'README.txt',
                        'LICENSE.txt',
                        'lame.exe',
-                       'MP4Box.exe',
+                       'mencoder.exe',
                        'ffmpeg.exe',
                        'js32.dll',
                        'sapi2wav.exe',

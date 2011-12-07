@@ -4,7 +4,7 @@
 
 Var ALREADY_INSTALLED ; variable - no {} needed, just $
 
-!define SLIDESPEECH_VERSION "0.1.30" ; define - ${} needed
+!define SLIDESPEECH_VERSION "0.1.31" ; define - ${} needed
 
 !define MUI_ICON "D:\open-allure-ds\odp2wts\slidespeech.ico"
 !define UMUI_LEFTIMAGE_BMP "D:\open-allure-ds\odp2wts\openallure_left.bmp"
