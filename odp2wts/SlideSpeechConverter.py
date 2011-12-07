@@ -56,8 +56,9 @@ Fourth; No, just the third. > q/img1q2a2.mp3, > q/img1q2r2.mp3
     espeak
 20111205 Allow for direct script and image creation from PowerPoint files
 20111206 Renamed SlideSpeech Converter
+20111207 Changed to using mencoder to create .avi files for makeVid Windows
 """
-__version__ = "0.1.30"
+__version__ = "0.1.31"
 
 import BeautifulSoup
 from BeautifulSoup import BeautifulStoneSoup
@@ -912,15 +913,15 @@ if sys.platform.startswith("win"):
         subprocess.Popen(["del","win32_mklink_test"],shell=True)
 
     f.write("echo off\ncls\n")
-    f.write("if exist output.mp4 (del output.mp4)\n")
-    if os.path.isfile(savePath+os.sep+"MP4Box.exe"):
-        catCommand = '"'+savePath+os.sep+'MP4Box"'
-    else:
-        catCommand = "MP4Box"
+    f.write("if exist output.avi (del output.avi)\n")
+    catCommand = "copy /b"
     for i, file in enumerate(sortedOgg):
         stem, suffix = file.split(".")
         # Add the slide video to the list of videos to be concatenated
-        catCommand += " -cat "+stem+".mp4"
+        if i==0:
+            catCommand += " "+stem+".avi"
+        else:
+            catCommand += " + "+stem+".avi"
         tenthsOfSeconds = int(math.floor(times[i]*10))
         # If we are on the last slide, add enough frames
         # to give audio time to finish
@@ -944,7 +945,7 @@ if sys.platform.startswith("win"):
         # Convert the images to a video of that slide with voice over
         # NOTE: Little trick here -- Windows wants to substitute the batch file name
         #       into %0 so we use %1 and pass %0 as the first parameter
-        f.write('"'+savePath+os.sep+'ffmpeg" -i '+stem+'.mp3 -r 10 -i "'+stem+'_%15d.jpg" -ab 64k '+stem+".mp4\n")
+        f.write('"'+savePath+os.sep+'ffmpeg" -i '+stem+'.mp3 -r 10 -i "'+stem+'_%15d.jpg" -ab 64k '+stem+".avi\n")
         # Delete the symlinks
         for j in range(tenthsOfSeconds):
             f.write("del "+stem+'_'+str(j).zfill(5)+'.jpg\n')
@@ -953,12 +954,17 @@ if sys.platform.startswith("win"):
             if ((j > 0) and (j % 900 == 0)):
                 f.write("del "+stem+str(j)+'.jpg\n')
     # Add an output file name for the concatenation
-    catCommand += " output.mp4\n"
+    catCommand += " temp.avi\n"
+
+    if os.path.isfile(savePath+os.sep+"mencoder.exe"):
+        catCommand += '"'+savePath+os.sep+'mencoder.exe" temp.avi -o output.avi -forceidx -ovc copy -oac copy\n'
+    else:
+        catCommand += "mencoder.exe temp.avi -o output.avi -forceidx -ovc copy -oac copy\n"
     f.write(catCommand)
     # Delete all the single slide videos
     for file in sortedOgg:
         stem, suffix = file.split(".")
-        f.write('del '+stem+'.mp4\n')
+        f.write('del '+stem+'.avi\n')
     f.close()
 
 elif sys.platform.startswith("darwin"):
