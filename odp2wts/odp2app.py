@@ -7,7 +7,7 @@
 # Author:      John Graves
 #
 # Created:     26 November 2011
-# Modified:    28 November 2011
+# Modified:    14 December 2011
 # Copyright:   (c) John Graves 2011
 # License:     MIT License
 #-------------------------------------------------------------------------------
@@ -48,6 +48,6 @@ if __name__ == '__main__':
         sys.argv.append('py2app')
     BuildApp().run() #Run generation
     raw_input("Press any key to continue") #Pause to let user see that things ends
-    os.chmod(os.getcwd()+os.sep+"dist/odp2ss.app/Contents/Resources/soxi",stat.S_IRWXU)
-    os.chmod(os.getcwd()+os.sep+"dist/odp2ss.app/Contents/Resources/ffmpeg",stat.S_IRWXU)
-    os.chmod(os.getcwd()+os.sep+"dist/odp2ss.app/Contents/Resources/MP4Box",stat.S_IRWXU)
+    os.chmod(os.getcwd()+os.sep+"dist/odp2ss.app/Contents/Resources/soxi",stat.S_IRWXU+stat.S_IXGRP+stat.S_IXOTH)
+    os.chmod(os.getcwd()+os.sep+"dist/odp2ss.app/Contents/Resources/ffmpeg",stat.S_IRWXU+stat.S_IXGRP+stat.S_IXOTH)
+    os.chmod(os.getcwd()+os.sep+"dist/odp2ss.app/Contents/Resources/MP4Box",stat.S_IRWXU+stat.S_IXGRP+stat.S_IXOTH)
