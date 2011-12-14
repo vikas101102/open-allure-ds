@@ -237,13 +237,14 @@ for file in imageFileList:
         num = int(stem[3:])
     else:
         wrongStem = True
-    if num>maxNum:
-        maxNum=num
 
 if wrongStem:
     easygui.msgbox("Need slide image files for this presentation\n"+
     "with consistent stem: Slide* or img*\n\nCheck in "+odpFileSubdirectory)
     sys.exit()
+else:
+    if num>maxNum:
+        maxNum=num
 
 if not scriptAndImagesCreated:
     ## Step 1 - parse the .odp file, prepare script.txt and .zip file
