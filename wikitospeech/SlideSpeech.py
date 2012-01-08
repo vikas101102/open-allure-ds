@@ -136,7 +136,8 @@ def speakAndReturnForm():
             if len(seq.sequence[seq.onQuestion].pathToImageFiles)>0:
                 linkToShow = seq.sequence[seq.onQuestion].pathToImageFiles + linkToShow
             else:
-                linkToShow = "static/" + linkToShow
+                pass
+                #linkToShow = "static/" + linkToShow
         if len(seq.sequence[seq.onQuestion].answers)>0:
             return forms.showJPGSlideWithQuestion(linkToShow, \
                                      seq.sequence[seq.onQuestion] )

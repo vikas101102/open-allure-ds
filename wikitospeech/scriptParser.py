@@ -42,8 +42,8 @@ def unescape(text):
 
 def parseScript(name):
     if name.startswith("http"):
-        if name.find("etherpad")>0:
-            sequence = parseEtherpad(name)
+        if name.find("wikitospeech.pagekite.me")>0:
+            sequence = parseForm(name)
         elif name.find("titanpad")>0:
             sequence = parseEtherpad(name)
         else:
@@ -96,6 +96,46 @@ def parseEtherpad(name):
     sequence = parseText(text)
     return sequence
 
+def parseForm(name):
+    # download and extract script from wikitospeech.pagekite.me page, for example:
+    # http://wikitospeech.pagekite.me?tag=Test
+    try:
+        proxy = os.environ["HTTP_PROXY"]
+    except:
+        proxy = ''
+    if proxy=="http://cache.aut.ac.nz:3128":
+        proxies = {'http': 'http://cache.aut.ac.nz:3128'}
+        urlOpen = urllib.urlopen( name , proxies=proxies )
+    else:
+        urlOpen = urllib.urlopen( name, proxies={} )
+
+    # extract text marked with <from> from wikitospeech page
+    soup = BeautifulSoup(urlOpen.read())
+    taggedPre = soup.form
+    img=[i['src'] for i in soup.form.findAll('img')]
+    #[u'http://dl.dropbox.com/u/12838403/20120109/img0.png', u'http://dl.dropbox.com/u/12838403/20120109/img1.png']
+    text=[i.contents[0].strip() for i in soup.form.findAll('textarea')]
+    #[u'Notes on slide 1', u'Notes on slide 2']
+    urlText = []
+    for i in range(0,len(img)): 
+        print i
+        urlText.append(img[i])
+        textLines = text[i].split("\n")
+        for line in textLines:
+            urlText.append(line)
+        urlText.append("\n")
+
+    f = open('debug.txt','w')
+    f.write("test run at " + strftime("%d %b %Y %H:%M", gmtime()) + "\n")
+    f.write(str(type(urlText))+ "\n")
+    f.write(str(len(urlText))+ "\n")
+    for l in urlText:
+        f.write(l.strip()+"\n")
+    f.close()
+
+    sequence = parseText(urlText)
+    return sequence
+    
 def parseHtml(name):
     # download and extract script from wiki page, for example:
     # http://dl.dropbox.com/u/12838403/dropbox.txt
